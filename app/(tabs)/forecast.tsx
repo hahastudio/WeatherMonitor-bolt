@@ -5,6 +5,7 @@ import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { WeatherCard } from '../../components/WeatherCard';
+import { WeatherIcon } from '../../components/WeatherIcon';
 import { formatDate, formatTime } from '../../utils/weatherTheme';
 
 export default function ForecastScreen() {
@@ -70,10 +71,10 @@ export default function ForecastScreen() {
       marginBottom: 12,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
     },
     timeInfo: {
       flex: 1,
+      marginRight: 12,
     },
     dateText: {
       color: theme.text,
@@ -85,9 +86,16 @@ export default function ForecastScreen() {
       fontSize: 14,
       marginTop: 2,
     },
+    weatherIconContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: 16,
+      width: 50,
+    },
     weatherInfo: {
       alignItems: 'center',
-      marginHorizontal: 16,
+      marginRight: 16,
+      minWidth: 60,
     },
     tempText: {
       color: theme.text,
@@ -101,12 +109,85 @@ export default function ForecastScreen() {
       textAlign: 'center',
       marginTop: 2,
     },
+    popContainer: {
+      alignItems: 'center',
+      minWidth: 50,
+    },
+    popLabel: {
+      color: theme.textSecondary,
+      fontSize: 10,
+      marginBottom: 2,
+    },
     popText: {
       color: theme.primary,
-      fontSize: 12,
+      fontSize: 14,
       fontWeight: '600',
-      textAlign: 'right',
-      minWidth: 40,
+    },
+    // 5-Day Forecast Card Styles
+    dayCard: {
+      backgroundColor: theme.surface + '90',
+      borderRadius: 16,
+      padding: 16,
+      marginBottom: 12,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    dayHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 12,
+    },
+    dayTitle: {
+      color: theme.text,
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    dayContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    dayLeftContent: {
+      flex: 1,
+      marginRight: 16,
+    },
+    dayTemperature: {
+      color: theme.text,
+      fontSize: 24,
+      fontWeight: '700',
+      marginBottom: 4,
+    },
+    dayDescription: {
+      color: theme.textSecondary,
+      fontSize: 14,
+      marginBottom: 8,
+    },
+    dayDetails: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    dayDetailItem: {
+      alignItems: 'center',
+    },
+    dayDetailLabel: {
+      color: theme.textSecondary,
+      fontSize: 12,
+      marginBottom: 2,
+    },
+    dayDetailValue: {
+      color: theme.text,
+      fontSize: 14,
+      fontWeight: '600',
+    },
+    dayIconContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   });
 
@@ -160,6 +241,14 @@ export default function ForecastScreen() {
                 </Text>
               </View>
               
+              <View style={styles.weatherIconContainer}>
+                <WeatherIcon 
+                  weatherMain={item.weather[0].main}
+                  size={40}
+                  color={theme.primary}
+                />
+              </View>
+              
               <View style={styles.weatherInfo}>
                 <Text style={styles.tempText}>
                   {Math.round(item.main.temp)}°
@@ -169,9 +258,12 @@ export default function ForecastScreen() {
                 </Text>
               </View>
               
-              <Text style={styles.popText}>
-                {Math.round(item.pop * 100)}%
-              </Text>
+              <View style={styles.popContainer}>
+                <Text style={styles.popLabel}>Rain</Text>
+                <Text style={styles.popText}>
+                  {Math.round(item.pop * 100)}%
+                </Text>
+              </View>
             </View>
           ))}
 
@@ -190,16 +282,49 @@ export default function ForecastScreen() {
             const minTemp = Math.min(...items.map(item => item.main.temp_min));
 
             return (
-              <WeatherCard
-                key={date}
-                title={formatDate(dayItem.dt)}
-                temperature={dayItem.main.temp}
-                description={dayItem.weather[0].description}
-                weatherMain={dayItem.weather[0].main}
-                showDetails={true}
-                humidity={dayItem.main.humidity}
-                windSpeed={dayItem.wind.speed}
-              />
+              <View key={date} style={styles.dayCard}>
+                <View style={styles.dayHeader}>
+                  <Text style={styles.dayTitle}>{formatDate(dayItem.dt)}</Text>
+                </View>
+                
+                <View style={styles.dayContent}>
+                  <View style={styles.dayLeftContent}>
+                    <Text style={styles.dayTemperature}>
+                      {Math.round(dayItem.main.temp)}°C
+                    </Text>
+                    <Text style={styles.dayDescription}>
+                      {dayItem.weather[0].description}
+                    </Text>
+                    
+                    <View style={styles.dayDetails}>
+                      <View style={styles.dayDetailItem}>
+                        <Text style={styles.dayDetailLabel}>High</Text>
+                        <Text style={styles.dayDetailValue}>{Math.round(maxTemp)}°</Text>
+                      </View>
+                      <View style={styles.dayDetailItem}>
+                        <Text style={styles.dayDetailLabel}>Low</Text>
+                        <Text style={styles.dayDetailValue}>{Math.round(minTemp)}°</Text>
+                      </View>
+                      <View style={styles.dayDetailItem}>
+                        <Text style={styles.dayDetailLabel}>Humidity</Text>
+                        <Text style={styles.dayDetailValue}>{dayItem.main.humidity}%</Text>
+                      </View>
+                      <View style={styles.dayDetailItem}>
+                        <Text style={styles.dayDetailLabel}>Wind</Text>
+                        <Text style={styles.dayDetailValue}>{dayItem.wind.speed} m/s</Text>
+                      </View>
+                    </View>
+                  </View>
+                  
+                  <View style={styles.dayIconContainer}>
+                    <WeatherIcon 
+                      weatherMain={dayItem.weather[0].main}
+                      size={64}
+                      color={theme.primary}
+                    />
+                  </View>
+                </View>
+              </View>
             );
           })}
 
