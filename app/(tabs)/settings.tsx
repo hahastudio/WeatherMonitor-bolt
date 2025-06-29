@@ -14,9 +14,12 @@ import {
   X,
   Check,
   Activity,
+  Shield,
+  Database,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { notificationService } from '../../services/notificationService';
+import { alertTracker } from '../../services/alertTracker';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
 
 const REFRESH_RATE_OPTIONS = [
@@ -42,6 +45,11 @@ export default function SettingsScreen() {
 
   const [showRefreshRateModal, setShowRefreshRateModal] = useState(false);
   const [showApiLogModal, setShowApiLogModal] = useState(false);
+  const [alertTrackerStats, setAlertTrackerStats] = useState<{
+    totalTrackedAlerts: number;
+    oldestAlertAge: number | null;
+    newestAlertAge: number | null;
+  } | null>(null);
 
   const handleNotificationTest = async () => {
     try {
@@ -70,6 +78,42 @@ export default function SettingsScreen() {
     setShowRefreshRateModal(false);
   };
 
+  const handleClearAlertHistory = async () => {
+    Alert.alert(
+      'Clear Alert History',
+      'This will clear the history of recent weather alerts and allow duplicate notifications to be sent again. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await alertTracker.clearRecentAlerts();
+              setAlertTrackerStats({
+                totalTrackedAlerts: 0,
+                oldestAlertAge: null,
+                newestAlertAge: null,
+              });
+              Alert.alert('Success', 'Alert history cleared successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear alert history');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const loadAlertTrackerStats = async () => {
+    try {
+      const stats = await alertTracker.getTrackerStats();
+      setAlertTrackerStats(stats);
+    } catch (error) {
+      console.error('Failed to load alert tracker stats:', error);
+    }
+  };
+
   const showAbout = () => {
     Alert.alert(
       'About Weather App',
@@ -82,6 +126,23 @@ export default function SettingsScreen() {
     const option = REFRESH_RATE_OPTIONS.find(opt => opt.value === rate);
     return option ? option.label : `${rate} minutes`;
   };
+
+  const formatAlertAge = (ageMs: number | null): string => {
+    if (!ageMs) return 'N/A';
+    
+    const hours = Math.floor(ageMs / (1000 * 60 * 60));
+    const minutes = Math.floor((ageMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ago`;
+    }
+    return `${minutes}m ago`;
+  };
+
+  // Load alert tracker stats when component mounts
+  React.useEffect(() => {
+    loadAlertTrackerStats();
+  }, []);
 
   const styles = StyleSheet.create({
     container: {
@@ -177,6 +238,26 @@ export default function SettingsScreen() {
       fontSize: 16,
       fontWeight: '600',
       marginLeft: 8,
+    },
+    alertStatsContainer: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.textSecondary + '20',
+    },
+    alertStatRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    alertStatLabel: {
+      color: theme.textSecondary,
+      fontSize: 12,
+    },
+    alertStatValue: {
+      color: theme.text,
+      fontSize: 12,
+      fontWeight: '600',
     },
     // Modal styles
     modalOverlay: {
@@ -455,6 +536,64 @@ export default function SettingsScreen() {
                   <Text style={styles.settingTitle}>Test Notifications</Text>
                   <Text style={styles.settingDescription}>
                     Send a test notification
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Alert Management */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Alert Management</Text>
+            
+            <View style={styles.infoCard}>
+              <Text style={styles.infoTitle}>Alert Duplicate Prevention</Text>
+              <Text style={styles.infoText}>
+                The app tracks recent weather alerts to prevent duplicate notifications. 
+                Up to 100 recent alert IDs are stored locally.
+              </Text>
+              
+              {alertTrackerStats && (
+                <View style={styles.alertStatsContainer}>
+                  <View style={styles.alertStatRow}>
+                    <Text style={styles.alertStatLabel}>Tracked Alerts:</Text>
+                    <Text style={styles.alertStatValue}>{alertTrackerStats.totalTrackedAlerts}</Text>
+                  </View>
+                  <View style={styles.alertStatRow}>
+                    <Text style={styles.alertStatLabel}>Last Updated:</Text>
+                    <Text style={styles.alertStatValue}>
+                      {formatAlertAge(alertTrackerStats.newestAlertAge)}
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+
+            <TouchableOpacity style={styles.settingItem} onPress={handleClearAlertHistory}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <Shield size={24} color={theme.accent} />
+                </View>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Clear Alert History</Text>
+                  <Text style={styles.settingDescription}>
+                    Reset duplicate alert prevention
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingItem} onPress={loadAlertTrackerStats}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <Database size={24} color={theme.primary} />
+                </View>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Refresh Alert Stats</Text>
+                  <Text style={styles.settingDescription}>
+                    Update alert tracking statistics
                   </Text>
                 </View>
               </View>

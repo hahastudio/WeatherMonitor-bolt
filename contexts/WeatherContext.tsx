@@ -5,6 +5,7 @@ import { weatherService } from '../services/weatherService';
 import { caiyunService } from '../services/caiyunService';
 import { locationService } from '../services/locationService';
 import { notificationService } from '../services/notificationService';
+import { alertTracker } from '../services/alertTracker';
 import { getWeatherCondition, getWeatherTheme, WeatherTheme } from '../utils/weatherTheme';
 
 interface WeatherContextType {
@@ -86,13 +87,27 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
             const alerts = alertsResponse.result.alert.content;
             setWeatherAlerts(alerts);
 
-            // Show notifications for new alerts
-            for (const alert of alerts) {
-              console.log('📢 Showing notification for alert:', alert.title);
+            // Filter out alerts that have already been notified
+            const alertIds = alerts.map(alert => alert.alertId);
+            const newAlertIds = await alertTracker.filterNewAlerts(alertIds);
+            
+            console.log(`📊 Total alerts: ${alerts.length}, New alerts: ${newAlertIds.length}`);
+
+            // Show notifications only for new alerts
+            const newAlerts = alerts.filter(alert => newAlertIds.includes(alert.alertId));
+            
+            for (const alert of newAlerts) {
+              console.log('📢 Showing notification for new alert:', alert.title);
               await notificationService.showWeatherAlert(alert);
             }
+
+            // Track all alert IDs to prevent future duplicates
+            if (alertIds.length > 0) {
+              await alertTracker.addMultipleAlertIds(alertIds);
+              console.log(`✅ Tracked ${alertIds.length} alert IDs for duplicate prevention`);
+            }
             
-            console.log(`✅ Loaded ${alerts.length} weather alerts from Caiyun API`);
+            console.log(`✅ Loaded ${alerts.length} weather alerts from Caiyun API (${newAlerts.length} new notifications sent)`);
           } else {
             console.log('ℹ️ No weather alerts found for this location');
             setWeatherAlerts([]);
