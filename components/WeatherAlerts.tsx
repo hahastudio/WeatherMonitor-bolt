@@ -140,7 +140,6 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: 16,
-      paddingBottom: 12,
     },
     alertTitleContainer: {
       flex: 1,
@@ -183,6 +182,9 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
     alertContent: {
       paddingHorizontal: 16,
       paddingBottom: 16,
+      paddingTop: 0,
+      borderTopWidth: 1,
+      borderTopColor: theme.textSecondary + '15',
     },
     alertDescription: {
       fontSize: 14,
@@ -210,12 +212,6 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
       fontStyle: 'italic',
       marginTop: 8,
       opacity: 0.7,
-    },
-    collapsedPreview: {
-      fontSize: 14,
-      opacity: 0.8,
-      paddingHorizontal: 16,
-      paddingBottom: 16,
     },
   });
 
@@ -291,12 +287,6 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
                   )}
                 </TouchableOpacity>
               </TouchableOpacity>
-
-              {!isExpanded && (
-                <Text style={[styles.collapsedPreview, { color: theme.textSecondary }]} numberOfLines={2}>
-                  {alert.description}
-                </Text>
-              )}
 
               {isExpanded && (
                 <View style={styles.alertContent}>
