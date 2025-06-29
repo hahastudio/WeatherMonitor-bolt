@@ -341,7 +341,7 @@ export default function ChartsScreen() {
             temperatureData,
             theme.primary,
             '°C',
-            'area',
+            'line',
             tempStats
           )}
 
@@ -381,7 +381,7 @@ export default function ChartsScreen() {
             humidityData,
             '#20B2AA',
             '%',
-            'area',
+            'line',
             humidityStats
           )}
 
