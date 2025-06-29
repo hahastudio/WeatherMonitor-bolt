@@ -73,8 +73,8 @@ export default function ForecastScreen() {
       alignItems: 'center',
     },
     timeInfo: {
-      flex: 1,
-      marginRight: 12,
+      width: 80,
+      marginRight: 16,
     },
     dateText: {
       color: theme.text,
@@ -87,15 +87,15 @@ export default function ForecastScreen() {
       marginTop: 2,
     },
     weatherIconContainer: {
+      width: 50,
       alignItems: 'center',
       justifyContent: 'center',
       marginRight: 16,
-      width: 50,
     },
     weatherInfo: {
+      flex: 1,
       alignItems: 'center',
       marginRight: 16,
-      minWidth: 60,
     },
     tempText: {
       color: theme.text,
@@ -110,8 +110,8 @@ export default function ForecastScreen() {
       marginTop: 2,
     },
     popContainer: {
+      width: 60,
       alignItems: 'center',
-      minWidth: 50,
     },
     popLabel: {
       color: theme.textSecondary,
@@ -167,6 +167,7 @@ export default function ForecastScreen() {
       color: theme.textSecondary,
       fontSize: 14,
       marginBottom: 8,
+      textTransform: 'capitalize',
     },
     dayDetails: {
       flexDirection: 'row',
@@ -188,6 +189,7 @@ export default function ForecastScreen() {
     dayIconContainer: {
       alignItems: 'center',
       justifyContent: 'center',
+      width: 80,
     },
   });
 
