@@ -96,7 +96,7 @@ export interface CaiyunWeatherAlert {
   title: string;
   description: string;
   status: string;
-  level: string;
+  level?: string; // Made optional since it might not be present in mock data
   type: string;
   publishTime: string;
   startTime: string;

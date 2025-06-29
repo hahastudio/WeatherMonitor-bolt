@@ -16,7 +16,40 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
     return null;
   }
 
-  const getAlertColor = (level: string) => {
+  const extractAlertLevel = (alert: CaiyunWeatherAlert): string => {
+    // If level is provided directly, use it
+    if (alert.level) {
+      return alert.level;
+    }
+
+    // Extract level from title (e.g., "黄色预警" -> "yellow", "红色预警" -> "red")
+    const title = alert.title.toLowerCase();
+    
+    if (title.includes('红色') || title.includes('red')) {
+      return 'red';
+    } else if (title.includes('橙色') || title.includes('orange')) {
+      return 'orange';
+    } else if (title.includes('黄色') || title.includes('yellow')) {
+      return 'yellow';
+    } else if (title.includes('蓝色') || title.includes('blue')) {
+      return 'blue';
+    } else if (title.includes('severe')) {
+      return 'severe';
+    } else if (title.includes('warning')) {
+      return 'warning';
+    } else if (title.includes('watch')) {
+      return 'watch';
+    } else if (title.includes('advisory')) {
+      return 'advisory';
+    }
+    
+    // Default fallback
+    return 'warning';
+  };
+
+  const getAlertColor = (alert: CaiyunWeatherAlert) => {
+    const level = extractAlertLevel(alert);
+    
     switch (level.toLowerCase()) {
       case 'red':
       case 'severe':
@@ -158,7 +191,8 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
         contentContainerStyle={styles.alertsContainer}
       >
         {alerts.map((alert) => {
-          const alertColor = getAlertColor(alert.level);
+          const alertColor = getAlertColor(alert);
+          const alertLevel = extractAlertLevel(alert);
           
           return (
             <View
@@ -194,7 +228,7 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
                       },
                     ]}
                   >
-                    {alert.level}
+                    {alertLevel}
                   </Text>
                   
                   {onDismiss && (
