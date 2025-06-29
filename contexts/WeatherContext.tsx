@@ -40,50 +40,7 @@ const STORAGE_KEYS = {
 const DEFAULT_REFRESH_RATE = 15; // 15 minutes
 
 // Mock weather alert data for testing
-const MOCK_WEATHER_ALERTS: CaiyunWeatherAlert[] = [
-  {
-    alertId: "12011641600000_20250629125347",
-    title: "滨海新区气象台发布雷电黄色预警/Ⅲ级/较重",
-    description: "滨海新区气象台于2025年06月29日12时52分发布雷电黄色预警信号：预计今天下午到夜间，滨海新区所有街镇将有间歇性雷阵雨，雷雨时风力较大，局地短时雨强较大并可能伴有小冰雹，请有关单位和人员做好防范准备。",
-    status: "预警中",
-    level: "yellow",
-    type: "雷电",
-    publishTime: new Date(1751172827 * 1000).toISOString(),
-    startTime: new Date(Date.now()).toISOString(),
-    endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
-    source: "国家预警信息发布中心",
-    city: "天津城区",
-    county: "滨海新区"
-  },
-  {
-    alertId: "mock_alert_2",
-    title: "Heavy Rain Warning - Orange Alert",
-    description: "Heavy rainfall is expected in the area with accumulations of 50-80mm possible. Flooding may occur in low-lying areas. Residents are advised to avoid unnecessary travel and stay indoors.",
-    status: "Active",
-    level: "orange",
-    type: "Heavy Rain",
-    publishTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-    startTime: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
-    endTime: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // 6 hours from now
-    source: "National Weather Service",
-    city: "Current Location",
-    county: "Local Area"
-  },
-  {
-    alertId: "mock_alert_3",
-    title: "Wind Advisory - Blue Alert",
-    description: "Strong winds of 40-60 km/h are expected. Secure loose objects and be cautious when driving high-profile vehicles.",
-    status: "Active",
-    level: "blue",
-    type: "Wind",
-    publishTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
-    startTime: new Date(Date.now()).toISOString(),
-    endTime: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(), // 12 hours from now
-    source: "Local Weather Station",
-    city: "Current Location",
-    county: "Local Area"
-  }
-];
+const MOCK_WEATHER_ALERTS: CaiyunWeatherAlert[] = [{"province":"天津市","status":"预警中","code":"0902","description":"滨海新区气象台于2025年06月29日12时52分发布雷电黄色预警信号：预计今天下午到夜间，滨海新区所有街镇将有间歇性雷阵雨，雷雨时风力较大，局地短时雨强较大并可能伴有小冰雹，请有关单位和人员做好防范准备。","regionId":"","county":"滨海新区","pubtimestamp":1751172827,"latlon":[39.017809,117.69641],"city":"天津城区","alertId":"12011641600000_20250629125347","title":"滨海新区气象台发布雷电黄色预警/Ⅲ级/较重","adcode":"120116","source":"国家预警信息发布中心","location":"天津市滨海新区","request_status":"ok"}];
 
 export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) => {
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
