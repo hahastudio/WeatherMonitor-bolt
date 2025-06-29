@@ -22,7 +22,6 @@ interface WeatherContextType {
   refreshWeather: () => Promise<void>;
   toggleDarkMode: () => void;
   setRefreshRate: (minutes: number) => Promise<void>;
-  dismissAlert: (alertId: string) => void;
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
@@ -72,7 +71,6 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const [refreshRate, setRefreshRateState] = useState<number>(DEFAULT_REFRESH_RATE);
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
-  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   const weatherCondition: WeatherCondition = currentWeather 
     ? getWeatherCondition(currentWeather.weather[0].main)
@@ -110,12 +108,10 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
           const alerts = MOCK_WEATHER_ALERTS;
           setWeatherAlerts(alerts);
 
-          // Show notifications for new alerts (not dismissed)
+          // Show notifications for new alerts
           for (const alert of alerts) {
-            if (!dismissedAlerts.has(alert.alertId)) {
-              console.log('📢 Showing notification for alert:', alert.title);
-              await notificationService.showWeatherAlert(alert);
-            }
+            console.log('📢 Showing notification for alert:', alert.title);
+            await notificationService.showWeatherAlert(alert);
           }
           
           console.log(`✅ Loaded ${alerts.length} mock weather alerts`);
@@ -187,25 +183,6 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
-  const dismissAlert = async (alertId: string) => {
-    const newDismissedAlerts = new Set(dismissedAlerts);
-    newDismissedAlerts.add(alertId);
-    setDismissedAlerts(newDismissedAlerts);
-    
-    // Filter out dismissed alert from display
-    setWeatherAlerts(prev => prev.filter(alert => alert.alertId !== alertId));
-    
-    try {
-      await AsyncStorage.setItem(
-        STORAGE_KEYS.DISMISSED_ALERTS, 
-        JSON.stringify(Array.from(newDismissedAlerts))
-      );
-      console.log('✅ Alert dismissed:', alertId);
-    } catch (error) {
-      console.error('Failed to save dismissed alerts:', error);
-    }
-  };
-
   const loadStoredPreferences = async () => {
     try {
       // Load dark mode preference
@@ -220,14 +197,6 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       if (storedRefreshRate !== null) {
         rate = JSON.parse(storedRefreshRate);
         setRefreshRateState(rate);
-      }
-
-      // Load dismissed alerts
-      const storedDismissedAlerts = await AsyncStorage.getItem(STORAGE_KEYS.DISMISSED_ALERTS);
-      if (storedDismissedAlerts !== null) {
-        const alertIds = JSON.parse(storedDismissedAlerts);
-        setDismissedAlerts(new Set(alertIds));
-        console.log('📱 Loaded dismissed alerts:', alertIds);
       }
       
       return rate;
@@ -278,7 +247,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const value: WeatherContextType = {
     currentWeather,
     forecast,
-    weatherAlerts: weatherAlerts.filter(alert => !dismissedAlerts.has(alert.alertId)),
+    weatherAlerts,
     location,
     cityName,
     loading,
@@ -290,7 +259,6 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     refreshWeather,
     toggleDarkMode,
     setRefreshRate,
-    dismissAlert,
   };
 
   return (

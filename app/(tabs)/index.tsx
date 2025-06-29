@@ -18,8 +18,7 @@ export default function HomeScreen() {
     loading, 
     error, 
     theme, 
-    refreshWeather,
-    dismissAlert
+    refreshWeather
   } = useWeather();
 
   if (loading && !currentWeather) {
@@ -201,10 +200,7 @@ export default function HomeScreen() {
 
           {/* Weather Alerts Section */}
           {weatherAlerts.length > 0 && (
-            <WeatherAlerts 
-              alerts={weatherAlerts} 
-              onDismiss={dismissAlert}
-            />
+            <WeatherAlerts alerts={weatherAlerts} />
           )}
 
           <View style={styles.content}>
