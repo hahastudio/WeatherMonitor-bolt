@@ -38,27 +38,6 @@ const STORAGE_KEYS = {
 
 const DEFAULT_REFRESH_RATE = 15; // 15 minutes
 
-// Mock weather alert data for testing - converted to match the updated interface
-const MOCK_WEATHER_ALERTS: CaiyunWeatherAlert[] = [
-  {
-    alertId: "12011641600000_20250629125347",
-    title: "滨海新区气象台发布雷电黄色预警/Ⅲ级/较重",
-    description: "滨海新区气象台于2025年06月29日12时52分发布雷电黄色预警信号：预计今天下午到夜间，滨海新区所有街镇将有间歇性雷阵雨，雷雨时风力较大，局地短时雨强较大并可能伴有小冰雹，请有关单位和人员做好防范准备。",
-    status: "预警中",
-    code: "0902",
-    province: "天津市",
-    city: "天津城区",
-    county: "滨海新区",
-    location: "天津市滨海新区",
-    source: "国家预警信息发布中心",
-    pubtimestamp: 1751172827,
-    latlon: [39.017809, 117.69641],
-    adcode: "120116",
-    regionId: "",
-    request_status: "ok"
-  }
-];
-
 export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) => {
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
@@ -96,28 +75,30 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       const city = await locationService.getCityName(coords);
       setCityName(city);
 
-      // Use mock weather alerts for testing (only on manual refresh or app start to avoid too many requests)
+      // Fetch weather alerts (only on manual refresh or app start to avoid too many requests)
       if (trigger === 'manual' || trigger === 'app_start') {
         try {
-          console.log('🧪 Using mock weather alerts for testing');
+          console.log('🌩️ Fetching weather alerts from Caiyun API...');
           
-          // Simulate API delay
-          await new Promise(resolve => setTimeout(resolve, 500));
+          const alertsResponse = await caiyunService.getWeatherAlerts(coords, trigger);
           
-          // Use mock data instead of real API call
-          const alerts = MOCK_WEATHER_ALERTS;
-          setWeatherAlerts(alerts);
+          if (alertsResponse.result?.alert?.content && alertsResponse.result.alert.content.length > 0) {
+            const alerts = alertsResponse.result.alert.content;
+            setWeatherAlerts(alerts);
 
-          // Show notifications for new alerts
-          for (const alert of alerts) {
-            console.log('📢 Showing notification for alert:', alert.title);
-            await notificationService.showWeatherAlert(alert);
+            // Show notifications for new alerts
+            for (const alert of alerts) {
+              console.log('📢 Showing notification for alert:', alert.title);
+              await notificationService.showWeatherAlert(alert);
+            }
+            
+            console.log(`✅ Loaded ${alerts.length} weather alerts from Caiyun API`);
+          } else {
+            console.log('ℹ️ No weather alerts found for this location');
+            setWeatherAlerts([]);
           }
-          
-          console.log(`✅ Loaded ${alerts.length} mock weather alerts`);
         } catch (alertError) {
-          // Alerts API might not be available, continue without errors
-          console.log('Weather alerts not available for this location');
+          console.log('⚠️ Weather alerts not available for this location:', alertError);
           setWeatherAlerts([]);
         }
       }
