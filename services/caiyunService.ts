@@ -10,7 +10,7 @@ class CaiyunService {
       throw new Error('Caiyun API key not configured. Please add your API key to .env file.');
     }
 
-    const url = `${BASE_URL}/${API_KEY}/${coords.longitude},${coords.latitude}/weather?alert=true&lang=en&unit=metric`;
+    const url = `${BASE_URL}/${API_KEY}/${coords.longitude},${coords.latitude}/weather?alert=true&lang=zh_CN&unit=metric`;
     const startTime = Date.now();
     
     try {
