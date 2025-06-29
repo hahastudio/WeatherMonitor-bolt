@@ -71,6 +71,24 @@ export default function ForecastScreen() {
       marginBottom: 12,
       flexDirection: 'row',
       alignItems: 'center',
+      // Use Android-compatible shadow approach for 24-hour items
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 1,
+          },
+          shadowOpacity: 0.08,
+          shadowRadius: 2,
+        },
+        android: {
+          elevation: 2,
+        },
+        web: {
+          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.08)',
+        },
+      }),
     },
     timeInfo: {
       width: 80,
@@ -123,13 +141,13 @@ export default function ForecastScreen() {
       fontSize: 14,
       fontWeight: '600',
     },
-    // 5-Day Forecast Card Styles - Fixed for Android grey border
+    // 5-Day Forecast Card Styles - COMPREHENSIVE Android grey border fix
     dayCard: {
       backgroundColor: theme.surface + '90',
       borderRadius: 16,
       padding: 16,
       marginBottom: 12,
-      // Use Android-compatible shadow approach
+      // CRITICAL: Use Platform.select for Android-compatible shadows
       ...Platform.select({
         ios: {
           shadowColor: '#000',
@@ -200,7 +218,7 @@ export default function ForecastScreen() {
       alignItems: 'center',
       justifyContent: 'center',
       width: 80,
-      // Remove ALL background styling to prevent Android grey border
+      // CRITICAL: Remove ALL styling that could cause Android grey borders
     },
   });
 
@@ -347,7 +365,7 @@ export default function ForecastScreen() {
                 ⚠️ {error}
               </Text>
             </View>
-          )}
+            )}
         </ScrollView>
       </LinearGradient>
     </View>
