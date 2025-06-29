@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Path, Line, Text as SvgText, Circle, Rect } from 'react-native-svg';
+import Svg, { Path, Line, Text as SvgText, Circle, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { useWeather } from '../contexts/WeatherContext';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -31,10 +31,32 @@ export const CustomChart: React.FC<CustomChartProps> = ({
 }) => {
   const { theme } = useWeather();
 
+  const styles = StyleSheet.create({
+    container: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: 'transparent', // Remove background to prevent grey border
+      borderRadius: 12,
+      padding: 8,
+      overflow: 'hidden', // Ensure content doesn't overflow
+    },
+    chartBackground: {
+      backgroundColor: theme.surface + '10', // Very subtle background
+      borderRadius: 8,
+      padding: 4,
+    },
+    noDataText: {
+      fontSize: 14,
+      textAlign: 'center',
+      fontStyle: 'italic',
+      color: theme.textSecondary,
+    },
+  });
+
   if (!data || data.length === 0) {
     return (
       <View style={[styles.container, { height: chartHeight }]}>
-        <Text style={[styles.noDataText, { color: theme.textSecondary }]}>
+        <Text style={styles.noDataText}>
           No data available
         </Text>
       </View>
@@ -52,7 +74,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   if (validData.length === 0) {
     return (
       <View style={[styles.container, { height: chartHeight }]}>
-        <Text style={[styles.noDataText, { color: theme.textSecondary }]}>
+        <Text style={styles.noDataText}>
           No valid data points
         </Text>
       </View>
@@ -78,7 +100,19 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     for (let i = 1; i < validData.length; i++) {
       const x = xScale(i);
       const y = yScale(validData[i].y);
-      path += ` L ${x} ${y}`;
+      
+      // Use smooth curves for better visual appeal
+      if (i === 1) {
+        path += ` L ${x} ${y}`;
+      } else {
+        const prevX = xScale(i - 1);
+        const prevY = yScale(validData[i - 1].y);
+        const cpX1 = prevX + (x - prevX) * 0.5;
+        const cpY1 = prevY;
+        const cpX2 = prevX + (x - prevX) * 0.5;
+        const cpY2 = y;
+        path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${x} ${y}`;
+      }
     }
     
     if (type === 'area') {
@@ -95,9 +129,9 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     if (!showGrid) return null;
     
     const gridLines = [];
-    const numYLines = 5;
+    const numYLines = 4;
     
-    for (let i = 0; i <= numYLines; i++) {
+    for (let i = 1; i < numYLines; i++) {
       const y = padding.top + (i / numYLines) * (chartHeight - padding.top - padding.bottom);
       gridLines.push(
         <Line
@@ -106,8 +140,10 @@ export const CustomChart: React.FC<CustomChartProps> = ({
           y1={y}
           x2={chartWidth - padding.right}
           y2={y}
-          stroke={theme.textSecondary + '20'}
-          strokeWidth={1}
+          stroke={theme.textSecondary}
+          strokeWidth={0.5}
+          strokeOpacity={0.2}
+          strokeDasharray="2,2"
         />
       );
     }
@@ -118,7 +154,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   // Generate Y-axis labels
   const generateYLabels = () => {
     const labels = [];
-    const numLabels = 5;
+    const numLabels = 4;
     
     for (let i = 0; i <= numLabels; i++) {
       const value = minY - yPadding + (i / numLabels) * (yRange + 2 * yPadding);
@@ -127,13 +163,14 @@ export const CustomChart: React.FC<CustomChartProps> = ({
       labels.push(
         <SvgText
           key={`y-label-${i}`}
-          x={padding.left - 10}
-          y={y + 4}
-          fontSize="12"
+          x={padding.left - 8}
+          y={y + 3}
+          fontSize="11"
           fill={theme.textSecondary}
           textAnchor="end"
+          fontWeight="500"
         >
-          {value.toFixed(0)}{unit}
+          {Math.round(value)}{unit}
         </SvgText>
       );
     }
@@ -153,10 +190,11 @@ export const CustomChart: React.FC<CustomChartProps> = ({
           <SvgText
             key={`x-label-${i}`}
             x={xScale(i)}
-            y={chartHeight - padding.bottom + 20}
+            y={chartHeight - padding.bottom + 16}
             fontSize="10"
             fill={theme.textSecondary}
             textAnchor="middle"
+            fontWeight="500"
           >
             {dataPoint.label}
           </SvgText>
@@ -167,98 +205,83 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     return labels;
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: theme.background + '20',
-      borderRadius: 12,
-      padding: 8,
-    },
-    noDataText: {
-      fontSize: 14,
-      textAlign: 'center',
-      fontStyle: 'italic',
-    },
-  });
-
   return (
     <View style={styles.container}>
-      <Svg width={chartWidth} height={chartHeight}>
-        {/* Grid lines */}
-        {generateGridLines()}
-        
-        {/* Y-axis */}
-        <Line
-          x1={padding.left}
-          y1={padding.top}
-          x2={padding.left}
-          y2={chartHeight - padding.bottom}
-          stroke={theme.textSecondary + '40'}
-          strokeWidth={1}
-        />
-        
-        {/* X-axis */}
-        <Line
-          x1={padding.left}
-          y1={chartHeight - padding.bottom}
-          x2={chartWidth - padding.right}
-          y2={chartHeight - padding.bottom}
-          stroke={theme.textSecondary + '40'}
-          strokeWidth={1}
-        />
-        
-        {/* Chart content */}
-        {type === 'bar' ? (
-          // Bar chart
-          validData.map((point, index) => {
-            const barWidth = (chartWidth - padding.left - padding.right) / validData.length * 0.6;
-            const x = xScale(index) - barWidth / 2;
-            const y = yScale(point.y);
-            const height = chartHeight - padding.bottom - y;
-            
-            return (
-              <Rect
-                key={`bar-${index}`}
-                x={x}
-                y={y}
-                width={barWidth}
-                height={height}
-                fill={color + '80'}
+      <View style={styles.chartBackground}>
+        <Svg width={chartWidth} height={chartHeight}>
+          <Defs>
+            <LinearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <Stop offset="0%" stopColor={color} stopOpacity="0.3" />
+              <Stop offset="100%" stopColor={color} stopOpacity="0.05" />
+            </LinearGradient>
+          </Defs>
+          
+          {/* Grid lines */}
+          {generateGridLines()}
+          
+          {/* Chart content */}
+          {type === 'bar' ? (
+            // Bar chart
+            validData.map((point, index) => {
+              const barWidth = Math.max(8, (chartWidth - padding.left - padding.right) / validData.length * 0.7);
+              const x = xScale(index) - barWidth / 2;
+              const y = yScale(point.y);
+              const height = Math.max(2, chartHeight - padding.bottom - y);
+              
+              return (
+                <Rect
+                  key={`bar-${index}`}
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={height}
+                  fill={`url(#gradient-${color.replace('#', '')})`}
+                  stroke={color}
+                  strokeWidth={1}
+                  rx={2}
+                />
+              );
+            })
+          ) : (
+            // Line/Area chart
+            <>
+              {type === 'area' && (
+                <Path
+                  d={generatePath()}
+                  fill={`url(#gradient-${color.replace('#', '')})`}
+                  stroke="none"
+                />
+              )}
+              
+              <Path
+                d={generatePath()}
+                fill="none"
                 stroke={color}
-                strokeWidth={1}
+                strokeWidth={type === 'line' ? 2.5 : 2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
               />
-            );
-          })
-        ) : (
-          // Line/Area chart
-          <>
-            <Path
-              d={generatePath()}
-              fill={type === 'area' ? color + '40' : 'none'}
-              stroke={color}
-              strokeWidth={type === 'line' ? 3 : 2}
-            />
-            
-            {/* Data points */}
-            {type === 'line' && validData.map((point, index) => (
-              <Circle
-                key={`point-${index}`}
-                cx={xScale(index)}
-                cy={yScale(point.y)}
-                r={3}
-                fill={color}
-                stroke="#FFFFFF"
-                strokeWidth={2}
-              />
-            ))}
-          </>
-        )}
-        
-        {/* Labels */}
-        {generateYLabels()}
-        {generateXLabels()}
-      </Svg>
+              
+              {/* Data points for line charts */}
+              {type === 'line' && validData.map((point, index) => (
+                <Circle
+                  key={`point-${index}`}
+                  cx={xScale(index)}
+                  cy={yScale(point.y)}
+                  r={2.5}
+                  fill={color}
+                  stroke="rgba(255,255,255,0.8)"
+                  strokeWidth={1.5}
+                />
+              ))}
+            </>
+          )}
+          
+          {/* Labels */}
+          {generateYLabels()}
+          {generateXLabels()}
+        </Svg>
+      </View>
     </View>
   );
 };
