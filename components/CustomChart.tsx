@@ -35,15 +35,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     container: {
       alignItems: 'center',
       justifyContent: 'center',
-      backgroundColor: 'transparent', // Remove background to prevent grey border
-      borderRadius: 12,
-      padding: 8,
-      overflow: 'hidden', // Ensure content doesn't overflow
-    },
-    chartBackground: {
-      backgroundColor: theme.surface + '10', // Very subtle background
-      borderRadius: 8,
-      padding: 4,
+      // Remove ALL background styling to prevent Android grey border
     },
     noDataText: {
       fontSize: 14,
@@ -142,8 +134,8 @@ export const CustomChart: React.FC<CustomChartProps> = ({
           y2={y}
           stroke={theme.textSecondary}
           strokeWidth={0.5}
-          strokeOpacity={0.2}
-          strokeDasharray="2,2"
+          strokeOpacity={0.15}
+          strokeDasharray="3,3"
         />
       );
     }
@@ -164,7 +156,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
         <SvgText
           key={`y-label-${i}`}
           x={padding.left - 8}
-          y={y + 3}
+          y={y + 4}
           fontSize="11"
           fill={theme.textSecondary}
           textAnchor="end"
@@ -207,81 +199,84 @@ export const CustomChart: React.FC<CustomChartProps> = ({
 
   return (
     <View style={styles.container}>
-      <View style={styles.chartBackground}>
-        <Svg width={chartWidth} height={chartHeight}>
-          <Defs>
-            <LinearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <Stop offset="0%" stopColor={color} stopOpacity="0.3" />
-              <Stop offset="100%" stopColor={color} stopOpacity="0.05" />
-            </LinearGradient>
-          </Defs>
-          
-          {/* Grid lines */}
-          {generateGridLines()}
-          
-          {/* Chart content */}
-          {type === 'bar' ? (
-            // Bar chart
-            validData.map((point, index) => {
-              const barWidth = Math.max(8, (chartWidth - padding.left - padding.right) / validData.length * 0.7);
-              const x = xScale(index) - barWidth / 2;
-              const y = yScale(point.y);
-              const height = Math.max(2, chartHeight - padding.bottom - y);
-              
-              return (
-                <Rect
-                  key={`bar-${index}`}
-                  x={x}
-                  y={y}
-                  width={barWidth}
-                  height={height}
-                  fill={`url(#gradient-${color.replace('#', '')})`}
-                  stroke={color}
-                  strokeWidth={1}
-                  rx={2}
-                />
-              );
-            })
-          ) : (
-            // Line/Area chart
-            <>
-              {type === 'area' && (
-                <Path
-                  d={generatePath()}
-                  fill={`url(#gradient-${color.replace('#', '')})`}
-                  stroke="none"
-                />
-              )}
-              
+      <Svg width={chartWidth} height={chartHeight}>
+        <Defs>
+          <LinearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor={color} stopOpacity="0.4" />
+            <Stop offset="100%" stopColor={color} stopOpacity="0.05" />
+          </LinearGradient>
+          <LinearGradient id={`bar-gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor={color} stopOpacity="0.8" />
+            <Stop offset="100%" stopColor={color} stopOpacity="0.3" />
+          </LinearGradient>
+        </Defs>
+        
+        {/* Grid lines */}
+        {generateGridLines()}
+        
+        {/* Chart content */}
+        {type === 'bar' ? (
+          // Bar chart
+          validData.map((point, index) => {
+            const barWidth = Math.max(8, (chartWidth - padding.left - padding.right) / validData.length * 0.6);
+            const x = xScale(index) - barWidth / 2;
+            const y = yScale(point.y);
+            const height = Math.max(2, chartHeight - padding.bottom - y);
+            
+            return (
+              <Rect
+                key={`bar-${index}`}
+                x={x}
+                y={y}
+                width={barWidth}
+                height={height}
+                fill={`url(#bar-gradient-${color.replace('#', '')})`}
+                stroke={color}
+                strokeWidth={1}
+                rx={3}
+                ry={3}
+              />
+            );
+          })
+        ) : (
+          // Line/Area chart
+          <>
+            {type === 'area' && (
               <Path
                 d={generatePath()}
-                fill="none"
-                stroke={color}
-                strokeWidth={type === 'line' ? 2.5 : 2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                fill={`url(#gradient-${color.replace('#', '')})`}
+                stroke="none"
               />
-              
-              {/* Data points for line charts */}
-              {type === 'line' && validData.map((point, index) => (
-                <Circle
-                  key={`point-${index}`}
-                  cx={xScale(index)}
-                  cy={yScale(point.y)}
-                  r={2.5}
-                  fill={color}
-                  stroke="rgba(255,255,255,0.8)"
-                  strokeWidth={1.5}
-                />
-              ))}
-            </>
-          )}
-          
-          {/* Labels */}
-          {generateYLabels()}
-          {generateXLabels()}
-        </Svg>
-      </View>
+            )}
+            
+            <Path
+              d={generatePath()}
+              fill="none"
+              stroke={color}
+              strokeWidth={3}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            
+            {/* Data points for line charts */}
+            {type === 'line' && validData.map((point, index) => (
+              <Circle
+                key={`point-${index}`}
+                cx={xScale(index)}
+                cy={yScale(point.y)}
+                r={3}
+                fill={color}
+                stroke="rgba(255,255,255,0.9)"
+                strokeWidth={2}
+              />
+            ))}
+          </>
+        )}
+        
+        {/* Labels */}
+        {generateYLabels()}
+        {generateXLabels()}
+      </Svg>
     </View>
   );
 };
