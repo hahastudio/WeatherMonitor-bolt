@@ -1,56 +1,132 @@
 import { CurrentWeather, ForecastResponse, AlertsResponse, LocationCoords } from '../types/weather';
+import { apiLogger } from './apiLogger';
 
 const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 
 class WeatherService {
-  async getCurrentWeather(coords: LocationCoords): Promise<CurrentWeather> {
+  async getCurrentWeather(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<CurrentWeather> {
     if (!API_KEY || API_KEY === 'your_openweathermap_api_key_here') {
       throw new Error('OpenWeatherMap API key not configured. Please add your API key to .env file.');
     }
 
     const url = `${BASE_URL}/weather?lat=${coords.latitude}&lon=${coords.longitude}&appid=${API_KEY}&units=metric`;
+    const startTime = Date.now();
     
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+    try {
+      const response = await fetch(url);
+      const responseTime = Date.now() - startTime;
+      
+      if (!response.ok) {
+        await apiLogger.logRequest(
+          'getCurrentWeather',
+          'GET',
+          'error',
+          trigger,
+          responseTime,
+          `${response.status} ${response.statusText}`
+        );
+        throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      await apiLogger.logRequest('getCurrentWeather', 'GET', 'success', trigger, responseTime);
+      return data;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await apiLogger.logRequest(
+        'getCurrentWeather',
+        'GET',
+        'error',
+        trigger,
+        responseTime,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      throw error;
     }
-    
-    return response.json();
   }
 
-  async getForecast(coords: LocationCoords): Promise<ForecastResponse> {
+  async getForecast(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<ForecastResponse> {
     if (!API_KEY || API_KEY === 'your_openweathermap_api_key_here') {
       throw new Error('OpenWeatherMap API key not configured. Please add your API key to .env file.');
     }
 
     const url = `${BASE_URL}/forecast?lat=${coords.latitude}&lon=${coords.longitude}&appid=${API_KEY}&units=metric`;
+    const startTime = Date.now();
     
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      throw new Error(`Forecast API error: ${response.status} ${response.statusText}`);
+    try {
+      const response = await fetch(url);
+      const responseTime = Date.now() - startTime;
+      
+      if (!response.ok) {
+        await apiLogger.logRequest(
+          'getForecast',
+          'GET',
+          'error',
+          trigger,
+          responseTime,
+          `${response.status} ${response.statusText}`
+        );
+        throw new Error(`Forecast API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      await apiLogger.logRequest('getForecast', 'GET', 'success', trigger, responseTime);
+      return data;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await apiLogger.logRequest(
+        'getForecast',
+        'GET',
+        'error',
+        trigger,
+        responseTime,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      throw error;
     }
-    
-    return response.json();
   }
 
-  async getWeatherAlerts(coords: LocationCoords): Promise<AlertsResponse> {
+  async getWeatherAlerts(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<AlertsResponse> {
     if (!API_KEY || API_KEY === 'your_openweathermap_api_key_here') {
       throw new Error('OpenWeatherMap API key not configured. Please add your API key to .env file.');
     }
 
     const url = `${BASE_URL}/onecall?lat=${coords.latitude}&lon=${coords.longitude}&appid=${API_KEY}&exclude=minutely,hourly,daily`;
+    const startTime = Date.now();
     
-    const response = await fetch(url);
-    
-    if (!response.ok) {
-      // Alerts API might not be available for all locations
-      return {};
+    try {
+      const response = await fetch(url);
+      const responseTime = Date.now() - startTime;
+      
+      if (!response.ok) {
+        await apiLogger.logRequest(
+          'getWeatherAlerts',
+          'GET',
+          'error',
+          trigger,
+          responseTime,
+          `${response.status} ${response.statusText}`
+        );
+        // Alerts API might not be available for all locations
+        return {};
+      }
+      
+      const data = await response.json();
+      await apiLogger.logRequest('getWeatherAlerts', 'GET', 'success', trigger, responseTime);
+      return data;
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      await apiLogger.logRequest(
+        'getWeatherAlerts',
+        'GET',
+        'error',
+        trigger,
+        responseTime,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+      throw error;
     }
-    
-    return response.json();
   }
 }
 

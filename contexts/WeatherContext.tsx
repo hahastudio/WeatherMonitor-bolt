@@ -45,6 +45,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [refreshRate, setRefreshRateState] = useState<number>(DEFAULT_REFRESH_RATE);
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
 
   const weatherCondition: WeatherCondition = currentWeather 
     ? getWeatherCondition(currentWeather.weather[0].main)
@@ -52,15 +53,15 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
   const theme = getWeatherTheme(weatherCondition, isDarkMode);
 
-  const fetchWeatherData = async (coords: LocationCoords) => {
+  const fetchWeatherData = async (coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual') => {
     try {
       setLoading(true);
       setError(null);
 
       // Fetch current weather and forecast in parallel
       const [weatherData, forecastData] = await Promise.all([
-        weatherService.getCurrentWeather(coords),
-        weatherService.getForecast(coords),
+        weatherService.getCurrentWeather(coords, trigger),
+        weatherService.getForecast(coords, trigger),
       ]);
 
       setCurrentWeather(weatherData);
@@ -70,17 +71,19 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       const city = await locationService.getCityName(coords);
       setCityName(city);
 
-      // Check for weather alerts
-      try {
-        const alerts = await weatherService.getWeatherAlerts(coords);
-        if (alerts.alerts && alerts.alerts.length > 0) {
-          for (const alert of alerts.alerts) {
-            await notificationService.showWeatherAlert(alert);
+      // Check for weather alerts (only on manual refresh or app start to avoid too many requests)
+      if (trigger === 'manual' || trigger === 'app_start') {
+        try {
+          const alerts = await weatherService.getWeatherAlerts(coords, trigger);
+          if (alerts.alerts && alerts.alerts.length > 0) {
+            for (const alert of alerts.alerts) {
+              await notificationService.showWeatherAlert(alert);
+            }
           }
+        } catch (alertError) {
+          // Alerts API might not be available, continue without errors
+          console.log('Weather alerts not available for this location');
         }
-      } catch (alertError) {
-        // Alerts API might not be available, continue without errors
-        console.log('Weather alerts not available for this location');
       }
 
     } catch (err) {
@@ -94,7 +97,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     try {
       const coords = await locationService.getCurrentLocation();
       setLocation(coords);
-      await fetchWeatherData(coords);
+      const trigger = isInitialLoad ? 'app_start' : 'manual';
+      await fetchWeatherData(coords, trigger);
+      setIsInitialLoad(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get location');
       setLoading(false);
@@ -103,7 +108,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
   const refreshWeather = async () => {
     if (location) {
-      await fetchWeatherData(location);
+      await fetchWeatherData(location, 'manual');
     } else {
       await getCurrentLocation();
     }
@@ -132,7 +137,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       // Set up new interval with the updated rate
       const newInterval = setInterval(() => {
         if (location) {
-          fetchWeatherData(location);
+          fetchWeatherData(location, 'auto');
         }
       }, minutes * 60 * 1000);
       
@@ -179,7 +184,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       // Set up periodic weather updates with the loaded refresh rate
       const interval = setInterval(() => {
         if (location) {
-          fetchWeatherData(location);
+          fetchWeatherData(location, 'auto');
         }
       }, rate * 60 * 1000);
 
@@ -197,9 +202,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   }, []);
 
   useEffect(() => {
-    // Update weather when location changes
-    if (location) {
-      fetchWeatherData(location);
+    // Update weather when location changes (but don't trigger on initial load)
+    if (location && !isInitialLoad) {
+      fetchWeatherData(location, 'manual');
     }
   }, [location]);
 

@@ -13,9 +13,11 @@ import {
   Clock,
   X,
   Check,
+  Activity,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { notificationService } from '../../services/notificationService';
+import { ApiLogViewer } from '../../components/ApiLogViewer';
 
 const REFRESH_RATE_OPTIONS = [
   { label: '5 minutes', value: 5 },
@@ -39,6 +41,7 @@ export default function SettingsScreen() {
   } = useWeather();
 
   const [showRefreshRateModal, setShowRefreshRateModal] = useState(false);
+  const [showApiLogModal, setShowApiLogModal] = useState(false);
 
   const handleNotificationTest = async () => {
     try {
@@ -223,6 +226,14 @@ export default function SettingsScreen() {
       color: theme.primary,
       fontWeight: '600',
     },
+    // API Log Modal styles
+    apiLogModal: {
+      flex: 1,
+      backgroundColor: theme.background,
+      marginTop: 50,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+    },
   });
 
   const RefreshRateModal = () => (
@@ -267,6 +278,31 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           ))}
         </View>
+      </View>
+    </Modal>
+  );
+
+  const ApiLogModal = () => (
+    <Modal
+      visible={showApiLogModal}
+      animationType="slide"
+      onRequestClose={() => setShowApiLogModal(false)}
+    >
+      <View style={styles.apiLogModal}>
+        <ApiLogViewer />
+        <TouchableOpacity
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 20,
+            backgroundColor: theme.surface,
+            borderRadius: 20,
+            padding: 8,
+          }}
+          onPress={() => setShowApiLogModal(false)}
+        >
+          <X size={24} color={theme.text} />
+        </TouchableOpacity>
       </View>
     </Modal>
   );
@@ -369,6 +405,21 @@ export default function SettingsScreen() {
               </View>
               <ChevronRight size={20} color={theme.textSecondary} />
             </TouchableOpacity>
+
+            <TouchableOpacity style={styles.settingItem} onPress={() => setShowApiLogModal(true)}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <Activity size={24} color={theme.primary} />
+                </View>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>API Request Log</Text>
+                  <Text style={styles.settingDescription}>
+                    View API usage and request history (48h)
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
           </View>
 
           {/* Location Settings */}
@@ -442,6 +493,7 @@ export default function SettingsScreen() {
         </ScrollView>
 
         <RefreshRateModal />
+        <ApiLogModal />
       </LinearGradient>
     </View>
   );
