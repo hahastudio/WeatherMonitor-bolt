@@ -26,6 +26,16 @@ export interface CloudsInfo {
   all: number;
 }
 
+export interface RainInfo {
+  '1h'?: number;
+  '3h'?: number;
+}
+
+export interface SnowInfo {
+  '1h'?: number;
+  '3h'?: number;
+}
+
 export interface SysInfo {
   type?: number;
   id?: number;
@@ -45,6 +55,8 @@ export interface CurrentWeather {
   visibility: number;
   wind: WindInfo;
   clouds: CloudsInfo;
+  rain?: RainInfo;
+  snow?: SnowInfo;
   dt: number;
   sys: SysInfo;
   timezone: number;

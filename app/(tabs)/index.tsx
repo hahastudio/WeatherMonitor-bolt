@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw } from 'lucide-react-native';
+import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
@@ -119,6 +119,9 @@ export default function HomeScreen() {
       marginBottom: 12,
       alignItems: 'center',
     },
+    detailIcon: {
+      marginBottom: 8,
+    },
     detailLabel: {
       color: theme.textSecondary,
       fontSize: 14,
@@ -130,9 +133,6 @@ export default function HomeScreen() {
       fontSize: 18,
       fontWeight: '600',
       textAlign: 'center',
-    },
-    detailIcon: {
-      marginBottom: 8,
     },
   });
 
@@ -149,6 +149,10 @@ export default function HomeScreen() {
       <Text style={styles.detailValue}>{value}</Text>
     </View>
   );
+
+  // Check if there's current rain data
+  const hasRainData = currentWeather.rain && currentWeather.rain['1h'];
+  const rainAmount = hasRainData ? currentWeather.rain['1h'] : 0;
 
   return (
     <View style={styles.container}>
@@ -217,6 +221,13 @@ export default function HomeScreen() {
                 <Droplets size={24} color={theme.primary} />,
                 'Humidity',
                 `${currentWeather.main.humidity}%`
+              )}
+              
+              {/* Show rain amount if there's current rain data */}
+              {hasRainData && renderDetailCard(
+                <CloudRain size={24} color={theme.primary} />,
+                'Rain (1h)',
+                `${rainAmount.toFixed(1)} mm`
               )}
               
               {renderDetailCard(
