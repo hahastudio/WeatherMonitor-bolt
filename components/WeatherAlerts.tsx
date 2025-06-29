@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import { AlertTriangle, X, Clock, MapPin } from 'lucide-react-native';
+import { TriangleAlert as AlertTriangle, X, Clock, MapPin } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { CaiyunWeatherAlert } from '../types/weather';
 
