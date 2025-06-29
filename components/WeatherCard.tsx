@@ -74,6 +74,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     },
     leftContent: {
       flex: 1,
+      marginRight: 16,
     },
     temperature: {
       color: theme.text,
@@ -106,6 +107,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     iconContainer: {
       alignItems: 'center',
       justifyContent: 'center',
+      width: 80,
+      height: 80,
       // CRITICAL: Clean container with no background styling to prevent Android grey borders
     },
   });
