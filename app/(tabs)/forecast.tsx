@@ -71,24 +71,7 @@ export default function ForecastScreen() {
       marginBottom: 12,
       flexDirection: 'row',
       alignItems: 'center',
-      // Use Platform.select to prevent Android grey borders
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 1,
-          },
-          shadowOpacity: 0.08,
-          shadowRadius: 2,
-        },
-        android: {
-          elevation: 2,
-        },
-        web: {
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.08)',
-        },
-      }),
+      // CRITICAL: Remove all shadow/elevation properties to prevent Android grey borders
     },
     timeInfo: {
       width: 80,
