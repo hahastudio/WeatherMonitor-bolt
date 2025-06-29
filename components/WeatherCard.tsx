@@ -69,18 +69,27 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     },
     content: {
       flexDirection: 'row',
-      alignItems: 'flex-start', // Changed to align items at the top
-      justifyContent: 'space-between',
+      alignItems: 'flex-start',
     },
     leftContent: {
       flex: 1,
+    },
+    temperatureRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
     },
     temperature: {
       color: theme.text,
       fontSize: 32,
       fontWeight: '700',
-      marginBottom: 4,
-      lineHeight: 38, // Add line height for better alignment
+      lineHeight: 38,
+      marginRight: 12, // Space between temperature and icon
+    },
+    iconContainer: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: -2, // Fine-tune vertical alignment with temperature
     },
     description: {
       color: theme.textSecondary,
@@ -104,13 +113,6 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
       fontSize: 14,
       fontWeight: '600',
     },
-    iconContainer: {
-      alignItems: 'center',
-      justifyContent: 'flex-start', // Align to top
-      width: 64,
-      marginLeft: -16, // Move icon to the left
-      marginTop: -4, // Move icon slightly up to align with temperature baseline
-    },
   });
 
   return (
@@ -122,9 +124,19 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
       
       <View style={styles.content}>
         <View style={styles.leftContent}>
-          <Text style={styles.temperature}>
-            {formatTemperature(temperature)}
-          </Text>
+          <View style={styles.temperatureRow}>
+            <Text style={styles.temperature}>
+              {formatTemperature(temperature)}
+            </Text>
+            <View style={styles.iconContainer}>
+              <WeatherIcon 
+                weatherMain={weatherMain}
+                size={64}
+                color={theme.primary}
+              />
+            </View>
+          </View>
+          
           <Text style={styles.description}>
             {capitalizeWords(description)}
           </Text>
@@ -145,14 +157,6 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
               )}
             </View>
           )}
-        </View>
-        
-        <View style={styles.iconContainer}>
-          <WeatherIcon 
-            weatherMain={weatherMain}
-            size={64}
-            color={theme.primary}
-          />
         </View>
       </View>
     </View>
