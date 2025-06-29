@@ -41,6 +41,7 @@ export default function SettingsScreen() {
     refreshWeather,
     refreshRate,
     setRefreshRate,
+    lastUpdated,
   } = useWeather();
 
   const [showRefreshRateModal, setShowRefreshRateModal] = useState(false);
@@ -125,6 +126,31 @@ export default function SettingsScreen() {
   const getRefreshRateLabel = (rate: number): string => {
     const option = REFRESH_RATE_OPTIONS.find(opt => opt.value === rate);
     return option ? option.label : `${rate} minutes`;
+  };
+
+  const formatLastUpdated = (timestamp: number | null): string => {
+    if (!timestamp) return 'Never';
+    
+    const now = Date.now();
+    const diffMs = now - timestamp;
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    
+    if (diffMinutes < 1) {
+      return 'Just now';
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes} minutes ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hours ago`;
+    } else {
+      return new Date(timestamp).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    }
   };
 
   const formatAlertAge = (ageMs: number | null): string => {
@@ -237,6 +263,16 @@ export default function SettingsScreen() {
       color: theme.primary,
       fontSize: 16,
       fontWeight: '600',
+      marginLeft: 8,
+    },
+    lastUpdatedInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    lastUpdatedText: {
+      color: theme.textSecondary,
+      fontSize: 14,
       marginLeft: 8,
     },
     alertStatsContainer: {
@@ -416,6 +452,12 @@ export default function SettingsScreen() {
                   </Text>
                 </View>
               )}
+              <View style={styles.lastUpdatedInfo}>
+                <Clock size={16} color={theme.textSecondary} />
+                <Text style={styles.lastUpdatedText}>
+                  Last updated {formatLastUpdated(lastUpdated)}
+                </Text>
+              </View>
             </View>
           </View>
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain } from 'lucide-react-native';
+import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain, Clock } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
@@ -18,6 +18,7 @@ export default function HomeScreen() {
     loading, 
     error, 
     theme, 
+    lastUpdated,
     refreshWeather
   } = useWeather();
 
@@ -32,6 +33,31 @@ export default function HomeScreen() {
   if (!currentWeather) {
     return <LoadingSpinner message="Loading weather data..." />;
   }
+
+  const formatLastUpdated = (timestamp: number | null): string => {
+    if (!timestamp) return 'Never';
+    
+    const now = Date.now();
+    const diffMs = now - timestamp;
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    
+    if (diffMinutes < 1) {
+      return 'Just now';
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes}m ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours}h ago`;
+    } else {
+      return new Date(timestamp).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    }
+  };
 
   const styles = StyleSheet.create({
     container: {
@@ -60,13 +86,24 @@ export default function HomeScreen() {
     locationContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 20,
+      marginBottom: 8,
     },
     locationText: {
       color: theme.text,
       fontSize: 18,
       fontWeight: '600',
       marginLeft: 8,
+    },
+    lastUpdatedContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 20,
+      opacity: 0.8,
+    },
+    lastUpdatedText: {
+      color: theme.textSecondary,
+      fontSize: 14,
+      marginLeft: 6,
     },
     mainWeatherContainer: {
       alignItems: 'center',
@@ -119,9 +156,6 @@ export default function HomeScreen() {
       marginBottom: 12,
       alignItems: 'center',
     },
-    detailIcon: {
-      marginBottom: 8,
-    },
     detailLabel: {
       color: theme.textSecondary,
       fontSize: 14,
@@ -133,6 +167,9 @@ export default function HomeScreen() {
       fontSize: 18,
       fontWeight: '600',
       textAlign: 'center',
+    },
+    detailIcon: {
+      marginBottom: 8,
     },
   });
 
@@ -179,6 +216,13 @@ export default function HomeScreen() {
             <View style={styles.locationContainer}>
               <MapPin size={20} color={theme.text} />
               <Text style={styles.locationText}>{cityName}</Text>
+            </View>
+
+            <View style={styles.lastUpdatedContainer}>
+              <Clock size={14} color={theme.textSecondary} />
+              <Text style={styles.lastUpdatedText}>
+                Updated {formatLastUpdated(lastUpdated)}
+              </Text>
             </View>
 
             <View style={styles.mainWeatherContainer}>

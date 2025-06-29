@@ -20,6 +20,7 @@ interface WeatherContextType {
   weatherCondition: WeatherCondition;
   isDarkMode: boolean;
   refreshRate: number;
+  lastUpdated: number | null;
   refreshWeather: () => Promise<void>;
   toggleDarkMode: () => void;
   setRefreshRate: (minutes: number) => Promise<void>;
@@ -35,6 +36,7 @@ const STORAGE_KEYS = {
   DARK_MODE: '@weather_app_dark_mode',
   REFRESH_RATE: '@weather_app_refresh_rate',
   DISMISSED_ALERTS: '@weather_app_dismissed_alerts',
+  LAST_UPDATED: '@weather_app_last_updated',
 };
 
 const DEFAULT_REFRESH_RATE = 15; // 15 minutes
@@ -49,6 +51,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [refreshRate, setRefreshRateState] = useState<number>(DEFAULT_REFRESH_RATE);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState<boolean>(true);
 
@@ -57,6 +60,47 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     : 'clear';
 
   const theme = getWeatherTheme(weatherCondition, isDarkMode);
+
+  const updateLastUpdatedTime = async () => {
+    const now = Date.now();
+    setLastUpdated(now);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.LAST_UPDATED, JSON.stringify(now));
+    } catch (error) {
+      console.error('Failed to save last updated time:', error);
+    }
+  };
+
+  const getLastUpdatedTime = async (): Promise<number | null> => {
+    try {
+      const storedTime = await AsyncStorage.getItem(STORAGE_KEYS.LAST_UPDATED);
+      if (storedTime) {
+        const time = JSON.parse(storedTime);
+        setLastUpdated(time);
+        return time;
+      }
+    } catch (error) {
+      console.error('Failed to get last updated time:', error);
+    }
+    return null;
+  };
+
+  const shouldAutoRefresh = async (): Promise<boolean> => {
+    const lastUpdateTime = await getLastUpdatedTime();
+    if (!lastUpdateTime) {
+      return true; // No previous update, should refresh
+    }
+
+    const now = Date.now();
+    const timeSinceLastUpdate = now - lastUpdateTime;
+    const refreshIntervalMs = refreshRate * 60 * 1000; // Convert minutes to milliseconds
+
+    console.log(`⏰ Time since last update: ${Math.round(timeSinceLastUpdate / 1000 / 60)} minutes`);
+    console.log(`⏰ Refresh interval: ${refreshRate} minutes`);
+    console.log(`⏰ Should auto refresh: ${timeSinceLastUpdate > refreshIntervalMs}`);
+
+    return timeSinceLastUpdate > refreshIntervalMs;
+  };
 
   const fetchWeatherData = async (coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual') => {
     try {
@@ -71,6 +115,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
       setCurrentWeather(weatherData);
       setForecast(forecastData);
+
+      // Update last updated time
+      await updateLastUpdatedTime();
 
       // Get city name
       const city = await locationService.getCityName(coords);
@@ -129,8 +176,24 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     try {
       const coords = await locationService.getCurrentLocation();
       setLocation(coords);
-      const trigger = isInitialLoad ? 'app_start' : 'manual';
-      await fetchWeatherData(coords, trigger);
+      
+      // Check if we should auto-refresh based on last update time
+      const shouldRefresh = await shouldAutoRefresh();
+      const trigger = isInitialLoad ? 'app_start' : (shouldRefresh ? 'auto' : 'manual');
+      
+      if (shouldRefresh || isInitialLoad) {
+        console.log(`🔄 Auto-refreshing weather data (trigger: ${trigger})`);
+        await fetchWeatherData(coords, trigger);
+      } else {
+        console.log('⏭️ Skipping auto-refresh, data is still fresh');
+        // Still get city name if we don't have it
+        if (!cityName) {
+          const city = await locationService.getCityName(coords);
+          setCityName(city);
+        }
+        setLoading(false);
+      }
+      
       setIsInitialLoad(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get location');
@@ -194,6 +257,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         rate = JSON.parse(storedRefreshRate);
         setRefreshRateState(rate);
       }
+
+      // Load last updated time
+      await getLastUpdatedTime();
       
       return rate;
     } catch (error) {
@@ -252,6 +318,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     weatherCondition,
     isDarkMode,
     refreshRate,
+    lastUpdated,
     refreshWeather,
     toggleDarkMode,
     setRefreshRate,
