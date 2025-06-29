@@ -18,44 +18,6 @@ A beautiful, production-ready weather monitoring app built with React Native, Ex
 
 ## 🏗️ Architecture
 
-### Project Structure
-
-```
-WeatherMonitor/
-├── app/                          # Expo Router pages
-│   ├── _layout.tsx              # Root layout with navigation setup
-│   ├── (tabs)/                  # Tab-based navigation
-│   │   ├── _layout.tsx          # Tab bar configuration
-│   │   ├── index.tsx            # Home screen (current weather)
-│   │   ├── forecast.tsx         # 5-day forecast screen
-│   │   ├── charts.tsx           # Weather charts and analytics
-│   │   └── settings.tsx         # App settings and preferences
-│   └── +not-found.tsx           # 404 error page
-├── components/                   # Reusable UI components
-│   ├── WeatherCard.tsx          # Weather information cards
-│   ├── WeatherIcon.tsx          # Dynamic weather icons
-│   ├── WeatherAlerts.tsx        # Weather alert notifications
-│   ├── CustomChart.tsx          # Interactive chart component
-│   ├── ApiLogViewer.tsx         # API request monitoring
-│   ├── LoadingSpinner.tsx       # Loading states
-│   └── ErrorDisplay.tsx         # Error handling UI
-├── contexts/                     # React Context providers
-│   └── WeatherContext.tsx       # Global weather state management
-├── services/                     # API and external services
-│   ├── weatherService.ts        # OpenWeatherMap API integration
-│   ├── caiyunService.ts         # Caiyun API for weather alerts
-│   ├── locationService.ts       # GPS and location services
-│   ├── notificationService.ts   # Push notifications
-│   └── apiLogger.ts             # API request logging
-├── types/                        # TypeScript type definitions
-│   ├── weather.ts               # Weather data interfaces
-│   └── env.d.ts                 # Environment variable types
-├── utils/                        # Utility functions
-│   └── weatherTheme.ts          # Theme generation and formatting
-└── hooks/                        # Custom React hooks
-    └── useFrameworkReady.ts     # Framework initialization
-```
-
 ### Key Architectural Decisions
 
 #### 1. **Tab-Based Navigation**
