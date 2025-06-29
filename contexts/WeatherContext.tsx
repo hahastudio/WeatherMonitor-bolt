@@ -39,6 +39,52 @@ const STORAGE_KEYS = {
 
 const DEFAULT_REFRESH_RATE = 15; // 15 minutes
 
+// Mock weather alert data for testing
+const MOCK_WEATHER_ALERTS: CaiyunWeatherAlert[] = [
+  {
+    alertId: "12011641600000_20250629125347",
+    title: "滨海新区气象台发布雷电黄色预警/Ⅲ级/较重",
+    description: "滨海新区气象台于2025年06月29日12时52分发布雷电黄色预警信号：预计今天下午到夜间，滨海新区所有街镇将有间歇性雷阵雨，雷雨时风力较大，局地短时雨强较大并可能伴有小冰雹，请有关单位和人员做好防范准备。",
+    status: "预警中",
+    level: "yellow",
+    type: "雷电",
+    publishTime: new Date(1751172827 * 1000).toISOString(),
+    startTime: new Date(Date.now()).toISOString(),
+    endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+    source: "国家预警信息发布中心",
+    city: "天津城区",
+    county: "滨海新区"
+  },
+  {
+    alertId: "mock_alert_2",
+    title: "Heavy Rain Warning - Orange Alert",
+    description: "Heavy rainfall is expected in the area with accumulations of 50-80mm possible. Flooding may occur in low-lying areas. Residents are advised to avoid unnecessary travel and stay indoors.",
+    status: "Active",
+    level: "orange",
+    type: "Heavy Rain",
+    publishTime: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
+    startTime: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // 1 hour ago
+    endTime: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(), // 6 hours from now
+    source: "National Weather Service",
+    city: "Current Location",
+    county: "Local Area"
+  },
+  {
+    alertId: "mock_alert_3",
+    title: "Wind Advisory - Blue Alert",
+    description: "Strong winds of 40-60 km/h are expected. Secure loose objects and be cautious when driving high-profile vehicles.",
+    status: "Active",
+    level: "blue",
+    type: "Wind",
+    publishTime: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutes ago
+    startTime: new Date(Date.now()).toISOString(),
+    endTime: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(), // 12 hours from now
+    source: "Local Weather Station",
+    city: "Current Location",
+    county: "Local Area"
+  }
+];
+
 export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) => {
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
@@ -77,23 +123,27 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       const city = await locationService.getCityName(coords);
       setCityName(city);
 
-      // Fetch weather alerts (only on manual refresh or app start to avoid too many requests)
+      // Use mock weather alerts for testing (only on manual refresh or app start to avoid too many requests)
       if (trigger === 'manual' || trigger === 'app_start') {
         try {
-          const alertsResponse = await caiyunService.getWeatherAlerts(coords, trigger);
-          if (alertsResponse.result?.alert?.content) {
-            const alerts = alertsResponse.result.alert.content;
-            setWeatherAlerts(alerts);
+          console.log('🧪 Using mock weather alerts for testing');
+          
+          // Simulate API delay
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Use mock data instead of real API call
+          const alerts = MOCK_WEATHER_ALERTS;
+          setWeatherAlerts(alerts);
 
-            // Show notifications for new alerts (not dismissed)
-            for (const alert of alerts) {
-              if (!dismissedAlerts.has(alert.alertId)) {
-                await notificationService.showWeatherAlert(alert);
-              }
+          // Show notifications for new alerts (not dismissed)
+          for (const alert of alerts) {
+            if (!dismissedAlerts.has(alert.alertId)) {
+              console.log('📢 Showing notification for alert:', alert.title);
+              await notificationService.showWeatherAlert(alert);
             }
-          } else {
-            setWeatherAlerts([]);
           }
+          
+          console.log(`✅ Loaded ${alerts.length} mock weather alerts`);
         } catch (alertError) {
           // Alerts API might not be available, continue without errors
           console.log('Weather alerts not available for this location');
@@ -175,6 +225,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         STORAGE_KEYS.DISMISSED_ALERTS, 
         JSON.stringify(Array.from(newDismissedAlerts))
       );
+      console.log('✅ Alert dismissed:', alertId);
     } catch (error) {
       console.error('Failed to save dismissed alerts:', error);
     }
@@ -201,6 +252,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       if (storedDismissedAlerts !== null) {
         const alertIds = JSON.parse(storedDismissedAlerts);
         setDismissedAlerts(new Set(alertIds));
+        console.log('📱 Loaded dismissed alerts:', alertIds);
       }
       
       return rate;
