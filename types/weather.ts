@@ -90,20 +90,29 @@ export interface ForecastResponse {
   };
 }
 
-// Caiyun API Weather Alert Types
+// Caiyun API Weather Alert Types - Updated to match actual mock data structure
 export interface CaiyunWeatherAlert {
   alertId: string;
   title: string;
   description: string;
   status: string;
-  level?: string; // Made optional since it might not be present in mock data
-  type: string;
-  publishTime: string;
-  startTime: string;
-  endTime: string;
-  source: string;
+  code: string;
+  province: string;
   city: string;
   county: string;
+  location: string;
+  source: string;
+  pubtimestamp: number;
+  latlon: [number, number];
+  adcode: string;
+  regionId: string;
+  request_status: string;
+  // Optional fields that might be extracted from title
+  level?: string;
+  type?: string;
+  publishTime?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 export interface CaiyunAlertsResponse {

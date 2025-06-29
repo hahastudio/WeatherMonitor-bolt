@@ -23,7 +23,7 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
     }
 
     // Extract level from title (e.g., "黄色预警" -> "yellow", "红色预警" -> "red")
-    const title = alert.title.toLowerCase();
+    const title = alert.title?.toLowerCase() || '';
     
     if (title.includes('红色') || title.includes('red')) {
       return 'red';
@@ -68,9 +68,13 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
     }
   };
 
-  const formatTime = (timeString: string) => {
+  const formatTime = (timestamp: number | string) => {
     try {
-      const date = new Date(timeString);
+      // Handle both timestamp (number) and ISO string
+      const date = typeof timestamp === 'number' 
+        ? new Date(timestamp * 1000) // Convert Unix timestamp to milliseconds
+        : new Date(timestamp);
+        
       return date.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -79,7 +83,7 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
         hour12: true,
       });
     } catch {
-      return timeString;
+      return String(timestamp);
     }
   };
 
@@ -179,6 +183,14 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
       marginTop: 8,
       opacity: 0.7,
     },
+    statusBadge: {
+      fontSize: 11,
+      fontWeight: '600',
+      paddingHorizontal: 6,
+      paddingVertical: 2,
+      borderRadius: 3,
+      marginLeft: 8,
+    },
   });
 
   return (
@@ -231,6 +243,18 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
                     {alertLevel}
                   </Text>
                   
+                  <Text
+                    style={[
+                      styles.statusBadge,
+                      {
+                        backgroundColor: alert.status === '预警中' ? '#FF8800' + '20' : theme.textSecondary + '20',
+                        color: alert.status === '预警中' ? '#FF8800' : theme.textSecondary,
+                      },
+                    ]}
+                  >
+                    {alert.status}
+                  </Text>
+                  
                   {onDismiss && (
                     <TouchableOpacity
                       style={styles.dismissButton}
@@ -247,30 +271,22 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
               </Text>
 
               <View style={styles.alertMeta}>
-                {alert.city && (
-                  <View style={styles.metaItem}>
-                    <View style={styles.metaIcon}>
-                      <MapPin size={12} color={theme.textSecondary} />
-                    </View>
-                    <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-                      {alert.city}
-                      {alert.county && `, ${alert.county}`}
-                    </Text>
-                  </View>
-                )}
-                
                 <View style={styles.metaItem}>
                   <View style={styles.metaIcon}>
-                    <Clock size={12} color={theme.textSecondary} />
+                    <MapPin size={12} color={theme.textSecondary} />
                   </View>
                   <Text style={[styles.metaText, { color: theme.textSecondary }]}>
-                    {formatTime(alert.startTime)} - {formatTime(alert.endTime)}
+                    {alert.location || `${alert.city}, ${alert.county}`}
                   </Text>
                 </View>
               </View>
 
               <Text style={[styles.alertTime, { color: theme.textSecondary }]}>
-                Published: {formatTime(alert.publishTime)}
+                Published: {formatTime(alert.pubtimestamp)}
+              </Text>
+              
+              <Text style={[styles.alertTime, { color: theme.textSecondary }]}>
+                Source: {alert.source}
               </Text>
             </View>
           );
