@@ -71,24 +71,14 @@ export default function ForecastScreen() {
       marginBottom: 12,
       flexDirection: 'row',
       alignItems: 'center',
-      // Use Android-compatible shadow approach for 24-hour items
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 1,
-          },
-          shadowOpacity: 0.08,
-          shadowRadius: 2,
-        },
-        android: {
-          elevation: 2,
-        },
-        web: {
-          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.08)',
-        },
-      }),
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 1,
+      },
+      shadowOpacity: 0.08,
+      shadowRadius: 2,
+      elevation: 2,
     },
     timeInfo: {
       width: 80,
@@ -140,85 +130,6 @@ export default function ForecastScreen() {
       color: theme.primary,
       fontSize: 14,
       fontWeight: '600',
-    },
-    // 5-Day Forecast Card Styles - COMPREHENSIVE Android grey border fix
-    dayCard: {
-      backgroundColor: theme.surface + '90',
-      borderRadius: 16,
-      padding: 16,
-      marginBottom: 12,
-      // CRITICAL: Use Platform.select for Android-compatible shadows
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        },
-        android: {
-          elevation: 3,
-        },
-        web: {
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        },
-      }),
-    },
-    dayHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: 12,
-    },
-    dayTitle: {
-      color: theme.text,
-      fontSize: 18,
-      fontWeight: '600',
-    },
-    dayContent: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    dayLeftContent: {
-      flex: 1,
-      marginRight: 16,
-    },
-    dayTemperature: {
-      color: theme.text,
-      fontSize: 24,
-      fontWeight: '700',
-      marginBottom: 4,
-    },
-    dayDescription: {
-      color: theme.textSecondary,
-      fontSize: 14,
-      marginBottom: 8,
-      textTransform: 'capitalize',
-    },
-    dayDetails: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-    },
-    dayDetailItem: {
-      alignItems: 'center',
-    },
-    dayDetailLabel: {
-      color: theme.textSecondary,
-      fontSize: 12,
-      marginBottom: 2,
-    },
-    dayDetailValue: {
-      color: theme.text,
-      fontSize: 14,
-      fontWeight: '600',
-    },
-    dayIconContainer: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 80,
-      // CRITICAL: Remove ALL styling that could cause Android grey borders
     },
   });
 
@@ -313,49 +224,16 @@ export default function ForecastScreen() {
             const minTemp = Math.min(...items.map(item => item.main.temp_min));
 
             return (
-              <View key={date} style={styles.dayCard}>
-                <View style={styles.dayHeader}>
-                  <Text style={styles.dayTitle}>{formatDate(dayItem.dt)}</Text>
-                </View>
-                
-                <View style={styles.dayContent}>
-                  <View style={styles.dayLeftContent}>
-                    <Text style={styles.dayTemperature}>
-                      {Math.round(dayItem.main.temp)}°C
-                    </Text>
-                    <Text style={styles.dayDescription}>
-                      {dayItem.weather[0].description}
-                    </Text>
-                    
-                    <View style={styles.dayDetails}>
-                      <View style={styles.dayDetailItem}>
-                        <Text style={styles.dayDetailLabel}>High</Text>
-                        <Text style={styles.dayDetailValue}>{Math.round(maxTemp)}°</Text>
-                      </View>
-                      <View style={styles.dayDetailItem}>
-                        <Text style={styles.dayDetailLabel}>Low</Text>
-                        <Text style={styles.dayDetailValue}>{Math.round(minTemp)}°</Text>
-                      </View>
-                      <View style={styles.dayDetailItem}>
-                        <Text style={styles.dayDetailLabel}>Humidity</Text>
-                        <Text style={styles.dayDetailValue}>{dayItem.main.humidity}%</Text>
-                      </View>
-                      <View style={styles.dayDetailItem}>
-                        <Text style={styles.dayDetailLabel}>Wind</Text>
-                        <Text style={styles.dayDetailValue}>{dayItem.wind.speed} m/s</Text>
-                      </View>
-                    </View>
-                  </View>
-                  
-                  <View style={styles.dayIconContainer}>
-                    <WeatherIcon 
-                      weatherMain={dayItem.weather[0].main}
-                      size={64}
-                      color={theme.primary}
-                    />
-                  </View>
-                </View>
-              </View>
+              <WeatherCard
+                key={date}
+                title={formatDate(dayItem.dt)}
+                temperature={dayItem.main.temp}
+                description={dayItem.weather[0].description}
+                weatherMain={dayItem.weather[0].main}
+                showDetails={true}
+                humidity={dayItem.main.humidity}
+                windSpeed={dayItem.wind.speed}
+              />
             );
           })}
 
@@ -365,7 +243,7 @@ export default function ForecastScreen() {
                 ⚠️ {error}
               </Text>
             </View>
-            )}
+          )}
         </ScrollView>
       </LinearGradient>
     </View>
