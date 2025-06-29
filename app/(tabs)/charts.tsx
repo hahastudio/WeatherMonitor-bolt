@@ -78,18 +78,10 @@ export default function ChartsScreen() {
       paddingBottom: 100,
     },
     chartCard: {
-      backgroundColor: theme.surface + '95',
-      borderRadius: 16,
+      // REMOVED: backgroundColor, borderRadius, shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
+      // These were causing the grey border on Android
       padding: 16,
       marginBottom: 20,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
     },
     chartHeader: {
       flexDirection: 'row',
@@ -141,6 +133,12 @@ export default function ChartsScreen() {
       fontSize: 14,
       textAlign: 'center',
       marginTop: 20,
+    },
+    // Add subtle visual separation without problematic styling
+    chartSeparator: {
+      height: 1,
+      backgroundColor: theme.textSecondary + '10',
+      marginVertical: 8,
     },
   });
 
@@ -249,38 +247,44 @@ export default function ChartsScreen() {
     stats?: any
   ) => {
     return (
-      <View key={title} style={styles.chartCard}>
-        <View style={styles.chartHeader}>
-          <View style={styles.chartIcon}>
-            {icon}
+      <View key={title}>
+        {/* Chart card without problematic background styling */}
+        <View style={styles.chartCard}>
+          <View style={styles.chartHeader}>
+            <View style={styles.chartIcon}>
+              {icon}
+            </View>
+            <Text style={styles.chartTitle}>{title}</Text>
+            <View style={styles.chartTrend}>
+              <TrendingUp size={16} color={theme.primary} />
+              <Text style={styles.trendText}>48h</Text>
+            </View>
           </View>
-          <Text style={styles.chartTitle}>{title}</Text>
-          <View style={styles.chartTrend}>
-            <TrendingUp size={16} color={theme.primary} />
-            <Text style={styles.trendText}>48h</Text>
-          </View>
+          
+          <CustomChart
+            data={data}
+            color={color}
+            unit={unit}
+            type={chartType}
+            showGrid={true}
+          />
+
+          {stats && (
+            <View style={styles.statsRow}>
+              {Object.entries(stats).map(([key, value]) => (
+                <View key={key} style={styles.statItem}>
+                  <Text style={styles.statLabel}>{key.toUpperCase()}</Text>
+                  <Text style={styles.statValue}>
+                    {typeof value === 'number' ? value.toFixed(1) : value}{unit}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
         </View>
         
-        <CustomChart
-          data={data}
-          color={color}
-          unit={unit}
-          type={chartType}
-          showGrid={true}
-        />
-
-        {stats && (
-          <View style={styles.statsRow}>
-            {Object.entries(stats).map(([key, value]) => (
-              <View key={key} style={styles.statItem}>
-                <Text style={styles.statLabel}>{key.toUpperCase()}</Text>
-                <Text style={styles.statValue}>
-                  {typeof value === 'number' ? value.toFixed(1) : value}{unit}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
+        {/* Subtle separator instead of card styling */}
+        <View style={styles.chartSeparator} />
       </View>
     );
   };
