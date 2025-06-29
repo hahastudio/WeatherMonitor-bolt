@@ -107,8 +107,10 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     iconContainer: {
       alignItems: 'center',
       justifyContent: 'center',
-      width: 80,
-      height: 80,
+      width: 70,
+      height: 70,
+      marginRight: 8,
+      marginTop: -8, // Move icon slightly up
       // CRITICAL: Clean container with no background styling to prevent Android grey borders
     },
   });
