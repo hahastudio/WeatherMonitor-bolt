@@ -4,9 +4,9 @@ import Svg, { Path, Line, Text as SvgText, Circle, Rect, Defs, LinearGradient, S
 import { useWeather } from '../contexts/WeatherContext';
 
 const { width: screenWidth } = Dimensions.get('window');
-const chartWidth = screenWidth - 80;
+const chartWidth = screenWidth - 60; // Increased chart width
 const chartHeight = 180;
-const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+const padding = { top: 20, right: 20, bottom: 40, left: 65 }; // Increased left padding for Y-axis labels
 
 interface DataPoint {
   x: number;
@@ -143,7 +143,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     return gridLines;
   };
 
-  // Generate Y-axis labels
+  // Generate Y-axis labels with better formatting
   const generateYLabels = () => {
     const labels = [];
     const numLabels = 4;
@@ -152,17 +152,33 @@ export const CustomChart: React.FC<CustomChartProps> = ({
       const value = minY - yPadding + (i / numLabels) * (yRange + 2 * yPadding);
       const y = chartHeight - padding.bottom - (i / numLabels) * (chartHeight - padding.top - padding.bottom);
       
+      // Format the value based on the unit
+      let formattedValue;
+      if (unit.includes('°C')) {
+        formattedValue = `${Math.round(value)}°C`;
+      } else if (unit.includes('mm')) {
+        formattedValue = `${value.toFixed(1)}mm`;
+      } else if (unit.includes('km/h')) {
+        formattedValue = `${Math.round(value)}`;
+      } else if (unit.includes('hPa')) {
+        formattedValue = `${Math.round(value)}`;
+      } else if (unit.includes('%')) {
+        formattedValue = `${Math.round(value)}%`;
+      } else {
+        formattedValue = `${Math.round(value)}${unit}`;
+      }
+      
       labels.push(
         <SvgText
           key={`y-label-${i}`}
-          x={padding.left - 8}
+          x={padding.left - 12} // Moved further left
           y={y + 4}
           fontSize="11"
           fill={theme.textSecondary}
           textAnchor="end"
           fontWeight="500"
         >
-          {Math.round(value)}{unit}
+          {formattedValue}
         </SvgText>
       );
     }
