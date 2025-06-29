@@ -78,10 +78,28 @@ export default function ChartsScreen() {
       paddingBottom: 100,
     },
     chartCard: {
-      // REMOVED: backgroundColor, borderRadius, shadowColor, shadowOffset, shadowOpacity, shadowRadius, elevation
-      // These were causing the grey border on Android
-      padding: 16,
+      backgroundColor: theme.surface,
+      borderRadius: 16,
+      padding: 20,
       marginBottom: 20,
+      // Use Android-compatible shadow approach
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 8,
+        },
+        android: {
+          elevation: 4,
+        },
+        web: {
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        },
+      }),
     },
     chartHeader: {
       flexDirection: 'row',
@@ -107,38 +125,42 @@ export default function ChartsScreen() {
       fontWeight: '600',
       marginLeft: 4,
     },
+    chartContainer: {
+      backgroundColor: theme.background + '10',
+      borderRadius: 12,
+      padding: 8,
+      marginVertical: 8,
+    },
     statsRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: 12,
-      paddingTop: 12,
+      marginTop: 16,
+      paddingTop: 16,
       borderTopWidth: 1,
-      borderTopColor: theme.textSecondary + '20',
+      borderTopColor: theme.textSecondary + '15',
     },
     statItem: {
       alignItems: 'center',
+      flex: 1,
     },
     statLabel: {
       color: theme.textSecondary,
       fontSize: 12,
       marginBottom: 4,
+      textTransform: 'uppercase',
+      fontWeight: '500',
     },
     statValue: {
       color: theme.text,
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: '700',
     },
     errorText: {
       color: theme.accent,
       fontSize: 14,
       textAlign: 'center',
       marginTop: 20,
-    },
-    // Add subtle visual separation without problematic styling
-    chartSeparator: {
-      height: 1,
-      backgroundColor: theme.textSecondary + '10',
-      marginVertical: 8,
+      fontWeight: '500',
     },
   });
 
@@ -247,20 +269,19 @@ export default function ChartsScreen() {
     stats?: any
   ) => {
     return (
-      <View key={title}>
-        {/* Chart card without problematic background styling */}
-        <View style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <View style={styles.chartIcon}>
-              {icon}
-            </View>
-            <Text style={styles.chartTitle}>{title}</Text>
-            <View style={styles.chartTrend}>
-              <TrendingUp size={16} color={theme.primary} />
-              <Text style={styles.trendText}>48h</Text>
-            </View>
+      <View key={title} style={styles.chartCard}>
+        <View style={styles.chartHeader}>
+          <View style={styles.chartIcon}>
+            {icon}
           </View>
-          
+          <Text style={styles.chartTitle}>{title}</Text>
+          <View style={styles.chartTrend}>
+            <TrendingUp size={16} color={theme.primary} />
+            <Text style={styles.trendText}>48h</Text>
+          </View>
+        </View>
+        
+        <View style={styles.chartContainer}>
           <CustomChart
             data={data}
             color={color}
@@ -268,23 +289,20 @@ export default function ChartsScreen() {
             type={chartType}
             showGrid={true}
           />
-
-          {stats && (
-            <View style={styles.statsRow}>
-              {Object.entries(stats).map(([key, value]) => (
-                <View key={key} style={styles.statItem}>
-                  <Text style={styles.statLabel}>{key.toUpperCase()}</Text>
-                  <Text style={styles.statValue}>
-                    {typeof value === 'number' ? value.toFixed(1) : value}{unit}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
         </View>
-        
-        {/* Subtle separator instead of card styling */}
-        <View style={styles.chartSeparator} />
+
+        {stats && (
+          <View style={styles.statsRow}>
+            {Object.entries(stats).map(([key, value]) => (
+              <View key={key} style={styles.statItem}>
+                <Text style={styles.statLabel}>{key}</Text>
+                <Text style={styles.statValue}>
+                  {typeof value === 'number' ? value.toFixed(1) : value}{unit}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
