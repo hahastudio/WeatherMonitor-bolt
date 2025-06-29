@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CurrentWeather, ForecastResponse, LocationCoords, WeatherCondition } from '../types/weather';
 import { weatherService } from '../services/weatherService';
 import { locationService } from '../services/locationService';
@@ -15,8 +16,10 @@ interface WeatherContextType {
   theme: WeatherTheme;
   weatherCondition: WeatherCondition;
   isDarkMode: boolean;
+  refreshRate: number;
   refreshWeather: () => Promise<void>;
   toggleDarkMode: () => void;
+  setRefreshRate: (minutes: number) => Promise<void>;
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
@@ -24,6 +27,13 @@ const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
 interface WeatherProviderProps {
   children: ReactNode;
 }
+
+const STORAGE_KEYS = {
+  DARK_MODE: '@weather_app_dark_mode',
+  REFRESH_RATE: '@weather_app_refresh_rate',
+};
+
+const DEFAULT_REFRESH_RATE = 15; // 15 minutes
 
 export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) => {
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
@@ -33,6 +43,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [refreshRate, setRefreshRateState] = useState<number>(DEFAULT_REFRESH_RATE);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
 
   const weatherCondition: WeatherCondition = currentWeather 
     ? getWeatherCondition(currentWeather.weather[0].main)
@@ -97,25 +109,91 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
+  const toggleDarkMode = async () => {
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.DARK_MODE, JSON.stringify(newDarkMode));
+    } catch (error) {
+      console.error('Failed to save dark mode preference:', error);
+    }
+  };
+
+  const setRefreshRate = async (minutes: number) => {
+    setRefreshRateState(minutes);
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_RATE, JSON.stringify(minutes));
+      
+      // Clear existing interval
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+      
+      // Set up new interval with the updated rate
+      const newInterval = setInterval(() => {
+        if (location) {
+          fetchWeatherData(location);
+        }
+      }, minutes * 60 * 1000);
+      
+      setRefreshInterval(newInterval);
+    } catch (error) {
+      console.error('Failed to save refresh rate preference:', error);
+    }
+  };
+
+  const loadStoredPreferences = async () => {
+    try {
+      // Load dark mode preference
+      const storedDarkMode = await AsyncStorage.getItem(STORAGE_KEYS.DARK_MODE);
+      if (storedDarkMode !== null) {
+        setIsDarkMode(JSON.parse(storedDarkMode));
+      }
+
+      // Load refresh rate preference
+      const storedRefreshRate = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_RATE);
+      if (storedRefreshRate !== null) {
+        const rate = JSON.parse(storedRefreshRate);
+        setRefreshRateState(rate);
+        return rate;
+      }
+      
+      return DEFAULT_REFRESH_RATE;
+    } catch (error) {
+      console.error('Failed to load stored preferences:', error);
+      return DEFAULT_REFRESH_RATE;
+    }
   };
 
   useEffect(() => {
-    // Initialize notifications
-    notificationService.requestPermissions();
+    const initializeApp = async () => {
+      // Initialize notifications
+      notificationService.requestPermissions();
 
-    // Get initial location and weather
-    getCurrentLocation();
+      // Load stored preferences
+      const rate = await loadStoredPreferences();
 
-    // Set up periodic weather updates (every 10 minutes)
-    const interval = setInterval(() => {
-      if (location) {
-        fetchWeatherData(location);
+      // Get initial location and weather
+      await getCurrentLocation();
+
+      // Set up periodic weather updates with the loaded refresh rate
+      const interval = setInterval(() => {
+        if (location) {
+          fetchWeatherData(location);
+        }
+      }, rate * 60 * 1000);
+
+      setRefreshInterval(interval);
+    };
+
+    initializeApp();
+
+    // Cleanup interval on unmount
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
       }
-    }, 10 * 60 * 1000); // 10 minutes
-
-    return () => clearInterval(interval);
+    };
   }, []);
 
   useEffect(() => {
@@ -135,8 +213,10 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     theme,
     weatherCondition,
     isDarkMode,
+    refreshRate,
     refreshWeather,
     toggleDarkMode,
+    setRefreshRate,
   };
 
   return (

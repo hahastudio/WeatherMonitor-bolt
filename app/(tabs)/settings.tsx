@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Moon, 
@@ -10,9 +10,21 @@ import {
   Info,
   ChevronRight,
   Thermometer,
+  Clock,
+  X,
+  Check,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { notificationService } from '../../services/notificationService';
+
+const REFRESH_RATE_OPTIONS = [
+  { label: '5 minutes', value: 5 },
+  { label: '10 minutes', value: 10 },
+  { label: '15 minutes', value: 15 },
+  { label: '30 minutes', value: 30 },
+  { label: '1 hour', value: 60 },
+  { label: '2 hours', value: 120 },
+];
 
 export default function SettingsScreen() {
   const { 
@@ -22,7 +34,11 @@ export default function SettingsScreen() {
     currentWeather,
     cityName,
     refreshWeather,
+    refreshRate,
+    setRefreshRate,
   } = useWeather();
+
+  const [showRefreshRateModal, setShowRefreshRateModal] = useState(false);
 
   const handleNotificationTest = async () => {
     try {
@@ -46,12 +62,22 @@ export default function SettingsScreen() {
     );
   };
 
+  const handleRefreshRateChange = async (newRate: number) => {
+    await setRefreshRate(newRate);
+    setShowRefreshRateModal(false);
+  };
+
   const showAbout = () => {
     Alert.alert(
       'About Weather App',
       'A beautiful weather app built with React Native and Expo. Weather data provided by OpenWeatherMap.\n\nVersion 1.0.0',
       [{ text: 'OK' }]
     );
+  };
+
+  const getRefreshRateLabel = (rate: number): string => {
+    const option = REFRESH_RATE_OPTIONS.find(opt => opt.value === rate);
+    return option ? option.label : `${rate} minutes`;
   };
 
   const styles = StyleSheet.create({
@@ -115,6 +141,12 @@ export default function SettingsScreen() {
       fontSize: 14,
       marginTop: 2,
     },
+    settingValue: {
+      color: theme.primary,
+      fontSize: 14,
+      fontWeight: '600',
+      marginRight: 8,
+    },
     infoCard: {
       backgroundColor: theme.surface + '90',
       borderRadius: 12,
@@ -143,7 +175,101 @@ export default function SettingsScreen() {
       fontWeight: '600',
       marginLeft: 8,
     },
+    // Modal styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: theme.surface,
+      borderRadius: 16,
+      padding: 20,
+      width: '80%',
+      maxWidth: 400,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    modalTitle: {
+      color: theme.text,
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    closeButton: {
+      padding: 4,
+    },
+    optionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    optionItemActive: {
+      backgroundColor: theme.primary + '20',
+    },
+    optionText: {
+      color: theme.text,
+      fontSize: 16,
+    },
+    optionTextActive: {
+      color: theme.primary,
+      fontWeight: '600',
+    },
   });
+
+  const RefreshRateModal = () => (
+    <Modal
+      visible={showRefreshRateModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowRefreshRateModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Auto Refresh Rate</Text>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={() => setShowRefreshRateModal(false)}
+            >
+              <X size={24} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
+          {REFRESH_RATE_OPTIONS.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.optionItem,
+                refreshRate === option.value && styles.optionItemActive,
+              ]}
+              onPress={() => handleRefreshRateChange(option.value)}
+            >
+              <Text
+                style={[
+                  styles.optionText,
+                  refreshRate === option.value && styles.optionTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+              {refreshRate === option.value && (
+                <Check size={20} color={theme.primary} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    </Modal>
+  );
 
   return (
     <View style={styles.container}>
@@ -205,6 +331,46 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Data Settings */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Data</Text>
+            
+            <TouchableOpacity style={styles.settingItem} onPress={() => setShowRefreshRateModal(true)}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <Clock size={24} color={theme.primary} />
+                </View>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Auto Refresh Rate</Text>
+                  <Text style={styles.settingDescription}>
+                    How often to update weather data automatically
+                  </Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={styles.settingValue}>
+                  {getRefreshRateLabel(refreshRate)}
+                </Text>
+                <ChevronRight size={20} color={theme.textSecondary} />
+              </View>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.settingItem} onPress={refreshWeather}>
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <RefreshCw size={24} color={theme.primary} />
+                </View>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Refresh Weather</Text>
+                  <Text style={styles.settingDescription}>
+                    Manually update weather data now
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
           {/* Location Settings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
@@ -245,26 +411,6 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Data Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Data</Text>
-            
-            <TouchableOpacity style={styles.settingItem} onPress={refreshWeather}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <RefreshCw size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Refresh Weather</Text>
-                  <Text style={styles.settingDescription}>
-                    Manually update weather data
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
           {/* About */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About</Text>
@@ -294,6 +440,8 @@ export default function SettingsScreen() {
             </Text>
           </View>
         </ScrollView>
+
+        <RefreshRateModal />
       </LinearGradient>
     </View>
   );
