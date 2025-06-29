@@ -62,6 +62,12 @@ export interface HourlyForecast {
   visibility: number;
   pop: number;
   dt_txt: string;
+  rain?: {
+    '3h': number;
+  };
+  snow?: {
+    '3h': number;
+  };
 }
 
 export interface ForecastResponse {
@@ -81,6 +87,40 @@ export interface ForecastResponse {
     timezone: number;
     sunrise: number;
     sunset: number;
+  };
+}
+
+// Caiyun API Weather Alert Types
+export interface CaiyunWeatherAlert {
+  alertId: string;
+  title: string;
+  description: string;
+  status: string;
+  level: string;
+  type: string;
+  publishTime: string;
+  startTime: string;
+  endTime: string;
+  source: string;
+  city: string;
+  county: string;
+}
+
+export interface CaiyunAlertsResponse {
+  status: string;
+  api_version: string;
+  api_status: string;
+  lang: string;
+  unit: string;
+  tzshift: number;
+  timezone: string;
+  server_time: number;
+  location: [number, number];
+  result?: {
+    alert?: {
+      status: string;
+      content: CaiyunWeatherAlert[];
+    };
   };
 }
 

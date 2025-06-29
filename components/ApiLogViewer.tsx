@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Activity, CircleCheck as CheckCircle, Circle as XCircle, Clock, Trash2, RefreshCw, TrendingUp, Zap, MousePointer, Smartphone } from 'lucide-react-native';
+import { Activity, CircleCheck as CheckCircle, Circle as XCircle, Clock, Trash2, RefreshCw, TrendingUp, Zap, MousePointer, Smartphone, Cloud, Globe } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { apiLogger, ApiLogEntry } from '../services/apiLogger';
 
@@ -134,6 +134,12 @@ export const ApiLogViewer: React.FC = () => {
       fontSize: 14,
       fontWeight: '600',
     },
+    providerSection: {
+      marginTop: 16,
+      paddingTop: 16,
+      borderTopWidth: 1,
+      borderTopColor: theme.textSecondary + '20',
+    },
     sectionTitle: {
       color: theme.text,
       fontSize: 18,
@@ -163,6 +169,7 @@ export const ApiLogViewer: React.FC = () => {
       color: theme.text,
       fontSize: 14,
       fontWeight: '600',
+      flex: 1,
     },
     logTime: {
       color: theme.textSecondary,
@@ -178,6 +185,16 @@ export const ApiLogViewer: React.FC = () => {
       alignItems: 'center',
     },
     logTriggerText: {
+      color: theme.textSecondary,
+      fontSize: 12,
+      marginLeft: 4,
+    },
+    logProvider: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: 12,
+    },
+    logProviderText: {
       color: theme.textSecondary,
       fontSize: 12,
       marginLeft: 4,
@@ -232,6 +249,17 @@ export const ApiLogViewer: React.FC = () => {
     }
   };
 
+  const getProviderIcon = (provider: ApiLogEntry['provider']) => {
+    switch (provider) {
+      case 'openweather':
+        return <Cloud size={12} color={theme.textSecondary} />;
+      case 'caiyun':
+        return <Globe size={12} color={theme.textSecondary} />;
+      default:
+        return <Activity size={12} color={theme.textSecondary} />;
+    }
+  };
+
   const formatTriggerLabel = (trigger: ApiLogEntry['trigger']) => {
     switch (trigger) {
       case 'manual':
@@ -244,6 +272,17 @@ export const ApiLogViewer: React.FC = () => {
         return 'App Start';
       default:
         return trigger;
+    }
+  };
+
+  const formatProviderLabel = (provider: ApiLogEntry['provider']) => {
+    switch (provider) {
+      case 'openweather':
+        return 'OpenWeather';
+      case 'caiyun':
+        return 'Caiyun';
+      default:
+        return provider;
     }
   };
 
@@ -335,6 +374,22 @@ export const ApiLogViewer: React.FC = () => {
                 </View>
               ))}
             </View>
+
+            <View style={styles.providerSection}>
+              <Text style={[styles.summaryLabel, { marginBottom: 8 }]}>Requests by Provider</Text>
+              
+              {Object.entries(summary.requestsByProvider).map(([provider, count]) => (
+                <View key={provider} style={styles.triggerItem}>
+                  <View style={styles.triggerLabel}>
+                    {getProviderIcon(provider as ApiLogEntry['provider'])}
+                    <Text style={[styles.triggerLabel, { marginLeft: 6 }]}>
+                      {formatProviderLabel(provider as ApiLogEntry['provider'])}
+                    </Text>
+                  </View>
+                  <Text style={styles.triggerValue}>{count}</Text>
+                </View>
+              ))}
+            </View>
           </View>
         )}
 
@@ -363,11 +418,20 @@ export const ApiLogViewer: React.FC = () => {
               </View>
               
               <View style={styles.logDetails}>
-                <View style={styles.logTrigger}>
-                  {getTriggerIcon(log.trigger)}
-                  <Text style={styles.logTriggerText}>
-                    {formatTriggerLabel(log.trigger)}
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={styles.logTrigger}>
+                    {getTriggerIcon(log.trigger)}
+                    <Text style={styles.logTriggerText}>
+                      {formatTriggerLabel(log.trigger)}
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.logProvider}>
+                    {getProviderIcon(log.provider)}
+                    <Text style={styles.logProviderText}>
+                      {formatProviderLabel(log.provider)}
+                    </Text>
+                  </View>
                 </View>
                 
                 <View style={styles.logStatus}>

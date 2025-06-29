@@ -7,16 +7,19 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { WeatherCard } from '../../components/WeatherCard';
 import { WeatherIcon } from '../../components/WeatherIcon';
+import { WeatherAlerts } from '../../components/WeatherAlerts';
 import { formatTemperature, formatTime, capitalizeWords } from '../../utils/weatherTheme';
 
 export default function HomeScreen() {
   const { 
     currentWeather, 
+    weatherAlerts,
     cityName, 
     loading, 
     error, 
     theme, 
-    refreshWeather 
+    refreshWeather,
+    dismissAlert
   } = useWeather();
 
   if (loading && !currentWeather) {
@@ -195,6 +198,14 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Weather Alerts Section */}
+          {weatherAlerts.length > 0 && (
+            <WeatherAlerts 
+              alerts={weatherAlerts} 
+              onDismiss={dismissAlert}
+            />
+          )}
 
           <View style={styles.content}>
             <Text style={styles.sectionTitle}>Details</Text>

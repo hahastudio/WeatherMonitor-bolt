@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { CaiyunWeatherAlert } from '../types/weather';
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -27,6 +28,33 @@ class NotificationService {
     } catch (error) {
       console.error('Error requesting notification permissions:', error);
       return false;
+    }
+  }
+
+  async showWeatherAlert(alert: CaiyunWeatherAlert): Promise<void> {
+    try {
+      if (Platform.OS === 'web') {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(`Weather Alert: ${alert.title}`, {
+            body: alert.description,
+            icon: '/assets/images/icon.png',
+            tag: 'weather-alert',
+          });
+        }
+        return;
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: `Weather Alert: ${alert.title}`,
+          body: alert.description,
+          sound: true,
+          priority: Notifications.AndroidNotificationPriority.HIGH,
+        },
+        trigger: null, // Show immediately
+      });
+    } catch (error) {
+      console.error('Error showing weather alert:', error);
     }
   }
 

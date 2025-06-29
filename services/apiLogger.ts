@@ -9,6 +9,7 @@ export interface ApiLogEntry {
   responseTime?: number;
   error?: string;
   trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start';
+  provider: 'openweather' | 'caiyun';
 }
 
 class ApiLogger {
@@ -21,7 +22,8 @@ class ApiLogger {
     status: 'success' | 'error' = 'success',
     trigger: ApiLogEntry['trigger'] = 'manual',
     responseTime?: number,
-    error?: string
+    error?: string,
+    provider: ApiLogEntry['provider'] = 'openweather'
   ): Promise<void> {
     try {
       const entry: ApiLogEntry = {
@@ -33,6 +35,7 @@ class ApiLogger {
         responseTime,
         error,
         trigger,
+        provider,
       };
 
       const existingLogs = await this.getLogs();
@@ -69,6 +72,7 @@ class ApiLogger {
     successfulRequests: number;
     failedRequests: number;
     requestsByTrigger: Record<ApiLogEntry['trigger'], number>;
+    requestsByProvider: Record<ApiLogEntry['provider'], number>;
     requestsByHour: Array<{ hour: string; count: number }>;
     averageResponseTime: number;
   }> {
@@ -84,13 +88,18 @@ class ApiLogger {
         tab_switch: 0,
         app_start: 0,
       } as Record<ApiLogEntry['trigger'], number>,
+      requestsByProvider: {
+        openweather: 0,
+        caiyun: 0,
+      } as Record<ApiLogEntry['provider'], number>,
       requestsByHour: [] as Array<{ hour: string; count: number }>,
       averageResponseTime: 0,
     };
 
-    // Count requests by trigger
+    // Count requests by trigger and provider
     logs.forEach(log => {
       summary.requestsByTrigger[log.trigger]++;
+      summary.requestsByProvider[log.provider]++;
     });
 
     // Calculate average response time

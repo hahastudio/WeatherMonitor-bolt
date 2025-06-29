@@ -24,13 +24,14 @@ class WeatherService {
           'error',
           trigger,
           responseTime,
-          `${response.status} ${response.statusText}`
+          `${response.status} ${response.statusText}`,
+          'openweather'
         );
         throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      await apiLogger.logRequest('getCurrentWeather', 'GET', 'success', trigger, responseTime);
+      await apiLogger.logRequest('getCurrentWeather', 'GET', 'success', trigger, responseTime, undefined, 'openweather');
       return data;
     } catch (error) {
       const responseTime = Date.now() - startTime;
@@ -40,7 +41,8 @@ class WeatherService {
         'error',
         trigger,
         responseTime,
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : 'Unknown error',
+        'openweather'
       );
       throw error;
     }
@@ -65,13 +67,14 @@ class WeatherService {
           'error',
           trigger,
           responseTime,
-          `${response.status} ${response.statusText}`
+          `${response.status} ${response.statusText}`,
+          'openweather'
         );
         throw new Error(`Forecast API error: ${response.status} ${response.statusText}`);
       }
       
       const data = await response.json();
-      await apiLogger.logRequest('getForecast', 'GET', 'success', trigger, responseTime);
+      await apiLogger.logRequest('getForecast', 'GET', 'success', trigger, responseTime, undefined, 'openweather');
       return data;
     } catch (error) {
       const responseTime = Date.now() - startTime;
@@ -81,7 +84,8 @@ class WeatherService {
         'error',
         trigger,
         responseTime,
-        error instanceof Error ? error.message : 'Unknown error'
+        error instanceof Error ? error.message : 'Unknown error',
+        'openweather'
       );
       throw error;
     }
