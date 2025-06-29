@@ -38,192 +38,192 @@ export const getWeatherTheme = (condition: WeatherCondition, isDarkMode: boolean
   const themes: Record<WeatherCondition, { light: WeatherTheme; dark: WeatherTheme }> = {
     clear: {
       light: {
-        primary: '#FFD700',
-        secondary: '#FFA500',
-        background: '#87CEEB',
-        surface: '#FFFFFF',
-        text: '#333333',
-        textSecondary: '#666666',
-        accent: '#FF6B6B',
+        primary: '#FF8C00',        // Darker orange for better contrast
+        secondary: '#FF6347',      // Tomato red
+        background: '#87CEEB',     // Sky blue
+        surface: '#FFFFFF',        // Pure white
+        text: '#1A1A1A',          // Almost black for maximum contrast
+        textSecondary: '#4A4A4A',  // Dark gray
+        accent: '#DC143C',         // Crimson red
         gradientStart: '#87CEEB',
-        gradientEnd: '#98D8E8',
+        gradientEnd: '#B0E0E6',    // Powder blue
       },
       dark: {
-        primary: '#4A90E2',
-        secondary: '#357ABD',
-        background: '#1A1A2E',
-        surface: '#16213E',
-        text: '#FFFFFF',
-        textSecondary: '#B0B0B0',
-        accent: '#FFD700',
-        gradientStart: '#1A1A2E',
-        gradientEnd: '#16213E',
+        primary: '#FFD700',        // Bright gold
+        secondary: '#FFA500',      // Orange
+        background: '#0F1419',     // Very dark blue
+        surface: '#1E2A3A',       // Dark blue-gray
+        text: '#FFFFFF',          // Pure white
+        textSecondary: '#B8C5D1',  // Light blue-gray
+        accent: '#FF6B6B',         // Coral red
+        gradientStart: '#0F1419',
+        gradientEnd: '#1E2A3A',
       },
     },
     clouds: {
       light: {
-        primary: '#708090',
-        secondary: '#778899',
-        background: '#D3D3D3',
-        surface: '#FFFFFF',
-        text: '#333333',
-        textSecondary: '#666666',
-        accent: '#4682B4',
-        gradientStart: '#D3D3D3',
-        gradientEnd: '#E6E6FA',
+        primary: '#4169E1',        // Royal blue
+        secondary: '#6495ED',      // Cornflower blue
+        background: '#F5F5F5',     // White smoke
+        surface: '#FFFFFF',        // Pure white
+        text: '#1A1A1A',          // Almost black
+        textSecondary: '#4A4A4A',  // Dark gray
+        accent: '#FF4500',         // Orange red
+        gradientStart: '#F5F5F5',
+        gradientEnd: '#E6E6FA',    // Lavender
       },
       dark: {
-        primary: '#4F4F4F',
-        secondary: '#696969',
-        background: '#2F2F2F',
-        surface: '#3A3A3A',
-        text: '#FFFFFF',
-        textSecondary: '#B0B0B0',
-        accent: '#87CEEB',
-        gradientStart: '#2F2F2F',
+        primary: '#87CEEB',        // Sky blue
+        secondary: '#4682B4',      // Steel blue
+        background: '#2C2C2C',     // Dark gray
+        surface: '#3A3A3A',       // Medium gray
+        text: '#FFFFFF',          // Pure white
+        textSecondary: '#CCCCCC',  // Light gray
+        accent: '#FFD700',         // Gold
+        gradientStart: '#2C2C2C',
         gradientEnd: '#3A3A3A',
       },
     },
     rain: {
       light: {
-        primary: '#4682B4',
-        secondary: '#5F9EA0',
-        background: '#B0C4DE',
-        surface: '#FFFFFF',
-        text: '#333333',
-        textSecondary: '#666666',
-        accent: '#FF6B6B',
-        gradientStart: '#B0C4DE',
-        gradientEnd: '#D8E4F0',
+        primary: '#1E90FF',        // Dodger blue
+        secondary: '#00BFFF',      // Deep sky blue
+        background: '#F0F8FF',     // Alice blue
+        surface: '#FFFFFF',        // Pure white
+        text: '#1A1A1A',          // Almost black
+        textSecondary: '#4A4A4A',  // Dark gray
+        accent: '#FF1493',         // Deep pink
+        gradientStart: '#F0F8FF',
+        gradientEnd: '#E0F6FF',    // Light cyan
       },
       dark: {
-        primary: '#2E4057',
-        secondary: '#3E5670',
-        background: '#1E2A3A',
-        surface: '#2A3A4A',
-        text: '#FFFFFF',
-        textSecondary: '#B0B0B0',
-        accent: '#4682B4',
-        gradientStart: '#1E2A3A',
-        gradientEnd: '#2A3A4A',
+        primary: '#00BFFF',        // Deep sky blue
+        secondary: '#1E90FF',      // Dodger blue
+        background: '#0D1B2A',     // Very dark blue
+        surface: '#1B263B',       // Dark blue
+        text: '#FFFFFF',          // Pure white
+        textSecondary: '#B8D4F0',  // Light blue
+        accent: '#FF6B6B',         // Coral
+        gradientStart: '#0D1B2A',
+        gradientEnd: '#1B263B',
       },
     },
     snow: {
       light: {
-        primary: '#F0F8FF',
-        secondary: '#E6F3FF',
-        background: '#F5F5F5',
-        surface: '#FFFFFF',
-        text: '#333333',
-        textSecondary: '#666666',
-        accent: '#4169E1',
-        gradientStart: '#F5F5F5',
-        gradientEnd: '#FFFFFF',
+        primary: '#4169E1',        // Royal blue
+        secondary: '#6495ED',      // Cornflower blue
+        background: '#F8F8FF',     // Ghost white
+        surface: '#FFFFFF',        // Pure white
+        text: '#1A1A1A',          // Almost black
+        textSecondary: '#4A4A4A',  // Dark gray
+        accent: '#DC143C',         // Crimson
+        gradientStart: '#F8F8FF',
+        gradientEnd: '#F0F8FF',    // Alice blue
       },
       dark: {
-        primary: '#E6F3FF',
-        secondary: '#CCE7FF',
-        background: '#1C2541',
-        surface: '#2A3A5A',
-        text: '#FFFFFF',
-        textSecondary: '#B0B0B0',
-        accent: '#87CEEB',
+        primary: '#87CEEB',        // Sky blue
+        secondary: '#B0E0E6',      // Powder blue
+        background: '#1C2541',     // Dark blue
+        surface: '#2A3A5A',       // Medium blue
+        text: '#FFFFFF',          // Pure white
+        textSecondary: '#D0E0F0',  // Very light blue
+        accent: '#FFD700',         // Gold
         gradientStart: '#1C2541',
         gradientEnd: '#2A3A5A',
       },
     },
     thunderstorm: {
       light: {
-        primary: '#483D8B',
-        secondary: '#6A5ACD',
-        background: '#696969',
-        surface: '#FFFFFF',
-        text: '#333333',
-        textSecondary: '#666666',
-        accent: '#FFD700',
-        gradientStart: '#696969',
-        gradientEnd: '#808080',
+        primary: '#8B008B',        // Dark magenta
+        secondary: '#9932CC',      // Dark orchid
+        background: '#E6E6FA',     // Lavender
+        surface: '#FFFFFF',        // Pure white
+        text: '#1A1A1A',          // Almost black
+        textSecondary: '#4A4A4A',  // Dark gray
+        accent: '#FFD700',         // Gold
+        gradientStart: '#E6E6FA',
+        gradientEnd: '#DDA0DD',    // Plum
       },
       dark: {
-        primary: '#2E1A47',
-        secondary: '#4A2C6A',
-        background: '#1A0B2E',
-        surface: '#2D1B3D',
-        text: '#FFFFFF',
-        textSecondary: '#B0B0B0',
-        accent: '#FFD700',
+        primary: '#9370DB',        // Medium orchid
+        secondary: '#8A2BE2',      // Blue violet
+        background: '#1A0B2E',     // Very dark purple
+        surface: '#2D1B3D',       // Dark purple
+        text: '#FFFFFF',          // Pure white
+        textSecondary: '#E0D0F0',  // Light purple
+        accent: '#FFD700',         // Gold
         gradientStart: '#1A0B2E',
         gradientEnd: '#2D1B3D',
       },
     },
     drizzle: {
       light: {
-        primary: '#4682B4',
-        secondary: '#5F9EA0',
-        background: '#B0C4DE',
-        surface: '#FFFFFF',
-        text: '#333333',
-        textSecondary: '#666666',
-        accent: '#20B2AA',
-        gradientStart: '#B0C4DE',
-        gradientEnd: '#D8E4F0',
+        primary: '#20B2AA',        // Light sea green
+        secondary: '#48D1CC',      // Medium turquoise
+        background: '#F0FFFF',     // Azure
+        surface: '#FFFFFF',        // Pure white
+        text: '#1A1A1A',          // Almost black
+        textSecondary: '#4A4A4A',  // Dark gray
+        accent: '#FF4500',         // Orange red
+        gradientStart: '#F0FFFF',
+        gradientEnd: '#E0FFFF',    // Light cyan
       },
       dark: {
-        primary: '#2E4057',
-        secondary: '#3E5670',
-        background: '#1E2A3A',
-        surface: '#2A3A4A',
-        text: '#FFFFFF',
-        textSecondary: '#B0B0B0',
-        accent: '#20B2AA',
-        gradientStart: '#1E2A3A',
-        gradientEnd: '#2A3A4A',
+        primary: '#40E0D0',        // Turquoise
+        secondary: '#20B2AA',      // Light sea green
+        background: '#0F2027',     // Very dark teal
+        surface: '#1E3A3A',       // Dark teal
+        text: '#FFFFFF',          // Pure white
+        textSecondary: '#B0E0E6',  // Powder blue
+        accent: '#FF6B6B',         // Coral
+        gradientStart: '#0F2027',
+        gradientEnd: '#1E3A3A',
       },
     },
     mist: {
       light: {
-        primary: '#708090',
-        secondary: '#778899',
-        background: '#D3D3D3',
-        surface: '#FFFFFF',
-        text: '#333333',
-        textSecondary: '#666666',
-        accent: '#B0C4DE',
-        gradientStart: '#D3D3D3',
-        gradientEnd: '#E0E0E0',
+        primary: '#696969',        // Dim gray
+        secondary: '#808080',      // Gray
+        background: '#F5F5F5',     // White smoke
+        surface: '#FFFFFF',        // Pure white
+        text: '#1A1A1A',          // Almost black
+        textSecondary: '#4A4A4A',  // Dark gray
+        accent: '#FF6347',         // Tomato
+        gradientStart: '#F5F5F5',
+        gradientEnd: '#DCDCDC',    // Gainsboro
       },
       dark: {
-        primary: '#4F4F4F',
-        secondary: '#696969',
-        background: '#2F2F2F',
-        surface: '#3A3A3A',
-        text: '#FFFFFF',
-        textSecondary: '#B0B0B0',
-        accent: '#B0C4DE',
+        primary: '#A9A9A9',        // Dark gray
+        secondary: '#C0C0C0',      // Silver
+        background: '#2F2F2F',     // Dark gray
+        surface: '#3A3A3A',       // Medium gray
+        text: '#FFFFFF',          // Pure white
+        textSecondary: '#CCCCCC',  // Light gray
+        accent: '#FF6B6B',         // Coral
         gradientStart: '#2F2F2F',
         gradientEnd: '#3A3A3A',
       },
     },
     fog: {
       light: {
-        primary: '#708090',
-        secondary: '#778899',
-        background: '#D3D3D3',
-        surface: '#FFFFFF',
-        text: '#333333',
-        textSecondary: '#666666',
-        accent: '#B0C4DE',
-        gradientStart: '#D3D3D3',
-        gradientEnd: '#E0E0E0',
+        primary: '#696969',        // Dim gray
+        secondary: '#808080',      // Gray
+        background: '#F5F5F5',     // White smoke
+        surface: '#FFFFFF',        // Pure white
+        text: '#1A1A1A',          // Almost black
+        textSecondary: '#4A4A4A',  // Dark gray
+        accent: '#FF6347',         // Tomato
+        gradientStart: '#F5F5F5',
+        gradientEnd: '#DCDCDC',    // Gainsboro
       },
       dark: {
-        primary: '#4F4F4F',
-        secondary: '#696969',
-        background: '#2F2F2F',
-        surface: '#3A3A3A',
-        text: '#FFFFFF',
-        textSecondary: '#B0B0B0',
-        accent: '#B0C4DE',
+        primary: '#A9A9A9',        // Dark gray
+        secondary: '#C0C0C0',      // Silver
+        background: '#2F2F2F',     // Dark gray
+        surface: '#3A3A3A',       // Medium gray
+        text: '#FFFFFF',          // Pure white
+        textSecondary: '#CCCCCC',  // Light gray
+        accent: '#FF6B6B',         // Coral
         gradientStart: '#2F2F2F',
         gradientEnd: '#3A3A3A',
       },
