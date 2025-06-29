@@ -71,21 +71,6 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       const city = await locationService.getCityName(coords);
       setCityName(city);
 
-      // Check for weather alerts (only on manual refresh or app start to avoid too many requests)
-      if (trigger === 'manual' || trigger === 'app_start') {
-        try {
-          const alerts = await weatherService.getWeatherAlerts(coords, trigger);
-          if (alerts.alerts && alerts.alerts.length > 0) {
-            for (const alert of alerts.alerts) {
-              await notificationService.showWeatherAlert(alert);
-            }
-          }
-        } catch (alertError) {
-          // Alerts API might not be available, continue without errors
-          console.log('Weather alerts not available for this location');
-        }
-      }
-
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch weather data');
     } finally {

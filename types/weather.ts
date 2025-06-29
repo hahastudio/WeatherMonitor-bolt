@@ -84,19 +84,6 @@ export interface ForecastResponse {
   };
 }
 
-export interface WeatherAlert {
-  sender_name: string;
-  event: string;
-  start: number;
-  end: number;
-  description: string;
-  tags: string[];
-}
-
-export interface AlertsResponse {
-  alerts?: WeatherAlert[];
-}
-
 export type WeatherCondition = 'clear' | 'clouds' | 'rain' | 'snow' | 'thunderstorm' | 'drizzle' | 'mist' | 'fog';
 
 export interface LocationCoords {
