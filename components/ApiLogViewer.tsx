@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { 
-  Activity, 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Trash2, 
-  RefreshCw,
-  TrendingUp,
-  Zap,
-  MousePointer,
-  Smartphone,
-} from 'lucide-react-native';
+import { Activity, CircleCheck as CheckCircle, Circle as XCircle, Clock, Trash2, RefreshCw, TrendingUp, Zap, MousePointer, Smartphone } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { apiLogger, ApiLogEntry } from '../services/apiLogger';
 
