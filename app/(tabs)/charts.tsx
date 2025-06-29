@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, Dimensions, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Thermometer, 
