@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { VictoryChart, VictoryLine, VictoryArea, VictoryAxis, VictoryTheme, VictoryBar } from 'victory-native';
 import { 
   Thermometer, 
   CloudRain, 
@@ -14,11 +13,10 @@ import {
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
+import { CustomChart } from '../../components/CustomChart';
 import { formatTime, formatDate } from '../../utils/weatherTheme';
 
 const { width: screenWidth } = Dimensions.get('window');
-const chartWidth = screenWidth - 40;
-const chartHeight = 200;
 
 export default function ChartsScreen() {
   const { 
@@ -117,18 +115,6 @@ export default function ChartsScreen() {
       fontWeight: '600',
       marginLeft: 4,
     },
-    chartContainer: {
-      alignItems: 'center',
-      backgroundColor: theme.background + '20',
-      borderRadius: 12,
-      padding: 8,
-    },
-    noDataText: {
-      color: theme.textSecondary,
-      fontSize: 14,
-      textAlign: 'center',
-      fontStyle: 'italic',
-    },
     statsRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -150,6 +136,12 @@ export default function ChartsScreen() {
       fontSize: 16,
       fontWeight: '600',
     },
+    errorText: {
+      color: theme.accent,
+      fontSize: 14,
+      textAlign: 'center',
+      marginTop: 20,
+    },
   });
 
   // Get next 48 hours of data (16 data points, 3 hours each)
@@ -168,7 +160,9 @@ export default function ChartsScreen() {
             <Text style={styles.subtitle}>{cityName}</Text>
           </View>
           <View style={styles.content}>
-            <Text style={styles.noDataText}>No forecast data available</Text>
+            <Text style={[styles.subtitle, { textAlign: 'center' }]}>
+              No forecast data available
+            </Text>
           </View>
         </LinearGradient>
       </View>
@@ -225,7 +219,7 @@ export default function ChartsScreen() {
   });
 
   // Calculate statistics with proper number handling
-  const calculateStats = (data: any[], unit: string = '') => {
+  const calculateStats = (data: any[]) => {
     const values = data.map(d => d.y).filter(v => typeof v === 'number' && !isNaN(v));
     if (values.length === 0) return null;
     
@@ -254,37 +248,6 @@ export default function ChartsScreen() {
     chartType: 'line' | 'area' | 'bar' = 'line',
     stats?: any
   ) => {
-    // Filter out invalid data points
-    const validData = data.filter(d => 
-      typeof d.x === 'number' && 
-      typeof d.y === 'number' && 
-      !isNaN(d.y) && 
-      isFinite(d.y)
-    );
-
-    if (validData.length === 0) {
-      return (
-        <View key={title} style={styles.chartCard}>
-          <View style={styles.chartHeader}>
-            <View style={styles.chartIcon}>
-              {icon}
-            </View>
-            <Text style={styles.chartTitle}>{title}</Text>
-          </View>
-          <Text style={styles.noDataText}>No valid data available for {title.toLowerCase()}</Text>
-        </View>
-      );
-    }
-
-    // Calculate domain for better chart rendering
-    const yValues = validData.map(d => d.y);
-    const minY = Math.min(...yValues);
-    const maxY = Math.max(...yValues);
-    const padding = (maxY - minY) * 0.1 || 1; // 10% padding or minimum 1
-    const domain = {
-      y: [Math.max(0, minY - padding), maxY + padding]
-    };
-
     return (
       <View key={title} style={styles.chartCard}>
         <View style={styles.chartHeader}>
@@ -298,98 +261,13 @@ export default function ChartsScreen() {
           </View>
         </View>
         
-        <View style={styles.chartContainer}>
-          <VictoryChart
-            theme={VictoryTheme.material}
-            width={chartWidth}
-            height={chartHeight}
-            padding={{ left: 60, top: 20, right: 50, bottom: 50 }}
-            domainPadding={{ x: 20 }}
-            domain={domain}
-          >
-            <VictoryAxis
-              dependentAxis
-              style={{
-                axis: { stroke: theme.textSecondary + '40' },
-                tickLabels: { 
-                  fill: theme.textSecondary, 
-                  fontSize: 12,
-                  fontWeight: '500'
-                },
-                grid: { stroke: theme.textSecondary + '20' }
-              }}
-              tickFormat={(t) => `${parseFloat(t.toFixed(1))}${unit}`}
-              tickCount={5}
-            />
-            <VictoryAxis
-              style={{
-                axis: { stroke: theme.textSecondary + '40' },
-                tickLabels: { 
-                  fill: theme.textSecondary, 
-                  fontSize: 10,
-                  fontWeight: '500'
-                }
-              }}
-              tickFormat={(x) => {
-                const item = validData[x];
-                return item?.label || '';
-              }}
-              fixLabelOverlap={true}
-            />
-            
-            {chartType === 'area' && (
-              <VictoryArea
-                data={validData}
-                style={{
-                  data: { 
-                    fill: color + '40', 
-                    stroke: color, 
-                    strokeWidth: 2 
-                  }
-                }}
-                animate={{
-                  duration: 1000,
-                  onLoad: { duration: 500 }
-                }}
-                interpolation="cardinal"
-              />
-            )}
-            
-            {chartType === 'bar' && (
-              <VictoryBar
-                data={validData}
-                style={{
-                  data: { 
-                    fill: color + '80', 
-                    stroke: color, 
-                    strokeWidth: 1 
-                  }
-                }}
-                animate={{
-                  duration: 1000,
-                  onLoad: { duration: 500 }
-                }}
-              />
-            )}
-            
-            {chartType === 'line' && (
-              <VictoryLine
-                data={validData}
-                style={{
-                  data: { 
-                    stroke: color, 
-                    strokeWidth: 3 
-                  }
-                }}
-                animate={{
-                  duration: 1000,
-                  onLoad: { duration: 500 }
-                }}
-                interpolation="cardinal"
-              />
-            )}
-          </VictoryChart>
-        </View>
+        <CustomChart
+          data={data}
+          color={color}
+          unit={unit}
+          type={chartType}
+          showGrid={true}
+        />
 
         {stats && (
           <View style={styles.statsRow}>
@@ -486,11 +364,9 @@ export default function ChartsScreen() {
           )}
 
           {error && (
-            <View style={{ marginTop: 20 }}>
-              <Text style={[styles.chartTitle, { color: theme.accent, textAlign: 'center' }]}>
-                ⚠️ {error}
-              </Text>
-            </View>
+            <Text style={styles.errorText}>
+              ⚠️ {error}
+            </Text>
           )}
         </ScrollView>
       </LinearGradient>
