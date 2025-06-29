@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -123,20 +123,30 @@ export default function ForecastScreen() {
       fontSize: 14,
       fontWeight: '600',
     },
-    // 5-Day Forecast Card Styles
+    // 5-Day Forecast Card Styles - Fixed for Android grey border
     dayCard: {
       backgroundColor: theme.surface + '90',
       borderRadius: 16,
       padding: 16,
       marginBottom: 12,
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 3,
+      // Use Android-compatible shadow approach
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: {
+            width: 0,
+            height: 2,
+          },
+          shadowOpacity: 0.1,
+          shadowRadius: 4,
+        },
+        android: {
+          elevation: 3,
+        },
+        web: {
+          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        },
+      }),
     },
     dayHeader: {
       flexDirection: 'row',
@@ -190,6 +200,7 @@ export default function ForecastScreen() {
       alignItems: 'center',
       justifyContent: 'center',
       width: 80,
+      // Remove ALL background styling to prevent Android grey border
     },
   });
 
