@@ -69,18 +69,18 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     },
     content: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'flex-start', // Changed to align items at the top
       justifyContent: 'space-between',
     },
     leftContent: {
       flex: 1,
-      marginRight: 16,
     },
     temperature: {
       color: theme.text,
       fontSize: 32,
       fontWeight: '700',
       marginBottom: 4,
+      lineHeight: 38, // Add line height for better alignment
     },
     description: {
       color: theme.textSecondary,
@@ -106,12 +106,10 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
     },
     iconContainer: {
       alignItems: 'center',
-      justifyContent: 'center',
-      width: 70,
-      height: 70,
-      marginRight: 8,
-      marginTop: -8, // Move icon slightly up
-      // CRITICAL: Clean container with no background styling to prevent Android grey borders
+      justifyContent: 'flex-start', // Align to top
+      width: 64,
+      marginLeft: -16, // Move icon to the left
+      marginTop: -4, // Move icon slightly up to align with temperature baseline
     },
   });
 
