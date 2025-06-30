@@ -50,7 +50,7 @@ export default function MapScreen() {
     { key: 'pressure', label: 'Pressure', icon: Gauge, color: '#FF8800', overlay: 'pressure' },
   ] as const;
 
-  // Generate optimized Windy embed URL with better parameters
+  // Generate Windy embed URL with correct parameters
   const generateWindyUrl = () => {
     if (!location) return '';
 
@@ -61,34 +61,22 @@ export default function MapScreen() {
     const selectedLayer = layerOptions.find(l => l.key === layer);
     const overlay = selectedLayer?.overlay || 'wind';
     
-    // Use the standard Windy embed URL with optimized parameters
-    const baseUrl = 'https://embed.windy.com';
+    // Use the exact Windy embed URL format you specified
     const params = new URLSearchParams({
-      lat: latitude.toFixed(4),
-      lon: longitude.toFixed(4),
-      detailLat: latitude.toFixed(4),
-      detailLon: longitude.toFixed(4),
-      zoom: zoom.toString(),
-      level: 'surface',
-      overlay: overlay,
-      product: 'ecmwf',
-      menu: '',
-      message: '',
-      marker: 'true',
-      calendar: 'now',
-      pressure: '',
       type: 'map',
       location: 'coordinates',
-      detail: '',
-      metricWind: 'km/h',
-      metricTemp: '°C',
-      radarRange: '-1',
-      // Additional parameters for better embedding
-      embed: 'true',
-      autoplay: '0'
+      metricRain: 'default',
+      metricTemp: 'default',
+      metricWind: 'default',
+      zoom: zoom.toString(),
+      overlay: overlay,
+      product: 'ecmwf',
+      level: 'surface',
+      lat: latitude.toFixed(2),
+      lon: longitude.toFixed(2)
     });
 
-    return `${baseUrl}?${params.toString()}`;
+    return `https://embed.windy.com/embed.html?${params.toString()}`;
   };
 
   const handleLayerChange = (newLayer: WeatherLayer) => {
