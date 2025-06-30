@@ -8,6 +8,7 @@ import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { WeatherCard } from '../../components/WeatherCard';
 import { WeatherIcon } from '../../components/WeatherIcon';
 import { WeatherAlerts } from '../../components/WeatherAlerts';
+import { WeatherSummary } from '../../components/WeatherSummary';
 import { formatTemperature, formatTime, capitalizeWords } from '../../utils/weatherTheme';
 
 export default function HomeScreen() {
@@ -246,12 +247,15 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* Weather Alerts Section */}
-          {weatherAlerts.length > 0 && (
-            <WeatherAlerts alerts={weatherAlerts} />
-          )}
-
           <View style={styles.content}>
+            {/* AI Weather Summary */}
+            <WeatherSummary />
+
+            {/* Weather Alerts Section */}
+            {weatherAlerts.length > 0 && (
+              <WeatherAlerts alerts={weatherAlerts} />
+            )}
+
             <Text style={styles.sectionTitle}>Details</Text>
             
             <View style={styles.detailsGrid}>
