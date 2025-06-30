@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
@@ -11,7 +11,7 @@ import {
   Eye,
   RefreshCw,
   Maximize2,
-  Settings as SettingsIcon
+  Gauge
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -21,7 +21,6 @@ type WeatherLayer = 'wind' | 'rain' | 'temp' | 'clouds' | 'pressure';
 interface MapSettings {
   layer: WeatherLayer;
   zoom: number;
-  overlay: string;
 }
 
 export default function MapScreen() {
@@ -32,64 +31,59 @@ export default function MapScreen() {
     loading: weatherLoading 
   } = useWeather();
 
+  const webViewRef = useRef<WebView>(null);
   const [mapSettings, setMapSettings] = useState<MapSettings>({
     layer: 'wind',
-    zoom: 8,
-    overlay: 'wind'
+    zoom: 8
   });
   const [webViewLoading, setWebViewLoading] = useState(true);
   const [webViewError, setWebViewError] = useState<string | null>(null);
   const [showLayerSelector, setShowLayerSelector] = useState(false);
+  const [mapKey, setMapKey] = useState(0); // For forcing WebView reload
 
   const layerOptions = [
-    { key: 'wind', label: 'Wind', icon: Wind, color: '#50C878' },
-    { key: 'rain', label: 'Rain', icon: CloudRain, color: '#4A90E2' },
-    { key: 'temp', label: 'Temperature', icon: Thermometer, color: '#FF6B6B' },
-    { key: 'clouds', label: 'Clouds', icon: Eye, color: '#9370DB' },
+    { key: 'wind', label: 'Wind', icon: Wind, color: '#50C878', overlay: 'wind' },
+    { key: 'rain', label: 'Rain', icon: CloudRain, color: '#4A90E2', overlay: 'rain' },
+    { key: 'temp', label: 'Temperature', icon: Thermometer, color: '#FF6B6B', overlay: 'temp' },
+    { key: 'clouds', label: 'Clouds', icon: Eye, color: '#9370DB', overlay: 'clouds' },
+    { key: 'pressure', label: 'Pressure', icon: Gauge, color: '#FF8800', overlay: 'pressure' },
   ] as const;
 
-  // Generate Windy embed URL
+  // Generate optimized Windy embed URL
   const generateWindyUrl = () => {
     if (!location) return '';
 
     const { latitude, longitude } = location;
     const { layer, zoom } = mapSettings;
     
-    // Map our layer names to Windy's overlay names
-    const overlayMap: Record<WeatherLayer, string> = {
-      wind: 'wind',
-      rain: 'rain',
-      temp: 'temp',
-      clouds: 'clouds',
-      pressure: 'pressure'
-    };
-
-    const overlay = overlayMap[layer];
+    // Get the correct overlay name
+    const selectedLayer = layerOptions.find(l => l.key === layer);
+    const overlay = selectedLayer?.overlay || 'wind';
     
-    // Build Windy embed URL with configuration
-    const baseUrl = 'https://embed.windy.com/embed.html';
+    // Use Windy's embed2.html which has better CORS support
+    const baseUrl = 'https://embed.windy.com/embed2.html';
     const params = new URLSearchParams({
-      type: 'map',
-      location: 'coordinates',
-      metricWind: 'km/h',
-      metricTemp: '°C',
-      metricRain: 'mm',
-      metricPressure: 'hPa',
+      lat: latitude.toFixed(4),
+      lon: longitude.toFixed(4),
+      detailLat: latitude.toFixed(4),
+      detailLon: longitude.toFixed(4),
+      width: '100%',
+      height: '100%',
       zoom: zoom.toString(),
+      level: 'surface',
       overlay: overlay,
       product: 'ecmwf',
-      level: 'surface',
-      lat: latitude.toString(),
-      lon: longitude.toString(),
-      detailLat: latitude.toString(),
-      detailLon: longitude.toString(),
+      menu: '',
+      message: '',
       marker: 'true',
-      message: 'true',
       calendar: 'now',
-      pressure: 'true',
+      pressure: '',
       type: 'map',
-      actualGrid: 'true',
-      menu: 'true'
+      location: 'coordinates',
+      detail: '',
+      metricWind: 'km/h',
+      metricTemp: '°C',
+      radarRange: '-1'
     });
 
     return `${baseUrl}?${params.toString()}`;
@@ -98,33 +92,112 @@ export default function MapScreen() {
   const handleLayerChange = (newLayer: WeatherLayer) => {
     setMapSettings(prev => ({ ...prev, layer: newLayer }));
     setShowLayerSelector(false);
+    setWebViewError(null);
+    
+    // Force WebView reload with new layer
+    setMapKey(prev => prev + 1);
   };
 
   const handleRefresh = () => {
     setWebViewError(null);
     setWebViewLoading(true);
-    // Force WebView to reload by updating a key or reloading
+    setMapKey(prev => prev + 1);
+    
+    // Also try to reload the WebView directly
+    if (webViewRef.current) {
+      webViewRef.current.reload();
+    }
   };
 
   const handleFullscreen = () => {
+    const url = generateWindyUrl();
+    
     if (Platform.OS === 'web') {
-      const url = generateWindyUrl();
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     } else {
       Alert.alert(
-        'Open in Browser',
-        'Would you like to open the full Windy map in your browser?',
+        'Open Full Map',
+        'Would you like to open the full interactive map in your browser?',
         [
           { text: 'Cancel', style: 'cancel' },
           { 
             text: 'Open', 
             onPress: () => {
-              // On mobile, you could use Linking.openURL(generateWindyUrl())
-              console.log('Open in browser:', generateWindyUrl());
+              console.log('Opening Windy map:', url);
+              // On mobile, you could use expo-web-browser or Linking
             }
           }
         ]
       );
+    }
+  };
+
+  // Inject JavaScript to handle map loading and errors
+  const injectedJavaScript = `
+    (function() {
+      // Handle potential loading issues
+      window.addEventListener('error', function(e) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({
+          type: 'error',
+          message: e.message || 'Map loading error'
+        }));
+      });
+      
+      // Check if Windy is loaded
+      let checkCount = 0;
+      const checkWindy = setInterval(function() {
+        checkCount++;
+        if (window.W || window.windy) {
+          clearInterval(checkWindy);
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'loaded',
+            message: 'Windy map loaded successfully'
+          }));
+        } else if (checkCount > 30) { // 15 seconds timeout
+          clearInterval(checkWindy);
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            type: 'timeout',
+            message: 'Map loading timeout'
+          }));
+        }
+      }, 500);
+      
+      // Disable context menu and selection for better mobile experience
+      document.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+      });
+      
+      document.addEventListener('selectstart', function(e) {
+        e.preventDefault();
+      });
+      
+      true; // Required for injected JavaScript
+    })();
+  `;
+
+  const handleWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      
+      switch (data.type) {
+        case 'loaded':
+          console.log('✅ Windy map loaded successfully');
+          setWebViewLoading(false);
+          setWebViewError(null);
+          break;
+        case 'error':
+          console.error('❌ Windy map error:', data.message);
+          setWebViewError(data.message);
+          setWebViewLoading(false);
+          break;
+        case 'timeout':
+          console.warn('⏰ Windy map loading timeout');
+          setWebViewError('Map loading timeout. Please check your internet connection.');
+          setWebViewLoading(false);
+          break;
+      }
+    } catch (error) {
+      console.error('Error parsing WebView message:', error);
     }
   };
 
@@ -168,6 +241,7 @@ export default function MapScreen() {
     layerSelector: {
       flexDirection: 'row',
       gap: 8,
+      flexWrap: 'wrap',
     },
     layerButton: {
       flexDirection: 'row',
@@ -232,12 +306,14 @@ export default function MapScreen() {
       bottom: 0,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: theme.background,
+      backgroundColor: theme.background + 'E6', // Semi-transparent
+      zIndex: 1000,
     },
     loadingText: {
       color: theme.text,
       fontSize: 16,
       marginTop: 12,
+      textAlign: 'center',
     },
     errorContainer: {
       flex: 1,
@@ -246,23 +322,29 @@ export default function MapScreen() {
       padding: 20,
       backgroundColor: theme.background,
     },
+    errorIcon: {
+      marginBottom: 16,
+    },
     errorText: {
       color: theme.accent,
       fontSize: 16,
       textAlign: 'center',
-      marginBottom: 16,
+      marginBottom: 20,
       lineHeight: 22,
     },
     retryButton: {
       backgroundColor: theme.primary,
       borderRadius: 8,
       paddingHorizontal: 20,
-      paddingVertical: 10,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
     },
     retryButtonText: {
       color: '#FFFFFF',
       fontSize: 16,
       fontWeight: '600',
+      marginLeft: 8,
     },
     infoCard: {
       backgroundColor: theme.surface + '90',
@@ -335,6 +417,24 @@ export default function MapScreen() {
       color: theme.primary,
       fontWeight: '600',
     },
+    statusIndicator: {
+      position: 'absolute',
+      top: 16,
+      right: 16,
+      backgroundColor: theme.surface + 'CC',
+      borderRadius: 20,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      flexDirection: 'row',
+      alignItems: 'center',
+      zIndex: 100,
+    },
+    statusText: {
+      color: theme.text,
+      fontSize: 12,
+      fontWeight: '600',
+      marginLeft: 6,
+    },
   });
 
   if (weatherLoading || !location) {
@@ -342,6 +442,7 @@ export default function MapScreen() {
   }
 
   const windyUrl = generateWindyUrl();
+  const selectedLayerOption = layerOptions.find(l => l.key === mapSettings.layer);
 
   return (
     <View style={styles.container}>
@@ -397,7 +498,11 @@ export default function MapScreen() {
         </View>
 
         {showLayerSelector && (
-          <View style={styles.layerSelectorModal}>
+          <TouchableOpacity 
+            style={styles.layerSelectorModal}
+            activeOpacity={1}
+            onPress={() => setShowLayerSelector(false)}
+          >
             <Text style={styles.modalTitle}>Select Weather Layer</Text>
             {layerOptions.map((option) => (
               <TouchableOpacity
@@ -422,48 +527,97 @@ export default function MapScreen() {
                 </Text>
               </TouchableOpacity>
             ))}
-          </View>
+          </TouchableOpacity>
         )}
 
         <View style={styles.mapContainer}>
           {webViewError ? (
             <View style={styles.errorContainer}>
-              <MapIcon size={48} color={theme.textSecondary} />
+              <View style={styles.errorIcon}>
+                <MapIcon size={48} color={theme.textSecondary} />
+              </View>
               <Text style={styles.errorText}>
-                Failed to load weather map.{'\n'}
-                Please check your internet connection and try again.
+                {webViewError}
+                {'\n\n'}
+                This could be due to network connectivity or CORS restrictions. 
+                Try refreshing or check your internet connection.
               </Text>
               <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+                <RefreshCw size={16} color="#FFFFFF" />
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <>
               <WebView
+                key={mapKey} // Force reload when key changes
+                ref={webViewRef}
                 source={{ uri: windyUrl }}
                 style={styles.webView}
-                onLoadStart={() => setWebViewLoading(true)}
-                onLoadEnd={() => setWebViewLoading(false)}
+                onLoadStart={() => {
+                  console.log('🔄 Starting to load Windy map...');
+                  setWebViewLoading(true);
+                  setWebViewError(null);
+                }}
+                onLoadEnd={() => {
+                  console.log('✅ WebView load end');
+                  // Don't set loading to false here, wait for injected JS confirmation
+                }}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  setWebViewError(nativeEvent.description || 'Failed to load map');
+                  console.error('❌ WebView error:', nativeEvent);
+                  setWebViewError(nativeEvent.description || 'Failed to load weather map');
                   setWebViewLoading(false);
                 }}
+                onHttpError={(syntheticEvent) => {
+                  const { nativeEvent } = syntheticEvent;
+                  console.error('🌐 HTTP error:', nativeEvent.statusCode);
+                  setWebViewError(`HTTP Error: ${nativeEvent.statusCode}. Please check your internet connection.`);
+                  setWebViewLoading(false);
+                }}
+                onMessage={handleWebViewMessage}
+                injectedJavaScript={injectedJavaScript}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
-                startInLoadingState={true}
-                scalesPageToFit={true}
+                startInLoadingState={false}
+                scalesPageToFit={Platform.OS !== 'ios'}
                 allowsInlineMediaPlayback={true}
                 mediaPlaybackRequiresUserAction={false}
                 mixedContentMode="compatibility"
                 thirdPartyCookiesEnabled={true}
                 sharedCookiesEnabled={true}
-                userAgent="Mozilla/5.0 (compatible; WeatherApp/1.0)"
+                allowsBackForwardNavigationGestures={false}
+                bounces={false}
+                scrollEnabled={true}
+                userAgent="Mozilla/5.0 (compatible; WeatherApp/1.0; +https://weather.app) AppleWebKit/537.36"
+                originWhitelist={['https://*', 'http://*']}
+                allowsLinkPreview={false}
+                dataDetectorTypes="none"
+                decelerationRate="normal"
+                overScrollMode="never"
+                showsHorizontalScrollIndicator={false}
+                showsVerticalScrollIndicator={false}
+                automaticallyAdjustContentInsets={false}
+                contentInsetAdjustmentBehavior="never"
               />
               
               {webViewLoading && (
                 <View style={styles.loadingContainer}>
                   <LoadingSpinner message="Loading interactive weather map..." />
+                  <Text style={styles.loadingText}>
+                    Powered by Windy • {selectedLayerOption?.label} Layer
+                  </Text>
+                </View>
+              )}
+
+              {!webViewLoading && !webViewError && (
+                <View style={styles.statusIndicator}>
+                  {selectedLayerOption && (
+                    <selectedLayerOption.icon size={12} color={selectedLayerOption.color} />
+                  )}
+                  <Text style={styles.statusText}>
+                    {selectedLayerOption?.label || 'Map'} • Live
+                  </Text>
                 </View>
               )}
             </>
@@ -471,10 +625,10 @@ export default function MapScreen() {
         </View>
 
         <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>Interactive Weather Map</Text>
+          <Text style={styles.infoTitle}>🌍 Interactive Weather Map</Text>
           <Text style={styles.infoText}>
-            Explore real-time weather data with Windy's interactive map. 
-            Switch between different weather layers, zoom in/out, and tap on the map for detailed forecasts at any location.
+            Explore real-time weather data with Windy's professional meteorological maps. 
+            Switch between layers, zoom and pan to explore weather patterns, and tap anywhere for detailed forecasts.
           </Text>
         </View>
       </LinearGradient>
