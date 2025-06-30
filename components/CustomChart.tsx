@@ -73,19 +73,28 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     );
   }
 
-  // Calculate scales with special handling for precipitation
+  // Calculate scales with special handling for precipitation and pressure
   const yValues = validData.map(d => d.y);
   let minY = Math.min(...yValues);
   let maxY = Math.max(...yValues);
   
   // Special handling for precipitation charts - always start from 0
   const isPrecipitationChart = unit.includes('mm');
+  const isPressureChart = unit.includes('hPa');
+  
   if (isPrecipitationChart) {
     minY = 0; // Force precipitation charts to start from 0
     // Ensure we have some range even if all values are 0
     if (maxY === 0) {
       maxY = 1; // Show a small range for better visualization
     }
+  }
+  
+  // For pressure charts, ensure standard pressure (1013 hPa) is visible
+  if (isPressureChart) {
+    const standardPressure = 1013;
+    minY = Math.min(minY, standardPressure - 10); // Ensure some space below standard pressure
+    maxY = Math.max(maxY, standardPressure + 10); // Ensure some space above standard pressure
   }
   
   const yRange = maxY - minY || 1;
@@ -152,6 +161,42 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     }
     
     return gridLines;
+  };
+
+  // Generate standard pressure reference line for pressure charts
+  const generateStandardPressureLine = () => {
+    if (!isPressureChart) return null;
+    
+    const standardPressure = 1013;
+    const y = yScale(standardPressure);
+    
+    // Only show the line if it's within the visible chart area
+    if (y < padding.top || y > chartHeight - padding.bottom) return null;
+    
+    return (
+      <>
+        <Line
+          x1={padding.left}
+          y1={y}
+          x2={chartWidth - padding.right}
+          y2={y}
+          stroke="#FF8800"
+          strokeWidth={2}
+          strokeOpacity={0.8}
+          strokeDasharray="5,5"
+        />
+        <SvgText
+          x={chartWidth - padding.right - 5}
+          y={y - 5}
+          fontSize="10"
+          fill="#FF8800"
+          textAnchor="end"
+          fontWeight="600"
+        >
+          Standard (1013 hPa)
+        </SvgText>
+      </>
+    );
   };
 
   // Generate Y-axis labels with better formatting
@@ -242,6 +287,9 @@ export const CustomChart: React.FC<CustomChartProps> = ({
         
         {/* Grid lines */}
         {generateGridLines()}
+        
+        {/* Standard pressure reference line (only for pressure charts) */}
+        {generateStandardPressureLine()}
         
         {/* Chart content */}
         {type === 'bar' ? (
