@@ -546,7 +546,7 @@ export default function MapScreen() {
                 domStorageEnabled={true}
                 startInLoadingState={false}
                 scalesPageToFit={Platform.OS !== 'ios'}
-                allowsInlineMediaPlayback={true}
+                allowsInlineMediaPlaybook={true}
                 mediaPlaybackRequiresUserAction={false}
                 mixedContentMode="compatibility"
                 thirdPartyCookiesEnabled={true}
@@ -558,7 +558,6 @@ export default function MapScreen() {
                 originWhitelist={['https://*', 'http://*']}
                 allowsLinkPreview={false}
                 dataDetectorTypes={['none']}
-                decelerationRate={0.998}
                 overScrollMode="never"
                 showsHorizontalScrollIndicator={false}
                 showsVerticalScrollIndicator={false}
