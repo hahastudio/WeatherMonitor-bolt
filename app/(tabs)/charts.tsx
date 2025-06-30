@@ -24,8 +24,7 @@ export default function ChartsScreen() {
     loading, 
     error, 
     theme, 
-    refreshWeather,
-    cityName
+    refreshWeather
   } = useWeather();
 
   if (loading && !forecast) {
@@ -57,12 +56,6 @@ export default function ChartsScreen() {
       fontSize: 28,
       fontWeight: '700',
       textAlign: 'center',
-    },
-    subtitle: {
-      color: theme.textSecondary,
-      fontSize: 16,
-      textAlign: 'center',
-      marginTop: 8,
     },
     timeRange: {
       color: theme.textSecondary,
@@ -177,7 +170,6 @@ export default function ChartsScreen() {
         >
           <View style={styles.header}>
             <Text style={styles.title}>Weather Charts</Text>
-            <Text style={styles.subtitle}>{cityName}</Text>
           </View>
           <View style={styles.content}>
             <Text style={[styles.subtitle, { textAlign: 'center' }]}>
@@ -315,7 +307,6 @@ export default function ChartsScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.title}>Weather Charts</Text>
-          <Text style={styles.subtitle}>{cityName}</Text>
           <View style={styles.timeRange}>
             <Clock size={14} color={theme.textSecondary} />
             <Text style={[styles.timeRange, { marginLeft: 6 }]}>

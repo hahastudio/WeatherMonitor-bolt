@@ -26,8 +26,7 @@ interface MapSettings {
 export default function MapScreen() {
   const { 
     location, 
-    theme, 
-    cityName,
+    theme,
     loading: weatherLoading 
   } = useWeather();
 
@@ -243,11 +242,6 @@ export default function MapScreen() {
       borderRadius: 20,
       padding: 8,
     },
-    subtitle: {
-      color: theme.textSecondary,
-      fontSize: 16,
-      marginBottom: 12,
-    },
     layerSelector: {
       flexDirection: 'row',
       gap: 8,
@@ -421,8 +415,6 @@ export default function MapScreen() {
               </TouchableOpacity>
             </View>
           </View>
-          
-          <Text style={styles.subtitle}>{cityName}</Text>
           
           <View style={styles.layerSelector}>
             {layerOptions.map((option) => (

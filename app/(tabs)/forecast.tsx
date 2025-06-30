@@ -47,12 +47,6 @@ export default function ForecastScreen() {
       fontWeight: '700',
       textAlign: 'center',
     },
-    subtitle: {
-      color: theme.textSecondary,
-      fontSize: 16,
-      textAlign: 'center',
-      marginTop: 8,
-    },
     content: {
       paddingHorizontal: 20,
       paddingBottom: 100,
@@ -148,9 +142,6 @@ export default function ForecastScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.title}>Weather Forecast</Text>
-          <Text style={styles.subtitle}>
-            {forecast.city.name}, {forecast.city.country}
-          </Text>
         </View>
 
         <ScrollView 
