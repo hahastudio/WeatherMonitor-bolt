@@ -73,12 +73,23 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     );
   }
 
-  // Calculate scales
+  // Calculate scales with special handling for precipitation
   const yValues = validData.map(d => d.y);
-  const minY = Math.min(...yValues);
-  const maxY = Math.max(...yValues);
+  let minY = Math.min(...yValues);
+  let maxY = Math.max(...yValues);
+  
+  // Special handling for precipitation charts - always start from 0
+  const isPrecipitationChart = unit.includes('mm');
+  if (isPrecipitationChart) {
+    minY = 0; // Force precipitation charts to start from 0
+    // Ensure we have some range even if all values are 0
+    if (maxY === 0) {
+      maxY = 1; // Show a small range for better visualization
+    }
+  }
+  
   const yRange = maxY - minY || 1;
-  const yPadding = yRange * 0.1;
+  const yPadding = isPrecipitationChart ? 0 : yRange * 0.1; // No padding for precipitation
 
   const xScale = (x: number) => padding.left + (x / (validData.length - 1 || 1)) * (chartWidth - padding.left - padding.right);
   const yScale = (y: number) => chartHeight - padding.bottom - ((y - minY + yPadding) / (yRange + 2 * yPadding)) * (chartHeight - padding.top - padding.bottom);
@@ -157,7 +168,9 @@ export const CustomChart: React.FC<CustomChartProps> = ({
       if (unit.includes('°C')) {
         formattedValue = `${Math.round(value)}°C`;
       } else if (unit.includes('mm')) {
-        formattedValue = `${value.toFixed(1)}mm`;
+        // For precipitation, show one decimal place and ensure we don't show negative values
+        const displayValue = Math.max(0, value);
+        formattedValue = `${displayValue.toFixed(1)}mm`;
       } else if (unit.includes('km/h')) {
         formattedValue = `${Math.round(value)}`;
       } else if (unit.includes('hPa')) {
