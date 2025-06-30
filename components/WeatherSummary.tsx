@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { 
-  Sparkles, 
-  AlertTriangle, 
-  CloudRain, 
-  Sun, 
-  Cloud, 
-  RefreshCw,
-  ChevronDown,
-  ChevronUp,
-  Lightbulb
-} from 'lucide-react-native';
+import { Sparkles, TriangleAlert as AlertTriangle, CloudRain, Sun, Cloud, RefreshCw, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { geminiService, WeatherSummary as WeatherSummaryType } from '../services/geminiService';
 
