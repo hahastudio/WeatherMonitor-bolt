@@ -263,17 +263,6 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
                     {alertLevel}
                   </Text>
                   
-                  <Text
-                    style={[
-                      styles.statusBadge,
-                      {
-                        backgroundColor: alert.status === '预警中' ? '#FF8800' + '20' : theme.textSecondary + '20',
-                        color: alert.status === '预警中' ? '#FF8800' : theme.textSecondary,
-                      },
-                    ]}
-                  >
-                    {alert.status}
-                  </Text>
                 </View>
                 
                 <TouchableOpacity
