@@ -557,7 +557,7 @@ export default function MapScreen() {
                 userAgent="Mozilla/5.0 (compatible; WeatherApp/1.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
                 originWhitelist={['https://*', 'http://*']}
                 allowsLinkPreview={false}
-                dataDetectorTypes="none"
+                dataDetectorTypes={['none']}
                 decelerationRate="normal"
                 overScrollMode="never"
                 showsHorizontalScrollIndicator={false}

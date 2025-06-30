@@ -301,7 +301,7 @@ export const ApiLogViewer: React.FC = () => {
   };
 
   const formatResponseTime = (responseTime?: number) => {
-    if (!responseTime) return '';
+    if (!responseTime || isNaN(responseTime)) return '';
     return responseTime < 1000 ? `${responseTime}ms` : `${(responseTime / 1000).toFixed(1)}s`;
   };
 
@@ -358,7 +358,7 @@ export const ApiLogViewer: React.FC = () => {
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Avg Response</Text>
                 <Text style={styles.summaryValue}>
-                  {formatResponseTime(summary.averageResponseTime)}
+                  {formatResponseTime(summary.averageResponseTime || 0)}
                 </Text>
               </View>
             </View>
