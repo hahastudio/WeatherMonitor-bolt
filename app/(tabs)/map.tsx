@@ -11,13 +11,12 @@ import {
   Eye,
   RefreshCw,
   Maximize2,
-  Gauge,
   ExternalLink
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
-type WeatherLayer = 'wind' | 'rain' | 'temp' | 'clouds' | 'pressure';
+type WeatherLayer = 'wind' | 'rain' | 'temp' | 'clouds';
 
 interface MapSettings {
   layer: WeatherLayer;
@@ -47,7 +46,6 @@ export default function MapScreen() {
     { key: 'rain', label: 'Rain', icon: CloudRain, color: '#4A90E2', overlay: 'rain' },
     { key: 'temp', label: 'Temperature', icon: Thermometer, color: '#FF6B6B', overlay: 'temp' },
     { key: 'clouds', label: 'Clouds', icon: Eye, color: '#9370DB', overlay: 'clouds' },
-    { key: 'pressure', label: 'Pressure', icon: Gauge, color: '#FF8800', overlay: 'pressure' },
   ] as const;
 
   // Generate Windy embed URL with correct parameters
@@ -378,24 +376,6 @@ export default function MapScreen() {
       fontWeight: '600',
       marginLeft: 8,
     },
-    infoCard: {
-      backgroundColor: theme.surface + '90',
-      borderRadius: 12,
-      padding: 16,
-      marginHorizontal: 20,
-      marginBottom: 16,
-    },
-    infoTitle: {
-      color: theme.text,
-      fontSize: 16,
-      fontWeight: '600',
-      marginBottom: 8,
-    },
-    infoText: {
-      color: theme.textSecondary,
-      fontSize: 14,
-      lineHeight: 20,
-    },
     statusIndicator: {
       position: 'absolute',
       top: 16,
@@ -576,14 +556,6 @@ export default function MapScreen() {
               )}
             </>
           )}
-        </View>
-
-        <View style={styles.infoCard}>
-          <Text style={styles.infoTitle}>🌍 Interactive Weather Map</Text>
-          <Text style={styles.infoText}>
-            Explore real-time weather data with Windy's professional meteorological maps. 
-            Switch between layers to view wind patterns, precipitation, temperature, clouds, and pressure systems.
-          </Text>
         </View>
       </LinearGradient>
     </View>
