@@ -56,7 +56,7 @@ class GeminiService {
         trigger,
         responseTime,
         undefined,
-        'openweather' // Using openweather as provider since we don't have a gemini option
+        'gemini'
       );
 
       return this.parseResponse(text);
@@ -69,7 +69,7 @@ class GeminiService {
         trigger,
         responseTime,
         error instanceof Error ? error.message : 'Unknown error',
-        'openweather'
+        'gemini'
       );
       throw error;
     }

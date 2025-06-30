@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Activity, CircleCheck as CheckCircle, Circle as XCircle, Clock, Trash2, RefreshCw, TrendingUp, Zap, MousePointer, Smartphone, Cloud, Globe } from 'lucide-react-native';
+import { Activity, CircleCheck as CheckCircle, Circle as XCircle, Clock, Trash2, RefreshCw, TrendingUp, Zap, MousePointer, Smartphone, Cloud, Globe, Sparkles } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { apiLogger, ApiLogEntry } from '../services/apiLogger';
 
@@ -255,6 +255,8 @@ export const ApiLogViewer: React.FC = () => {
         return <Cloud size={12} color={theme.textSecondary} />;
       case 'caiyun':
         return <Globe size={12} color={theme.textSecondary} />;
+      case 'gemini':
+        return <Sparkles size={12} color={theme.textSecondary} />;
       default:
         return <Activity size={12} color={theme.textSecondary} />;
     }
@@ -281,6 +283,8 @@ export const ApiLogViewer: React.FC = () => {
         return 'OpenWeather';
       case 'caiyun':
         return 'Caiyun';
+      case 'gemini':
+        return 'Gemini AI';
       default:
         return provider;
     }

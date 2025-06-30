@@ -9,7 +9,7 @@ export interface ApiLogEntry {
   responseTime?: number;
   error?: string;
   trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start';
-  provider: 'openweather' | 'caiyun';
+  provider: 'openweather' | 'caiyun' | 'gemini';
 }
 
 class ApiLogger {
@@ -91,6 +91,7 @@ class ApiLogger {
       requestsByProvider: {
         openweather: 0,
         caiyun: 0,
+        gemini: 0,
       } as Record<ApiLogEntry['provider'], number>,
       requestsByHour: [] as Array<{ hour: string; count: number }>,
       averageResponseTime: 0,
