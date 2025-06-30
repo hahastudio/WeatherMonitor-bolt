@@ -1,4 +1,4 @@
-{
+export default {
   "expo": {
     "name": "WeatherMonitor NT",
     "slug": "weathermonitor-nt",
@@ -16,9 +16,23 @@
       "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["expo-router", "expo-font", "expo-web-browser"],
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser"
+    ],
     "experiments": {
       "typedRoutes": true
+    },
+    "android": {
+      "package": "com.hahastudio.weathermonitornt",
+      "googleServicesFile": process.env.ANDROID_GOOGLE_SERVICES_FILE_PATH
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b954e4ba-aebb-432e-8c89-a5faec5e775d"
+      }
     }
   }
 }
