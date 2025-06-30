@@ -1,6 +1,6 @@
 # WeatherMonitor
 
-A beautiful, production-ready weather monitoring app built with React Native, Expo, and TypeScript. Features real-time weather data, forecasts, interactive charts, weather alerts, and AI-powered weather summaries with a responsive design that adapts to weather conditions.
+A beautiful, production-ready weather monitoring app built with React Native, Expo, and TypeScript. Features real-time weather data, forecasts, interactive charts, weather alerts, AI-powered weather summaries, and interactive weather maps with a responsive design that adapts to weather conditions.
 
 ![Weather App Preview](https://images.pexels.com/photos/1118873/pexels-photo-1118873.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop)
 
@@ -8,6 +8,7 @@ A beautiful, production-ready weather monitoring app built with React Native, Ex
 
 - **Real-time Weather Data**: Current conditions, temperature, humidity, wind speed, and more
 - **AI Weather Summaries**: Intelligent weather analysis powered by Google Gemini AI
+- **Interactive Weather Maps**: Powered by Windy with multiple weather layers
 - **5-Day Forecast**: Detailed weather predictions with hourly breakdowns
 - **Interactive Charts**: Visual representations of temperature, precipitation, wind, pressure, and humidity trends
 - **Weather Alerts**: Real-time weather warnings and advisories with severity levels
@@ -23,7 +24,7 @@ A beautiful, production-ready weather monitoring app built with React Native, Ex
 
 #### 1. **Tab-Based Navigation**
 - Primary navigation uses Expo Router's tab system
-- Each major feature (Weather, Forecast, Charts, Settings) has its own tab
+- Each major feature (Weather, Forecast, Charts, Map, Settings) has its own tab
 - Clean separation of concerns with dedicated screens
 
 #### 2. **Context-Based State Management**
@@ -41,12 +42,17 @@ A beautiful, production-ready weather monitoring app built with React Native, Ex
 - Contextual analysis of current conditions, alerts, and future forecasts
 - Personalized recommendations based on weather patterns
 
-#### 5. **Adaptive Theming System**
+#### 5. **Interactive Map Integration**
+- Windy map embedding for visual weather data
+- Multiple weather layer support (wind, rain, temperature, clouds)
+- Real-time meteorological visualization
+
+#### 6. **Adaptive Theming System**
 - Dynamic themes based on weather conditions and time of day
 - Consistent color schemes across all components
 - Accessibility-compliant contrast ratios
 
-#### 6. **Component-Based UI**
+#### 7. **Component-Based UI**
 - Reusable components with consistent styling
 - Platform-specific optimizations for iOS, Android, and Web
 - Responsive design with proper breakpoints
@@ -195,6 +201,26 @@ For mobile app builds, you'll need to use EAS Build:
 - Weather change notifications
 - Safety considerations for severe weather
 
+### Interactive Weather Maps: Windy
+
+**Integration:**
+- Embedded Windy maps with custom configuration
+- Real-time meteorological data visualization
+- Multiple weather layer support
+
+**Available Layers:**
+- **Wind**: Wind speed and direction patterns
+- **Rain**: Precipitation intensity and movement
+- **Temperature**: Temperature distribution and gradients
+- **Clouds**: Cloud cover and satellite imagery
+- **Pressure**: Atmospheric pressure systems
+
+**Features:**
+- Interactive zoom and pan
+- Location-specific forecasts
+- Time-based weather animation
+- Professional meteorological data from ECMWF
+
 ### Location Services
 
 **Data Sources:**
@@ -216,6 +242,7 @@ Users can configure:
 - **Dark/Light mode**: Manual toggle or automatic based on time
 - **Notification preferences**: Enable/disable weather alerts
 - **Location settings**: Manual refresh or automatic detection
+- **Map layers**: Choose preferred weather visualization
 
 ### API Request Monitoring
 
@@ -258,6 +285,14 @@ The Gemini AI service provides:
 - **Error handling**: Graceful fallbacks when AI is unavailable
 - **Rate limiting**: Efficient API usage with caching
 - **Contextual analysis**: Weather-specific prompts for relevant insights
+
+### Map Integration
+
+The Windy map integration includes:
+- **Dynamic URL generation**: Based on user location and preferences
+- **Layer switching**: Real-time weather layer changes
+- **Error handling**: Fallback UI when map fails to load
+- **Platform optimization**: Web and mobile-specific implementations
 
 ### Testing
 
