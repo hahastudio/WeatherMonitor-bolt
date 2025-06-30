@@ -558,7 +558,7 @@ export default function MapScreen() {
                 originWhitelist={['https://*', 'http://*']}
                 allowsLinkPreview={false}
                 dataDetectorTypes={['none']}
-                decelerationRate="normal"
+                decelerationRate={0.998}
                 overScrollMode="never"
                 showsHorizontalScrollIndicator={false}
                 showsVerticalScrollIndicator={false}
