@@ -33,7 +33,7 @@ export default function MapScreen() {
 
   const webViewRef = useRef<WebView>(null);
   const [mapSettings, setMapSettings] = useState<MapSettings>({
-    layer: 'wind',
+    layer: 'wind', // Wind is already the default
     zoom: 8
   });
   const [webViewLoading, setWebViewLoading] = useState(true);
