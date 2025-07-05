@@ -4,7 +4,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
-import { WeatherCard } from '../../components/WeatherCard';
 import { WeatherIcon } from '../../components/WeatherIcon';
 import { formatDate, formatTime } from '../../utils/weatherTheme';
 
@@ -58,66 +57,114 @@ export default function ForecastScreen() {
       marginBottom: 16,
       marginTop: 20,
     },
-    forecastItem: {
+    // 24-hour forecast styles
+    hourlyContainer: {
+      marginBottom: 32,
+    },
+    hourlyScrollView: {
+      paddingVertical: 8,
+    },
+    hourlyItem: {
       backgroundColor: theme.surface + '90',
       borderRadius: 12,
-      padding: 16,
-      marginBottom: 12,
-      flexDirection: 'row',
+      padding: 12,
+      marginRight: 12,
       alignItems: 'center',
-      // CRITICAL: Remove all shadow/elevation properties to prevent Android grey borders
+      minWidth: 80,
+      // Remove shadow/elevation to prevent Android grey borders
     },
-    timeInfo: {
-      width: 80,
-      marginRight: 16,
+    hourlyTime: {
+      color: theme.textSecondary,
+      fontSize: 12,
+      fontWeight: '500',
+      marginBottom: 8,
     },
-    dateText: {
+    hourlyIcon: {
+      marginBottom: 8,
+    },
+    hourlyTemp: {
       color: theme.text,
       fontSize: 16,
       fontWeight: '600',
+      marginBottom: 4,
     },
-    timeText: {
-      color: theme.textSecondary,
-      fontSize: 14,
-      marginTop: 2,
+    hourlyPrecip: {
+      color: theme.primary,
+      fontSize: 11,
+      fontWeight: '500',
     },
-    weatherIconContainer: {
-      width: 50,
+    // 5-day forecast styles
+    dailyContainer: {
+      gap: 12,
+    },
+    dailyItem: {
+      backgroundColor: theme.surface + '90',
+      borderRadius: 16,
+      padding: 16,
+      flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      marginRight: 16,
-      // CRITICAL: Clean container with no background styling to prevent Android grey borders
+      // Remove shadow/elevation to prevent Android grey borders
     },
-    weatherInfo: {
+    dailyLeft: {
       flex: 1,
-      alignItems: 'center',
       marginRight: 16,
     },
-    tempText: {
+    dailyDate: {
       color: theme.text,
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '600',
-      marginTop: 4,
-    },
-    descText: {
-      color: theme.textSecondary,
-      fontSize: 12,
-      textAlign: 'center',
-      marginTop: 2,
-    },
-    popContainer: {
-      width: 60,
-      alignItems: 'center',
-    },
-    popLabel: {
-      color: theme.textSecondary,
-      fontSize: 10,
       marginBottom: 2,
     },
-    popText: {
-      color: theme.primary,
+    dailyDesc: {
+      color: theme.textSecondary,
       fontSize: 14,
-      fontWeight: '600',
+    },
+    dailyCenter: {
+      alignItems: 'center',
+      marginRight: 16,
+    },
+    dailyRight: {
+      alignItems: 'flex-end',
+      minWidth: 80,
+    },
+    tempRange: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 8,
+    },
+    tempHigh: {
+      color: theme.text,
+      fontSize: 18,
+      fontWeight: '700',
+      marginRight: 8,
+    },
+    tempLow: {
+      color: theme.textSecondary,
+      fontSize: 16,
+      fontWeight: '500',
+    },
+    tempBar: {
+      height: 4,
+      backgroundColor: theme.textSecondary + '20',
+      borderRadius: 2,
+      marginBottom: 4,
+      width: 60,
+    },
+    tempBarFill: {
+      height: '100%',
+      borderRadius: 2,
+    },
+    precipChance: {
+      color: theme.primary,
+      fontSize: 12,
+      fontWeight: '500',
+    },
+    errorText: {
+      color: theme.accent,
+      fontSize: 14,
+      textAlign: 'center',
+      marginTop: 20,
+      fontWeight: '500',
     },
   });
 
@@ -131,8 +178,63 @@ export default function ForecastScreen() {
     return acc;
   }, {} as Record<string, typeof forecast.list>);
 
-  // Get next 24 hours forecast
+  // Get next 24 hours forecast (8 data points, 3 hours each)
   const next24Hours = forecast.list.slice(0, 8);
+
+  // Get 5-day forecast data
+  const dailyForecast = Object.entries(groupedForecast).slice(0, 5).map(([date, items]) => {
+    const dayItems = items.filter(item => {
+      const hour = new Date(item.dt * 1000).getHours();
+      return hour >= 6 && hour <= 18; // Daytime hours
+    });
+    
+    const representativeItem = dayItems.length > 0 
+      ? dayItems[Math.floor(dayItems.length / 2)] 
+      : items[0];
+    
+    const maxTemp = Math.max(...items.map(item => item.main.temp_max));
+    const minTemp = Math.min(...items.map(item => item.main.temp_min));
+    const avgPrecipChance = Math.round(items.reduce((sum, item) => sum + item.pop, 0) / items.length * 100);
+    
+    return {
+      date: representativeItem.dt,
+      weather: representativeItem.weather[0],
+      maxTemp,
+      minTemp,
+      precipChance: avgPrecipChance,
+    };
+  });
+
+  // Calculate temperature range for the bar visualization
+  const allTemps = dailyForecast.flatMap(day => [day.maxTemp, day.minTemp]);
+  const globalMin = Math.min(...allTemps);
+  const globalMax = Math.max(...allTemps);
+  const tempRange = globalMax - globalMin || 1;
+
+  const getTempBarGradient = (minTemp: number, maxTemp: number) => {
+    const minPosition = ((minTemp - globalMin) / tempRange) * 100;
+    const maxPosition = ((maxTemp - globalMin) / tempRange) * 100;
+    
+    return {
+      marginLeft: `${minPosition}%`,
+      width: `${maxPosition - minPosition}%`,
+    };
+  };
+
+  const formatDayName = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    } else {
+      return date.toLocaleDateString('en-US', { weekday: 'long' });
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -155,79 +257,99 @@ export default function ForecastScreen() {
             />
           }
         >
-          <Text style={styles.sectionTitle}>Next 24 Hours</Text>
-          
-          {next24Hours.map((item, index) => (
-            <View key={index} style={styles.forecastItem}>
-              <View style={styles.timeInfo}>
-                <Text style={styles.dateText}>
-                  {index === 0 ? 'Now' : formatTime(item.dt)}
-                </Text>
-                <Text style={styles.timeText}>
-                  {formatDate(item.dt)}
-                </Text>
-              </View>
-              
-              <View style={styles.weatherIconContainer}>
-                <WeatherIcon 
-                  weatherMain={item.weather[0].main}
-                  size={40}
-                  color={theme.primary}
-                />
-              </View>
-              
-              <View style={styles.weatherInfo}>
-                <Text style={styles.tempText}>
-                  {Math.round(item.main.temp)}°
-                </Text>
-                <Text style={styles.descText}>
-                  {item.weather[0].description}
-                </Text>
-              </View>
-              
-              <View style={styles.popContainer}>
-                <Text style={styles.popLabel}>Rain</Text>
-                <Text style={styles.popText}>
-                  {Math.round(item.pop * 100)}%
-                </Text>
-              </View>
-            </View>
-          ))}
+          {/* 24-Hour Forecast */}
+          <View style={styles.hourlyContainer}>
+            <Text style={styles.sectionTitle}>Next 24 Hours</Text>
+            
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.hourlyScrollView}
+              contentContainerStyle={{ paddingRight: 20 }}
+            >
+              {next24Hours.map((item, index) => (
+                <View key={index} style={styles.hourlyItem}>
+                  <Text style={styles.hourlyTime}>
+                    {index === 0 ? 'Now' : formatTime(item.dt)}
+                  </Text>
+                  
+                  <View style={styles.hourlyIcon}>
+                    <WeatherIcon 
+                      weatherMain={item.weather[0].main}
+                      size={32}
+                      color={theme.primary}
+                    />
+                  </View>
+                  
+                  <Text style={styles.hourlyTemp}>
+                    {Math.round(item.main.temp)}°
+                  </Text>
+                  
+                  <Text style={styles.hourlyPrecip}>
+                    {Math.round(item.pop * 100)}%
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
 
+          {/* 5-Day Forecast */}
           <Text style={styles.sectionTitle}>5-Day Forecast</Text>
 
-          {Object.entries(groupedForecast).slice(0, 5).map(([date, items]) => {
-            const dayItems = items.filter(item => {
-              const hour = new Date(item.dt * 1000).getHours();
-              return hour >= 6 && hour <= 18; // Daytime hours
-            });
-            
-            if (dayItems.length === 0) return null;
-            
-            const dayItem = dayItems[Math.floor(dayItems.length / 2)]; // Middle of the day
-            const maxTemp = Math.max(...items.map(item => item.main.temp_max));
-            const minTemp = Math.min(...items.map(item => item.main.temp_min));
-
-            return (
-              <WeatherCard
-                key={date}
-                title={formatDate(dayItem.dt)}
-                temperature={dayItem.main.temp}
-                description={dayItem.weather[0].description}
-                weatherMain={dayItem.weather[0].main}
-                showDetails={true}
-                humidity={dayItem.main.humidity}
-                windSpeed={dayItem.wind.speed}
-              />
-            );
-          })}
+          <View style={styles.dailyContainer}>
+            {dailyForecast.map((day, index) => (
+              <View key={index} style={styles.dailyItem}>
+                <View style={styles.dailyLeft}>
+                  <Text style={styles.dailyDate}>
+                    {formatDayName(day.date)}
+                  </Text>
+                  <Text style={styles.dailyDesc}>
+                    {day.weather.description}
+                  </Text>
+                </View>
+                
+                <View style={styles.dailyCenter}>
+                  <WeatherIcon 
+                    weatherMain={day.weather.main}
+                    size={40}
+                    color={theme.primary}
+                  />
+                </View>
+                
+                <View style={styles.dailyRight}>
+                  <View style={styles.tempRange}>
+                    <Text style={styles.tempHigh}>
+                      {Math.round(day.maxTemp)}°
+                    </Text>
+                    <Text style={styles.tempLow}>
+                      {Math.round(day.minTemp)}°
+                    </Text>
+                  </View>
+                  
+                  <View style={styles.tempBar}>
+                    <LinearGradient
+                      colors={[theme.primary + '60', theme.primary]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[
+                        styles.tempBarFill,
+                        getTempBarGradient(day.minTemp, day.maxTemp)
+                      ]}
+                    />
+                  </View>
+                  
+                  <Text style={styles.precipChance}>
+                    {day.precipChance}% rain
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
 
           {error && (
-            <View style={{ marginTop: 20 }}>
-              <Text style={[styles.sectionTitle, { color: theme.accent }]}>
-                ⚠️ {error}
-              </Text>
-            </View>
+            <Text style={styles.errorText}>
+              ⚠️ {error}
+            </Text>
           )}
         </ScrollView>
       </LinearGradient>
