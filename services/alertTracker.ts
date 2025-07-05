@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveAlertTracker, loadAlertTracker, clearAlertTracker } from '../utils/weatherStorage';
 
 export interface AlertTracker {
   recentAlertIds: string[];
@@ -12,11 +12,9 @@ class AlertTrackerService {
 
   async getRecentAlertIds(): Promise<string[]> {
     try {
-      const trackerJson = await AsyncStorage.getItem(AlertTrackerService.STORAGE_KEY);
-      if (!trackerJson) return [];
+      const tracker = await loadAlertTracker();
+      if (!tracker) return [];
 
-      const tracker: AlertTracker = JSON.parse(trackerJson);
-      
       // Clean up old data if needed
       const now = Date.now();
       if (now - tracker.lastUpdated > AlertTrackerService.CLEANUP_INTERVAL) {
@@ -51,7 +49,7 @@ class AlertTrackerService {
         lastUpdated: Date.now(),
       };
 
-      await AsyncStorage.setItem(AlertTrackerService.STORAGE_KEY, JSON.stringify(tracker));
+      await saveAlertTracker(tracker);
     } catch (error) {
       console.error('Failed to add alert ID:', error);
     }
@@ -79,7 +77,7 @@ class AlertTrackerService {
         lastUpdated: Date.now(),
       };
 
-      await AsyncStorage.setItem(AlertTrackerService.STORAGE_KEY, JSON.stringify(tracker));
+      await saveAlertTracker(tracker);
     } catch (error) {
       console.error('Failed to add multiple alert IDs:', error);
     }
@@ -107,7 +105,7 @@ class AlertTrackerService {
 
   async clearRecentAlerts(): Promise<void> {
     try {
-      await AsyncStorage.removeItem(AlertTrackerService.STORAGE_KEY);
+      await clearAlertTracker();
     } catch (error) {
       console.error('Failed to clear recent alerts:', error);
     }
@@ -119,18 +117,15 @@ class AlertTrackerService {
     newestAlertAge: number | null;
   }> {
     try {
-      const trackerJson = await AsyncStorage.getItem(AlertTrackerService.STORAGE_KEY);
-      if (!trackerJson) {
+      const tracker = await loadAlertTracker();
+      if (!tracker) {
         return {
           totalTrackedAlerts: 0,
           oldestAlertAge: null,
           newestAlertAge: null,
         };
       }
-
-      const tracker: AlertTracker = JSON.parse(trackerJson);
       const now = Date.now();
-
       return {
         totalTrackedAlerts: tracker.recentAlertIds.length,
         oldestAlertAge: tracker.lastUpdated ? now - tracker.lastUpdated : null,

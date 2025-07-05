@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CurrentWeather, ForecastResponse, LocationCoords, WeatherCondition, CaiyunWeatherAlert } from '../types/weather';
 import { weatherService } from '../services/weatherService';
 import { caiyunService } from '../services/caiyunService';
@@ -7,6 +6,8 @@ import { locationService } from '../services/locationService';
 import { notificationService } from '../services/notificationService';
 import { alertTracker } from '../services/alertTracker';
 import { getWeatherCondition, getWeatherTheme, WeatherTheme } from '../utils/weatherTheme';
+import { registerBackgroundWeatherTask } from '../services/backgroundWeatherService';
+import { saveCurrentWeather, saveForecast, saveWeatherAlerts, saveLastUpdated, loadLastUpdated, saveDarkMode, loadDarkMode, saveRefreshRate, loadRefreshRate, loadCurrentWeather, loadForecast, loadWeatherAlerts } from '../utils/weatherStorage';
 
 interface WeatherContextType {
   currentWeather: CurrentWeather | null;
@@ -24,6 +25,9 @@ interface WeatherContextType {
   refreshWeather: () => Promise<void>;
   toggleDarkMode: () => void;
   setRefreshRate: (minutes: number) => Promise<void>;
+  setCurrentWeather: (weather: CurrentWeather | null) => Promise<void>;
+  setForecast: (forecast: ForecastResponse | null) => Promise<void>;
+  setWeatherAlerts: (alerts: CaiyunWeatherAlert[]) => Promise<void>;
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
@@ -31,13 +35,6 @@ const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
 interface WeatherProviderProps {
   children: ReactNode;
 }
-
-const STORAGE_KEYS = {
-  DARK_MODE: '@weather_app_dark_mode',
-  REFRESH_RATE: '@weather_app_refresh_rate',
-  DISMISSED_ALERTS: '@weather_app_dismissed_alerts',
-  LAST_UPDATED: '@weather_app_last_updated',
-};
 
 const DEFAULT_REFRESH_RATE = 15; // 15 minutes
 
@@ -65,7 +62,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     const now = Date.now();
     setLastUpdated(now);
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.LAST_UPDATED, JSON.stringify(now));
+      await saveLastUpdated(now);
     } catch (error) {
       console.error('Failed to save last updated time:', error);
     }
@@ -73,9 +70,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
   const getLastUpdatedTime = async (): Promise<number | null> => {
     try {
-      const storedTime = await AsyncStorage.getItem(STORAGE_KEYS.LAST_UPDATED);
-      if (storedTime) {
-        const time = JSON.parse(storedTime);
+      const time = await loadLastUpdated();
+      if (time) {
         setLastUpdated(time);
         return time;
       }
@@ -113,8 +109,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         weatherService.getForecast(coords, trigger),
       ]);
 
-      setCurrentWeather(weatherData);
-      setForecast(forecastData);
+      await setCurrentWeatherAndStore(weatherData);
+      await setForecastAndStore(forecastData);
 
       // Update last updated time
       await updateLastUpdatedTime();
@@ -213,7 +209,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     const newDarkMode = !isDarkMode;
     setIsDarkMode(newDarkMode);
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.DARK_MODE, JSON.stringify(newDarkMode));
+      await saveDarkMode(newDarkMode);
     } catch (error) {
       console.error('Failed to save dark mode preference:', error);
     }
@@ -222,7 +218,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const setRefreshRate = async (minutes: number) => {
     setRefreshRateState(minutes);
     try {
-      await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_RATE, JSON.stringify(minutes));
+      await saveRefreshRate(minutes);
       
       // Clear existing interval
       if (refreshInterval) {
@@ -234,8 +230,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         if (location) {
           fetchWeatherData(location, 'auto');
         }
-      }, minutes * 60 * 1000);
-      
+      }, minutes * 60 * 1000) as unknown as NodeJS.Timeout;
       setRefreshInterval(newInterval);
     } catch (error) {
       console.error('Failed to save refresh rate preference:', error);
@@ -245,22 +240,21 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const loadStoredPreferences = async () => {
     try {
       // Load dark mode preference
-      const storedDarkMode = await AsyncStorage.getItem(STORAGE_KEYS.DARK_MODE);
-      if (storedDarkMode !== null) {
-        setIsDarkMode(JSON.parse(storedDarkMode));
+      const storedDarkMode = await loadDarkMode();
+      if (storedDarkMode !== null && storedDarkMode !== undefined) {
+        setIsDarkMode(storedDarkMode);
       }
 
       // Load refresh rate preference
-      const storedRefreshRate = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_RATE);
       let rate = DEFAULT_REFRESH_RATE;
-      if (storedRefreshRate !== null) {
-        rate = JSON.parse(storedRefreshRate);
+      const storedRefreshRate = await loadRefreshRate();
+      if (storedRefreshRate !== null && storedRefreshRate !== undefined) {
+        rate = storedRefreshRate;
         setRefreshRateState(rate);
       }
 
       // Load last updated time
       await getLastUpdatedTime();
-      
       return rate;
     } catch (error) {
       console.error('Failed to load stored preferences:', error);
@@ -268,10 +262,64 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
+  // Load cached weather data on app start
+  const loadCachedWeatherData = async () => {
+    try {
+      const cachedWeather = await loadCurrentWeather();
+      if (cachedWeather) {
+        setCurrentWeather(cachedWeather);
+      }
+      const cachedForecast = await loadForecast();
+      if (cachedForecast) {
+        setForecast(cachedForecast);
+      }
+      const cachedAlerts = await loadWeatherAlerts();
+      if (cachedAlerts) {
+        setWeatherAlerts(cachedAlerts);
+      }
+    } catch (e) {
+      console.error('Failed to load cached weather data:', e);
+    }
+  };
+
+  // Move these outside fetchWeatherData so they're available in the component scope
+  const setCurrentWeatherAndStore = async (weather: CurrentWeather | null) => {
+    setCurrentWeather(weather);
+    try {
+      await saveCurrentWeather(weather);
+    } catch (e) {
+      console.error('Failed to save currentWeather:', e);
+    }
+  };
+
+  const setForecastAndStore = async (forecast: ForecastResponse | null) => {
+    setForecast(forecast);
+    try {
+      await saveForecast(forecast);
+    } catch (e) {
+      console.error('Failed to save forecast:', e);
+    }
+  };
+
+  const setWeatherAlertsAndStore = async (alerts: CaiyunWeatherAlert[]) => {
+    setWeatherAlerts(alerts);
+    try {
+      await saveWeatherAlerts(alerts);
+    } catch (e) {
+      console.error('Failed to save weatherAlerts:', e);
+    }
+  };
+
   useEffect(() => {
     const initializeApp = async () => {
       // Initialize notifications
       notificationService.requestPermissions();
+
+      // Register background weather fetch task
+      await registerBackgroundWeatherTask();
+
+      // Load cached weather data first
+      await loadCachedWeatherData();
 
       // Load stored preferences
       const rate = await loadStoredPreferences();
@@ -284,7 +332,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         if (location) {
           fetchWeatherData(location, 'auto');
         }
-      }, rate * 60 * 1000);
+      }, rate * 60 * 1000) as unknown as NodeJS.Timeout;
 
       setRefreshInterval(interval);
     };
@@ -322,6 +370,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     refreshWeather,
     toggleDarkMode,
     setRefreshRate,
+    setCurrentWeather: setCurrentWeatherAndStore,
+    setForecast: setForecastAndStore,
+    setWeatherAlerts: setWeatherAlertsAndStore,
   };
 
   return (

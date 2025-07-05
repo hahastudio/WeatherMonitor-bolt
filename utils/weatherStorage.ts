@@ -1,0 +1,105 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert } from '../types/weather';
+import type { AlertTracker } from '../services/alertTracker';
+import type { ApiLogEntry } from '../services/apiLogger';
+
+
+const STORAGE_KEYS = {
+  DARK_MODE: '@weather_app_dark_mode',
+  REFRESH_RATE: '@weather_app_refresh_rate',
+  DISMISSED_ALERTS: '@weather_app_dismissed_alerts',
+  LAST_UPDATED: '@weather_app_last_updated',
+  CURRENT_WEATHER: '@weather_app_current_weather',
+  FORECAST: '@weather_app_forecast',
+  WEATHER_ALERTS: '@weather_app_weather_alerts',
+};
+
+export async function saveCurrentWeather(weather: CurrentWeather | null) {
+  if (weather) {
+    await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_WEATHER, JSON.stringify(weather));
+  } else {
+    await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_WEATHER);
+  }
+}
+
+export async function saveForecast(forecast: ForecastResponse | null) {
+  if (forecast) {
+    await AsyncStorage.setItem(STORAGE_KEYS.FORECAST, JSON.stringify(forecast));
+  } else {
+    await AsyncStorage.removeItem(STORAGE_KEYS.FORECAST);
+  }
+}
+
+export async function saveWeatherAlerts(alerts: CaiyunWeatherAlert[]) {
+  await AsyncStorage.setItem(STORAGE_KEYS.WEATHER_ALERTS, JSON.stringify(alerts));
+}
+
+export async function loadCurrentWeather(): Promise<CurrentWeather | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_WEATHER);
+  return data ? JSON.parse(data) : null;
+}
+
+export async function loadForecast(): Promise<ForecastResponse | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.FORECAST);
+  return data ? JSON.parse(data) : null;
+}
+
+export async function loadWeatherAlerts(): Promise<CaiyunWeatherAlert[]> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.WEATHER_ALERTS);
+  return data ? JSON.parse(data) : [];
+}
+
+export async function saveLastUpdated(timestamp: number) {
+  await AsyncStorage.setItem(STORAGE_KEYS.LAST_UPDATED, JSON.stringify(timestamp));
+}
+
+export async function loadLastUpdated(): Promise<number | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.LAST_UPDATED);
+  return data ? JSON.parse(data) : null;
+}
+
+export async function saveDarkMode(isDark: boolean) {
+  await AsyncStorage.setItem(STORAGE_KEYS.DARK_MODE, JSON.stringify(isDark));
+}
+
+export async function loadDarkMode(): Promise<boolean | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.DARK_MODE);
+  return data ? JSON.parse(data) : null;
+}
+
+export async function saveRefreshRate(rate: number) {
+  await AsyncStorage.setItem(STORAGE_KEYS.REFRESH_RATE, JSON.stringify(rate));
+}
+
+export async function loadRefreshRate(): Promise<number | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.REFRESH_RATE);
+  return data ? JSON.parse(data) : null;
+}
+
+// AlertTracker storage helpers
+export async function saveAlertTracker(tracker: AlertTracker) {
+  await AsyncStorage.setItem('@weather_app_alert_tracker', JSON.stringify(tracker));
+}
+
+export async function loadAlertTracker(): Promise<AlertTracker | null> {
+  const data = await AsyncStorage.getItem('@weather_app_alert_tracker');
+  return data ? JSON.parse(data) : null;
+}
+
+export async function clearAlertTracker() {
+  await AsyncStorage.removeItem('@weather_app_alert_tracker');
+}
+
+// ApiLogger storage helpers
+export async function saveApiLogs(logs: ApiLogEntry[]) {
+  await AsyncStorage.setItem('@weather_app_api_logs', JSON.stringify(logs));
+}
+
+export async function loadApiLogs(): Promise<ApiLogEntry[] | null> {
+  const data = await AsyncStorage.getItem('@weather_app_api_logs');
+  return data ? JSON.parse(data) : null;
+}
+
+export async function clearApiLogs() {
+  await AsyncStorage.removeItem('@weather_app_api_logs');
+}

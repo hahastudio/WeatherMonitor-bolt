@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveApiLogs, loadApiLogs, clearApiLogs } from '../utils/weatherStorage';
 
 export interface ApiLogEntry {
   id: string;
@@ -45,7 +45,7 @@ class ApiLogger {
       const cutoffTime = Date.now() - ApiLogger.MAX_LOG_AGE;
       const filteredLogs = updatedLogs.filter(log => log.timestamp > cutoffTime);
 
-      await AsyncStorage.setItem(ApiLogger.STORAGE_KEY, JSON.stringify(filteredLogs));
+      await saveApiLogs(filteredLogs);
     } catch (error) {
       console.error('Failed to log API request:', error);
     }
@@ -53,11 +53,9 @@ class ApiLogger {
 
   async getLogs(): Promise<ApiLogEntry[]> {
     try {
-      const logsJson = await AsyncStorage.getItem(ApiLogger.STORAGE_KEY);
-      if (!logsJson) return [];
+      const logs = await loadApiLogs();
+      if (!logs) return [];
 
-      const logs: ApiLogEntry[] = JSON.parse(logsJson);
-      
       // Filter out logs older than 48 hours
       const cutoffTime = Date.now() - ApiLogger.MAX_LOG_AGE;
       return logs.filter(log => log.timestamp > cutoffTime);
@@ -145,7 +143,7 @@ class ApiLogger {
 
   async clearLogs(): Promise<void> {
     try {
-      await AsyncStorage.removeItem(ApiLogger.STORAGE_KEY);
+      await clearApiLogs();
     } catch (error) {
       console.error('Failed to clear API logs:', error);
     }
