@@ -132,16 +132,16 @@ export default function ForecastScreen() {
       alignItems: 'center',
       marginBottom: 8,
     },
-    tempHigh: {
-      color: theme.text,
-      fontSize: 18,
-      fontWeight: '700',
-      marginRight: 8,
-    },
     tempLow: {
       color: theme.textSecondary,
       fontSize: 16,
       fontWeight: '500',
+      marginRight: 8,
+    },
+    tempHigh: {
+      color: theme.text,
+      fontSize: 18,
+      fontWeight: '700',
     },
     tempBar: {
       height: 4,
@@ -318,11 +318,11 @@ export default function ForecastScreen() {
                 
                 <View style={styles.dailyRight}>
                   <View style={styles.tempRange}>
-                    <Text style={styles.tempHigh}>
-                      {Math.round(day.maxTemp)}°
-                    </Text>
                     <Text style={styles.tempLow}>
                       {Math.round(day.minTemp)}°
+                    </Text>
+                    <Text style={styles.tempHigh}>
+                      {Math.round(day.maxTemp)}°
                     </Text>
                   </View>
                   
