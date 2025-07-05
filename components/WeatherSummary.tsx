@@ -40,6 +40,18 @@ export const WeatherSummary: React.FC = () => {
     }
   };
 
+  const handleCardPress = () => {
+    if (summary && !loading) {
+      setExpanded(!expanded);
+    }
+  };
+
+  const handleRefreshPress = (event: any) => {
+    // Prevent the card press event from firing
+    event.stopPropagation();
+    generateSummary();
+  };
+
   // Auto-generate summary when weather data is available
   useEffect(() => {
     if (currentWeather && forecast && !summary && !loading) {
@@ -77,9 +89,15 @@ export const WeatherSummary: React.FC = () => {
     container: {
       backgroundColor: theme.surface + '90',
       borderRadius: 16,
-      padding: 16,
       marginVertical: 16,
+      overflow: 'hidden',
       // CRITICAL: Remove all shadow/elevation properties to prevent Android grey borders
+    },
+    cardTouchable: {
+      // Make the entire card tappable
+    },
+    cardContent: {
+      padding: 16,
     },
     header: {
       flexDirection: 'row',
@@ -103,11 +121,14 @@ export const WeatherSummary: React.FC = () => {
       alignItems: 'center',
     },
     refreshButton: {
-      padding: 4,
+      padding: 8,
+      borderRadius: 20,
+      backgroundColor: theme.background + '20',
       marginRight: 8,
     },
-    expandButton: {
+    expandIndicator: {
       padding: 4,
+      opacity: summary ? 1 : 0.3,
     },
     loadingContainer: {
       flexDirection: 'row',
@@ -234,6 +255,14 @@ export const WeatherSummary: React.FC = () => {
       marginLeft: 4,
       textTransform: 'capitalize',
     },
+    tapHint: {
+      color: theme.textSecondary,
+      fontSize: 12,
+      textAlign: 'center',
+      marginTop: 8,
+      fontStyle: 'italic',
+      opacity: 0.7,
+    },
   });
 
   if (!currentWeather || !forecast) {
@@ -242,98 +271,110 @@ export const WeatherSummary: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Sparkles size={20} color={theme.primary} />
-          <Text style={styles.title}>AI Weather Summary</Text>
-        </View>
-        
-        <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={styles.refreshButton} 
-            onPress={generateSummary}
-            disabled={loading}
-          >
-            <RefreshCw 
-              size={16} 
-              color={loading ? theme.textSecondary : theme.primary} 
-            />
-          </TouchableOpacity>
-          
-          {summary && (
-            <TouchableOpacity 
-              style={styles.expandButton} 
-              onPress={() => setExpanded(!expanded)}
-            >
-              {expanded ? (
-                <ChevronUp size={16} color={theme.textSecondary} />
-              ) : (
-                <ChevronDown size={16} color={theme.textSecondary} />
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
+      <TouchableOpacity 
+        style={styles.cardTouchable} 
+        onPress={handleCardPress}
+        activeOpacity={0.7}
+        disabled={!summary || loading}
+      >
+        <View style={styles.cardContent}>
+          <View style={styles.header}>
+            <View style={styles.headerLeft}>
+              <Sparkles size={20} color={theme.primary} />
+              <Text style={styles.title}>AI Weather Summary</Text>
+            </View>
+            
+            <View style={styles.headerActions}>
+              <TouchableOpacity 
+                style={styles.refreshButton} 
+                onPress={handleRefreshPress}
+                disabled={loading}
+                activeOpacity={0.7}
+              >
+                <RefreshCw 
+                  size={16} 
+                  color={loading ? theme.textSecondary : theme.primary} 
+                />
+              </TouchableOpacity>
+              
+              <View style={styles.expandIndicator}>
+                {expanded ? (
+                  <ChevronUp size={16} color={theme.textSecondary} />
+                ) : (
+                  <ChevronDown size={16} color={theme.textSecondary} />
+                )}
+              </View>
+            </View>
+          </View>
 
-      {loading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={theme.primary} />
-          <Text style={styles.loadingText}>Generating AI summary...</Text>
-        </View>
-      )}
-
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={generateSummary}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {summary && (
-        <View style={styles.content}>
-          <Text style={styles.overviewText}>{summary.todayOverview}</Text>
-
-          {summary.alertSummary && (
-            <View style={styles.alertSection}>
-              <Text style={styles.alertTitle}>⚠️ Active Weather Alerts</Text>
-              <Text style={styles.alertText}>{summary.alertSummary}</Text>
+          {loading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={theme.primary} />
+              <Text style={styles.loadingText}>Generating AI summary...</Text>
             </View>
           )}
 
-          {expanded && (
-            <>
-              {summary.futureWarnings && (
-                <View style={styles.warningSection}>
-                  <Text style={styles.warningTitle}>🌩️ Upcoming Weather Concerns</Text>
-                  <Text style={styles.warningText}>{summary.futureWarnings}</Text>
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity style={styles.retryButton} onPress={generateSummary}>
+                <Text style={styles.retryButtonText}>Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {summary && (
+            <View style={styles.content}>
+              <Text style={styles.overviewText}>{summary.todayOverview}</Text>
+
+              {summary.alertSummary && (
+                <View style={styles.alertSection}>
+                  <Text style={styles.alertTitle}>⚠️ Active Weather Alerts</Text>
+                  <Text style={styles.alertText}>{summary.alertSummary}</Text>
                 </View>
               )}
 
-              <View style={styles.recommendationsSection}>
-                <View style={styles.recommendationsTitle}>
-                  <Lightbulb size={16} color={theme.primary} />
-                  <Text style={styles.recommendationsTitleText}>Recommendations</Text>
-                </View>
-                {summary.recommendations.map((rec, index) => (
-                  <View key={index} style={styles.recommendation}>
-                    <Text style={styles.bullet}>•</Text>
-                    <Text style={styles.recommendationText}>{rec}</Text>
-                  </View>
-                ))}
-              </View>
+              {expanded && (
+                <>
+                  {summary.futureWarnings && (
+                    <View style={styles.warningSection}>
+                      <Text style={styles.warningTitle}>🌩️ Upcoming Weather Concerns</Text>
+                      <Text style={styles.warningText}>{summary.futureWarnings}</Text>
+                    </View>
+                  )}
 
-              <View style={styles.moodIndicator}>
-                {getMoodIcon(summary.mood)}
-                <Text style={[styles.moodText, { color: getMoodColor(summary.mood) }]}>
-                  {summary.mood}
+                  <View style={styles.recommendationsSection}>
+                    <View style={styles.recommendationsTitle}>
+                      <Lightbulb size={16} color={theme.primary} />
+                      <Text style={styles.recommendationsTitleText}>Recommendations</Text>
+                    </View>
+                    {summary.recommendations.map((rec, index) => (
+                      <View key={index} style={styles.recommendation}>
+                        <Text style={styles.bullet}>•</Text>
+                        <Text style={styles.recommendationText}>{rec}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.moodIndicator}>
+                    {getMoodIcon(summary.mood)}
+                    <Text style={[styles.moodText, { color: getMoodColor(summary.mood) }]}>
+                      {summary.mood}
+                    </Text>
+                  </View>
+                </>
+              )}
+
+              {/* Show tap hint only when summary is available and not expanded */}
+              {summary && !expanded && !loading && (
+                <Text style={styles.tapHint}>
+                  Tap to see detailed recommendations
                 </Text>
-              </View>
-            </>
+              )}
+            </View>
           )}
         </View>
-      )}
+      </TouchableOpacity>
     </View>
   );
 };
