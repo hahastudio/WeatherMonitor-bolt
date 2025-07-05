@@ -347,9 +347,16 @@ export default function SettingsScreen() {
     apiLogModal: {
       flex: 1,
       backgroundColor: theme.background,
-      marginTop: 50,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
+      marginTop: 0, // Remove top margin to eliminate white padding
+    },
+    apiLogModalHeader: {
+      position: 'absolute',
+      top: 16,
+      right: 20,
+      zIndex: 1000,
+      backgroundColor: theme.surface,
+      borderRadius: 20,
+      padding: 8,
     },
   });
 
@@ -408,14 +415,7 @@ export default function SettingsScreen() {
       <View style={styles.apiLogModal}>
         <ApiLogViewer />
         <TouchableOpacity
-          style={{
-            position: 'absolute',
-            top: 16,
-            right: 20,
-            backgroundColor: theme.surface,
-            borderRadius: 20,
-            padding: 8,
-          }}
+          style={styles.apiLogModalHeader}
           onPress={() => setShowApiLogModal(false)}
         >
           <X size={24} color={theme.text} />

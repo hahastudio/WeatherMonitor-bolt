@@ -58,7 +58,8 @@ export const ApiLogViewer: React.FC = () => {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 20,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingBottom: 16,
       borderBottomWidth: 1,
       borderBottomColor: theme.textSecondary + '20',
     },
@@ -66,6 +67,7 @@ export const ApiLogViewer: React.FC = () => {
       color: theme.text,
       fontSize: 20,
       fontWeight: '600',
+      flex: 1,
     },
     headerActions: {
       flexDirection: 'row',
