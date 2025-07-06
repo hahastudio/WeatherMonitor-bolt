@@ -38,7 +38,7 @@ export default function MapScreen() {
   const [webViewLoading, setWebViewLoading] = useState(true);
   const [webViewError, setWebViewError] = useState<string | null>(null);
   const [mapKey, setMapKey] = useState(0); // For forcing WebView reload
-  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const layerOptions = [
     { key: 'wind', label: 'Wind', icon: Wind, color: '#50C878', overlay: 'wind' },
@@ -62,9 +62,9 @@ export default function MapScreen() {
     const params = new URLSearchParams({
       type: 'map',
       location: 'coordinates',
-      metricRain: 'default',
-      metricTemp: 'default',
-      metricWind: 'default',
+      metricRain: 'mm',
+      metricTemp: '°C',
+      metricWind: 'm/s',
       zoom: zoom.toString(),
       overlay: overlay,
       product: 'ecmwf',
@@ -506,7 +506,6 @@ export default function MapScreen() {
                 domStorageEnabled={true}
                 startInLoadingState={false}
                 scalesPageToFit={Platform.OS !== 'ios'}
-                allowsInlineMediaPlaybook={true}
                 mediaPlaybackRequiresUserAction={false}
                 mixedContentMode="compatibility"
                 thirdPartyCookiesEnabled={true}

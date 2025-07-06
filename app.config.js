@@ -17,10 +17,29 @@ export default {
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2196f3",
+          "image": "./assets/images/splash-icon.png",
+          "dark": {
+            "image": "./assets/images/splash-icon.png",
+            "backgroundColor": "#0b3252"
+          },
+          "imageWidth": 192
+        }
+      ],
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "expo-location",
+        {
+          isIosBackgroundLocationEnabled: true,
+          isAndroidBackgroundLocationEnabled: true,
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

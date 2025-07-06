@@ -176,6 +176,8 @@ Guidelines:
 - Mention any notable weather changes expected
 - For alerts, explain the practical implications
 - For future warnings, specify which days and what type of weather
+- Recommendations should be actionable (e.g., "Carry an umbrella", "Wear a jacket")
+- Answer in Chinese, using simplified characters
 `;
 
     return prompt;
