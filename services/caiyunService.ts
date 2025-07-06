@@ -14,10 +14,12 @@ class CaiyunService {
     const startTime = Date.now();
     
     try {
+      console.log('🌐 Loading weather alerts...');
       const response = await fetch(url);
       const responseTime = Date.now() - startTime;
       
       if (!response.ok) {
+        console.log(`❌ Error fetching weather alerts: ${response.status} ${response.statusText}`);
         await apiLogger.logRequest(
           'getWeatherAlerts (Caiyun)',
           'GET',
@@ -31,6 +33,7 @@ class CaiyunService {
       }
       
       const data = await response.json();
+      console.log('✅ Got weather alerts successfully');
       await apiLogger.logRequest('getWeatherAlerts (Caiyun)', 'GET', 'success', trigger, responseTime, undefined, 'caiyun');
       return data;
     } catch (error) {

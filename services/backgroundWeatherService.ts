@@ -36,7 +36,7 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
     }
     
     const now = Date.now();
-    if (now - lastUpdated < refreshRate * 60 * 1000) {
+    if (now - lastUpdated < refreshRate * 60 * 1000 * 0.9) {
       console.log('⏭️ Background task: Data is still fresh, skipping refresh');
       return BackgroundTask.BackgroundTaskResult.Success;
     }
@@ -65,6 +65,8 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
       saveLastUpdated(now)
     ]);
 
+    console.log('✅ Background task: Weather data updated successfully');
+
     // Fetch weather alerts
     try {
       const alertsResponse = await caiyunService.getWeatherAlerts(coords, 'auto');
@@ -88,6 +90,7 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
       } else {
         await saveWeatherAlerts([]);
       }
+      console.log('✅ Background task: Weather alerts fetched successfully');
     } catch (e) {
       // Ignore alert errors in background
       console.log('⚠️ Background task: Alert fetch failed, continuing without alerts');
@@ -103,6 +106,12 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
 
 export async function registerBackgroundWeatherTask() {
   try {
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_WEATHER_TASK);
+    if (isRegistered) {
+      console.log('✅ Background weather task is already registered');
+      return;
+    }
+
     const status = await BackgroundTask.getStatusAsync();
     if (status === BackgroundTask.BackgroundTaskStatus.Restricted) {
       console.log('⚠️ Background tasks are restricted on this device');

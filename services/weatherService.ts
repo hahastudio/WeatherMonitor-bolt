@@ -14,10 +14,12 @@ class WeatherService {
     const startTime = Date.now();
     
     try {
+      console.log('🌐 Loading current weather...');
       const response = await fetch(url);
       const responseTime = Date.now() - startTime;
       
       if (!response.ok) {
+        console.log(`❌ Error fetching current weather: ${response.status} ${response.statusText}`);
         await apiLogger.logRequest(
           'getCurrentWeather',
           'GET',
@@ -31,6 +33,7 @@ class WeatherService {
       }
       
       const data = await response.json();
+      console.log('✅ Got current weather successfully');
       await apiLogger.logRequest('getCurrentWeather', 'GET', 'success', trigger, responseTime, undefined, 'openweather');
       return data;
     } catch (error) {
@@ -57,10 +60,12 @@ class WeatherService {
     const startTime = Date.now();
     
     try {
+      console.log('🌐 Loading weather forecast...');
       const response = await fetch(url);
       const responseTime = Date.now() - startTime;
       
       if (!response.ok) {
+        console.log(`❌ Error fetching weather forecast: ${response.status} ${response.statusText}`);
         await apiLogger.logRequest(
           'getForecast',
           'GET',
@@ -74,6 +79,7 @@ class WeatherService {
       }
       
       const data = await response.json();
+      console.log('✅ Got weather forecast successfully');
       await apiLogger.logRequest('getForecast', 'GET', 'success', trigger, responseTime, undefined, 'openweather');
       return data;
     } catch (error) {
