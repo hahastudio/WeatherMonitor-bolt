@@ -1,3 +1,4 @@
+import { fetch } from 'expo/fetch';
 import { CaiyunAlertsResponse, LocationCoords } from '../types/weather';
 import { apiLogger } from './apiLogger';
 

@@ -1,3 +1,4 @@
+import { fetch } from 'expo/fetch';
 import { CurrentWeather, ForecastResponse, LocationCoords } from '../types/weather';
 import { apiLogger } from './apiLogger';
 

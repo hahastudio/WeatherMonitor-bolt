@@ -359,9 +359,15 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       }
       
       // Set up new interval with the updated rate
-      const newInterval = setInterval(() => {
+      const newInterval = setInterval(async () => {
         if (location) {
-          fetchWeatherData(location, 'auto');
+          const storageData = await loadDataFromStorage();
+            const needsRefresh = !storageData.hasWeatherData || 
+                           shouldAutoRefresh(storageData.lastUpdated, storageData.refreshRate);
+            if (needsRefresh) {
+              console.log('🔄 Periodic refresh triggered');      
+              fetchWeatherData(location, 'auto');
+            }
         }
       }, minutes * 60 * 1000) as unknown as NodeJS.Timeout;
       setRefreshInterval(newInterval);
@@ -415,8 +421,14 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
         // Step 4: Set up periodic refresh interval
         if (coords) {
-          const interval = setInterval(() => {
-            fetchWeatherData(coords!, 'auto');
+          const interval = setInterval(async () => {
+            const storageData = await loadDataFromStorage();
+            const needsRefresh = !storageData.hasWeatherData || 
+                           shouldAutoRefresh(storageData.lastUpdated, storageData.refreshRate);
+            if (needsRefresh) {
+              console.log('🔄 Periodic refresh triggered');      
+              fetchWeatherData(coords!, 'auto');
+            }
           }, storageData.refreshRate * 60 * 1000) as unknown as NodeJS.Timeout;
           setRefreshInterval(interval);
         }
