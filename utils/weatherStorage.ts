@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, LocationCoords } from '../types/weather';
 import type { AlertTracker } from '../services/alertTracker';
 import type { ApiLogEntry } from '../services/apiLogger';
+import type { WeatherSummary } from '../services/geminiService';
 
 const STORAGE_KEYS = {
   DARK_MODE: '@weather_app_dark_mode',
@@ -11,6 +12,7 @@ const STORAGE_KEYS = {
   CURRENT_WEATHER: '@weather_app_current_weather',
   FORECAST: '@weather_app_forecast',
   WEATHER_ALERTS: '@weather_app_weather_alerts',
+  WEATHER_SUMMARY: '@weather_app_weather_summary',
   LOCATION: '@weather_app_location',
   CITY_NAME: '@weather_app_city_name',
 };
@@ -34,6 +36,18 @@ export async function saveForecast(forecast: ForecastResponse | null) {
 
 export async function saveWeatherAlerts(alerts: CaiyunWeatherAlert[]) {
   await AsyncStorage.setItem(STORAGE_KEYS.WEATHER_ALERTS, JSON.stringify(alerts));
+}
+
+export async function saveWeatherSummary(summary: WeatherSummary | null) {
+  if (summary) {
+    const summaryWithTimestamp = {
+      ...summary,
+      generatedAt: Date.now(),
+    };
+    await AsyncStorage.setItem(STORAGE_KEYS.WEATHER_SUMMARY, JSON.stringify(summaryWithTimestamp));
+  } else {
+    await AsyncStorage.removeItem(STORAGE_KEYS.WEATHER_SUMMARY);
+  }
 }
 
 export async function saveLocation(location: LocationCoords | null) {
@@ -61,6 +75,11 @@ export async function loadForecast(): Promise<ForecastResponse | null> {
 export async function loadWeatherAlerts(): Promise<CaiyunWeatherAlert[]> {
   const data = await AsyncStorage.getItem(STORAGE_KEYS.WEATHER_ALERTS);
   return data ? JSON.parse(data) : [];
+}
+
+export async function loadWeatherSummary(): Promise<(WeatherSummary & { generatedAt: number }) | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.WEATHER_SUMMARY);
+  return data ? JSON.parse(data) : null;
 }
 
 export async function loadLocation(): Promise<LocationCoords | null> {

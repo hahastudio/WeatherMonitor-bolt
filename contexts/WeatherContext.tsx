@@ -5,12 +5,14 @@ import { caiyunService } from '../services/caiyunService';
 import { locationService } from '../services/locationService';
 import { notificationService } from '../services/notificationService';
 import { alertTracker } from '../services/alertTracker';
+import { geminiService, WeatherSummary } from '../services/geminiService';
 import { getWeatherCondition, getWeatherTheme, WeatherTheme } from '../utils/weatherTheme';
 import { registerBackgroundWeatherTask } from '../services/backgroundWeatherService';
 import { 
   saveCurrentWeather, 
   saveForecast, 
   saveWeatherAlerts, 
+  saveWeatherSummary,
   saveLastUpdated, 
   loadLastUpdated, 
   saveDarkMode, 
@@ -20,6 +22,7 @@ import {
   loadCurrentWeather, 
   loadForecast, 
   loadWeatherAlerts,
+  loadWeatherSummary,
   saveLocation,
   loadLocation,
   saveCityName,
@@ -30,6 +33,8 @@ interface WeatherContextType {
   currentWeather: CurrentWeather | null;
   forecast: ForecastResponse | null;
   weatherAlerts: CaiyunWeatherAlert[];
+  weatherSummary: WeatherSummary | null;
+  summaryGeneratedAt: number | null;
   location: LocationCoords | null;
   cityName: string;
   loading: boolean;
@@ -40,6 +45,7 @@ interface WeatherContextType {
   refreshRate: number;
   lastUpdated: number | null;
   refreshWeather: () => Promise<void>;
+  generateWeatherSummary: () => Promise<void>;
   toggleDarkMode: () => void;
   setRefreshRate: (minutes: number) => Promise<void>;
 }
@@ -56,6 +62,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [weatherAlerts, setWeatherAlerts] = useState<CaiyunWeatherAlert[]>([]);
+  const [weatherSummary, setWeatherSummary] = useState<WeatherSummary | null>(null);
+  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<number | null>(null);
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [cityName, setCityName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
@@ -82,6 +90,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         storedWeather,
         storedForecast,
         storedAlerts,
+        storedSummary,
         storedLocation,
         storedCityName,
         storedLastUpdated,
@@ -91,6 +100,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         loadCurrentWeather(),
         loadForecast(),
         loadWeatherAlerts(),
+        loadWeatherSummary(),
         loadLocation(),
         loadCityName(),
         loadLastUpdated(),
@@ -112,6 +122,12 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       if (storedAlerts) {
         setWeatherAlerts(storedAlerts);
         console.log('✅ Loaded weather alerts from storage');
+      }
+
+      if (storedSummary) {
+        setWeatherSummary(storedSummary);
+        setSummaryGeneratedAt(storedSummary.generatedAt);
+        console.log('✅ Loaded weather summary from storage');
       }
       
       if (storedLocation) {
@@ -162,6 +178,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     weather?: CurrentWeather | null;
     forecast?: ForecastResponse | null;
     alerts?: CaiyunWeatherAlert[];
+    summary?: WeatherSummary | null;
     location?: LocationCoords | null;
     cityName?: string;
     lastUpdated?: number;
@@ -184,6 +201,12 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       if (data.alerts !== undefined) {
         savePromises.push(saveWeatherAlerts(data.alerts));
         setWeatherAlerts(data.alerts);
+      }
+
+      if (data.summary !== undefined) {
+        savePromises.push(saveWeatherSummary(data.summary));
+        setWeatherSummary(data.summary);
+        setSummaryGeneratedAt(data.summary ? Date.now() : null);
       }
       
       if (data.location !== undefined) {
@@ -222,6 +245,40 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     console.log(`⏰ Should auto refresh: ${timeSinceLastUpdate > refreshIntervalMs}`);
 
     return timeSinceLastUpdate > refreshIntervalMs;
+  };
+
+  const shouldRegenerateSummary = (summaryGeneratedTime: number | null): boolean => {
+    if (!summaryGeneratedTime) {
+      return true; // No previous summary, should generate
+    }
+
+    const now = Date.now();
+    const timeSinceGenerated = now - summaryGeneratedTime;
+    const summaryRefreshInterval = 30 * 60 * 1000; // 30 minutes
+
+    return timeSinceGenerated > summaryRefreshInterval;
+  };
+
+  const generateWeatherSummary = async () => {
+    if (!currentWeather || !forecast) {
+      console.log('⚠️ Cannot generate summary: missing weather data');
+      return;
+    }
+
+    try {
+      console.log('🤖 Generating AI weather summary...');
+      const summary = await geminiService.generateWeatherSummary({
+        currentWeather,
+        forecast,
+        alerts: weatherAlerts,
+        cityName,
+      }, 'manual');
+
+      await saveDataToStorage({ summary });
+      console.log('✅ Weather summary generated and saved');
+    } catch (error) {
+      console.error('❌ Failed to generate weather summary:', error);
+    }
   };
 
   const fetchWeatherData = async (coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual') => {
@@ -292,6 +349,24 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         } catch (alertError) {
           console.log('⚠️ Weather alerts not available for this location:', alertError);
           await saveDataToStorage({ alerts: [] });
+        }
+      }
+
+      // Auto-generate weather summary if needed (only on manual refresh or app start)
+      if ((trigger === 'manual' || trigger === 'app_start') && shouldRegenerateSummary(summaryGeneratedAt)) {
+        try {
+          console.log('🤖 Auto-generating weather summary...');
+          const summary = await geminiService.generateWeatherSummary({
+            currentWeather: weatherData,
+            forecast: forecastData,
+            alerts: weatherAlerts,
+            cityName: city,
+          }, trigger);
+
+          await saveDataToStorage({ summary });
+          console.log('✅ Weather summary auto-generated and saved');
+        } catch (summaryError) {
+          console.log('⚠️ Failed to auto-generate weather summary:', summaryError);
         }
       }
 
@@ -457,6 +532,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     currentWeather,
     forecast,
     weatherAlerts,
+    weatherSummary,
+    summaryGeneratedAt,
     location,
     cityName,
     loading,
@@ -467,6 +544,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     refreshRate,
     lastUpdated,
     refreshWeather,
+    generateWeatherSummary,
     toggleDarkMode,
     setRefreshRate,
   };
