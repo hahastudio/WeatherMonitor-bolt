@@ -16,12 +16,10 @@ import {
   Activity,
   Shield,
   Database,
-  Zap,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { notificationService } from '../../services/notificationService';
 import { alertTracker } from '../../services/alertTracker';
-import { getBackgroundFetchStatus, testBackgroundFetch } from '../../services/backgroundWeatherService';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
 
 const REFRESH_RATE_OPTIONS = [
@@ -52,11 +50,6 @@ export default function SettingsScreen() {
     totalTrackedAlerts: number;
     oldestAlertAge: number | null;
     newestAlertAge: number | null;
-  } | null>(null);
-  const [backgroundFetchStatus, setBackgroundFetchStatus] = useState<{
-    status: any;
-    isRegistered: boolean;
-    statusText: string;
   } | null>(null);
 
   const handleNotificationTest = async () => {
@@ -113,34 +106,12 @@ export default function SettingsScreen() {
     );
   };
 
-  const handleTestBackgroundFetch = async () => {
-    try {
-      const result = await testBackgroundFetch();
-      if (result) {
-        Alert.alert('Success', 'Background fetch test completed. Check console for details.');
-      } else {
-        Alert.alert('Error', 'Background fetch test failed. Check console for details.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to test background fetch');
-    }
-  };
-
   const loadAlertTrackerStats = async () => {
     try {
       const stats = await alertTracker.getTrackerStats();
       setAlertTrackerStats(stats);
     } catch (error) {
       console.error('Failed to load alert tracker stats:', error);
-    }
-  };
-
-  const loadBackgroundFetchStatus = async () => {
-    try {
-      const status = await getBackgroundFetchStatus();
-      setBackgroundFetchStatus(status);
-    } catch (error) {
-      console.error('Failed to load background fetch status:', error);
     }
   };
 
@@ -194,10 +165,9 @@ export default function SettingsScreen() {
     return `${minutes}m ago`;
   };
 
-  // Load stats when component mounts
+  // Load alert tracker stats when component mounts
   React.useEffect(() => {
     loadAlertTrackerStats();
-    loadBackgroundFetchStatus();
   }, []);
 
   const styles = StyleSheet.create({
@@ -325,32 +295,6 @@ export default function SettingsScreen() {
       fontSize: 12,
       fontWeight: '600',
     },
-    backgroundFetchContainer: {
-      marginTop: 8,
-      paddingTop: 8,
-      borderTopWidth: 1,
-      borderTopColor: theme.textSecondary + '20',
-    },
-    statusRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 4,
-    },
-    statusLabel: {
-      color: theme.textSecondary,
-      fontSize: 12,
-    },
-    statusValue: {
-      color: theme.text,
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    statusGood: {
-      color: '#4CAF50',
-    },
-    statusBad: {
-      color: theme.accent,
-    },
     // Modal styles
     modalOverlay: {
       flex: 1,
@@ -403,7 +347,7 @@ export default function SettingsScreen() {
     apiLogModal: {
       flex: 1,
       backgroundColor: theme.background,
-      marginTop: 0,
+      marginTop: 0, // Remove top margin to eliminate white padding
     },
     apiLogModalHeader: {
       position: 'absolute',
@@ -594,71 +538,6 @@ export default function SettingsScreen() {
                   <Text style={styles.settingTitle}>API Request Log</Text>
                   <Text style={styles.settingDescription}>
                     View API usage and request history (48h)
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Background Fetch Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Background Updates</Text>
-            
-            <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Background Fetch Status</Text>
-              <Text style={styles.infoText}>
-                Background fetch allows the app to update weather data even when not actively in use.
-              </Text>
-              
-              {backgroundFetchStatus && (
-                <View style={styles.backgroundFetchContainer}>
-                  <View style={styles.statusRow}>
-                    <Text style={styles.statusLabel}>Status:</Text>
-                    <Text style={[
-                      styles.statusValue,
-                      backgroundFetchStatus.status === 1 ? styles.statusGood : styles.statusBad
-                    ]}>
-                      {backgroundFetchStatus.statusText}
-                    </Text>
-                  </View>
-                  <View style={styles.statusRow}>
-                    <Text style={styles.statusLabel}>Task Registered:</Text>
-                    <Text style={[
-                      styles.statusValue,
-                      backgroundFetchStatus.isRegistered ? styles.statusGood : styles.statusBad
-                    ]}>
-                      {backgroundFetchStatus.isRegistered ? 'Yes' : 'No'}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </View>
-
-            <TouchableOpacity style={styles.settingItem} onPress={handleTestBackgroundFetch}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <Zap size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Test Background Fetch</Text>
-                  <Text style={styles.settingDescription}>
-                    Test background fetch functionality
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.settingItem} onPress={loadBackgroundFetchStatus}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <RefreshCw size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Refresh Status</Text>
-                  <Text style={styles.settingDescription}>
-                    Update background fetch status information
                   </Text>
                 </View>
               </View>
