@@ -1,8 +1,8 @@
-# WeatherMonitor
+# Weather Monitor bolt
 
 A beautiful, production-ready weather monitoring app built with React Native, Expo, and TypeScript. Features real-time weather data, forecasts, interactive charts, weather alerts, AI-powered weather summaries, and interactive weather maps with a responsive design that adapts to weather conditions.
 
-![Weather App Preview](https://images.pexels.com/photos/1118873/pexels-photo-1118873.jpeg?auto=compress&cs=tinysrgb&w=800&h=400&fit=crop)
+It's mainly built with [Bolt](https://bolt.new/)
 
 ## ✨ Features
 
@@ -86,6 +86,7 @@ A beautiful, production-ready weather monitoring app built with React Native, Ex
    EXPO_PUBLIC_OPENWEATHER_API_KEY=your_openweathermap_api_key_here
    EXPO_PUBLIC_CAIYUN_API_KEY=your_caiyun_api_key_here
    EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
+   ANDROID_GOOGLE_SERVICES_FILE_PATH=your_firebase_json_file_here
    ```
 
    **Getting API Keys:**
@@ -107,6 +108,9 @@ A beautiful, production-ready weather monitoring app built with React Native, Ex
      2. Create a new project or use existing one
      3. Generate an API key for Gemini
      4. Used for intelligent weather analysis and recommendations
+   
+   - **Firebase** (for `expo-notifications` build):
+     1. Follow steps in [Obtain Google Service Account Keys using FCM V1](https://docs.expo.dev/push-notifications/fcm-credentials/)
 
 4. **Start the development server**
    ```bash
@@ -184,7 +188,7 @@ For mobile app builds, you'll need to use EAS Build:
 ### AI Weather Analysis: Google Gemini
 
 **Model Used:**
-- `gemini-1.5-flash` - Fast, efficient model for text generation
+- `gemini-2.5-flash` - Fast, efficient model for text generation
 
 **AI Features:**
 - **Today's Overview**: Comprehensive analysis of current weather conditions
@@ -238,7 +242,7 @@ For mobile app builds, you'll need to use EAS Build:
 ### App Settings
 
 Users can configure:
-- **Auto-refresh rate**: 5 minutes to 2 hours
+- **Auto-refresh rate**: 15 minutes to 1 hours
 - **Dark/Light mode**: Manual toggle or automatic based on time
 - **Notification preferences**: Enable/disable weather alerts
 - **Location settings**: Manual refresh or automatic detection

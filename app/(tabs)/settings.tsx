@@ -662,15 +662,6 @@ export default function SettingsScreen() {
               <ChevronRight size={20} color={theme.textSecondary} />
             </TouchableOpacity>
           </View>
-
-          {/* API Key Info */}
-          <View style={styles.infoCard}>
-            <Text style={styles.infoTitle}>Setup Required</Text>
-            <Text style={styles.infoText}>
-              To use this app, you need to add your OpenWeatherMap API key to the .env file. 
-              Get your free API key at openweathermap.org and replace the placeholder in the .env file.
-            </Text>
-          </View>
         </ScrollView>
 
         <RefreshRateModal />

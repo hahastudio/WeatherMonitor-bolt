@@ -155,6 +155,12 @@ export default function ChartsScreen() {
       marginTop: 20,
       fontWeight: '500',
     },
+    subtitle: {
+      color: theme.textSecondary,
+      fontSize: 16,
+      fontWeight: '500',
+      marginBottom: 8,
+    },
   });
 
   // Get next 48 hours of data (16 data points, 3 hours each)
@@ -289,7 +295,7 @@ export default function ChartsScreen() {
               <View key={key} style={styles.statItem}>
                 <Text style={styles.statLabel}>{key}</Text>
                 <Text style={styles.statValue}>
-                  {typeof value === 'number' ? value.toFixed(1) : value}{unit}
+                  {typeof value === 'number' ? value.toFixed(1) : String(value)}{unit}
                 </Text>
               </View>
             ))}

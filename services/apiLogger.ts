@@ -12,8 +12,17 @@ export interface ApiLogEntry {
   provider: 'openweather' | 'caiyun' | 'gemini';
 }
 
+export interface ApiLogSummary {
+  totalRequests: number;
+  successfulRequests: number;
+  failedRequests: number;
+  requestsByTrigger: Record<ApiLogEntry['trigger'], number>;
+  requestsByProvider: Record<ApiLogEntry['provider'], number>;
+  requestsByHour: Array<{ hour: string; count: number }>;
+  averageResponseTime: number;
+}
+
 class ApiLogger {
-  private static readonly STORAGE_KEY = '@weather_app_api_logs';
   private static readonly MAX_LOG_AGE = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
 
   async logRequest(
@@ -65,15 +74,7 @@ class ApiLogger {
     }
   }
 
-  async getLogsSummary(): Promise<{
-    totalRequests: number;
-    successfulRequests: number;
-    failedRequests: number;
-    requestsByTrigger: Record<ApiLogEntry['trigger'], number>;
-    requestsByProvider: Record<ApiLogEntry['provider'], number>;
-    requestsByHour: Array<{ hour: string; count: number }>;
-    averageResponseTime: number;
-  }> {
+  async getLogsSummary(): Promise<ApiLogSummary> {
     const logs = await this.getLogs();
     
     const summary = {

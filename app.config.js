@@ -1,6 +1,6 @@
 export default {
   "expo": {
-    "name": "WeatherMonitor NT",
+    "name": "Weather Monitor NT",
     "slug": "weathermonitor-nt",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,6 +8,14 @@ export default {
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
+        "backgroundImage": "./assets/images/adaptive-icon-background.png",
+        "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
+      },
+      "edgeToEdgeEnabled": true
+    },
     "ios": {
       "supportsTablet": true
     },

@@ -6,7 +6,6 @@ export interface AlertTracker {
 }
 
 class AlertTrackerService {
-  private static readonly STORAGE_KEY = '@weather_app_alert_tracker';
   private static readonly MAX_RECENT_ALERTS = 100;
   private static readonly CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 

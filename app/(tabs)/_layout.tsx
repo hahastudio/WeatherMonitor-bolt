@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Chrome as Home, Calendar, Settings, ChartBar as BarChart3, Map } from 'lucide-react-native';
+import { Sun, Calendar, Settings, ChartLine, Map } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 
 export default function TabLayout() {
@@ -22,7 +22,7 @@ export default function TabLayout() {
         options={{
           title: 'Weather',
           tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
+            <Sun size={size} color={color} />
           ),
         }}
       />
@@ -40,7 +40,7 @@ export default function TabLayout() {
         options={{
           title: 'Charts',
           tabBarIcon: ({ size, color }) => (
-            <BarChart3 size={size} color={color} />
+            <ChartLine size={size} color={color} />
           ),
         }}
       />

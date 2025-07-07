@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, RefreshControl, Platform, FlexStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -211,7 +211,7 @@ export default function ForecastScreen() {
   const globalMax = Math.max(...allTemps);
   const tempRange = globalMax - globalMin || 1;
 
-  const getTempBarGradient = (minTemp: number, maxTemp: number) => {
+  const getTempBarGradient = (minTemp: number, maxTemp: number): FlexStyle => {
     const minPosition = ((minTemp - globalMin) / tempRange) * 100;
     const maxPosition = ((maxTemp - globalMin) / tempRange) * 100;
     

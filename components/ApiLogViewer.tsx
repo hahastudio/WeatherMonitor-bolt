@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Activity, CircleCheck as CheckCircle, Circle as XCircle, Clock, Trash2, RefreshCw, TrendingUp, Zap, MousePointer, Smartphone, Cloud, Globe, Sparkles } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
-import { apiLogger, ApiLogEntry } from '../services/apiLogger';
+import { apiLogger, ApiLogEntry, ApiLogSummary } from '../services/apiLogger';
 
 export const ApiLogViewer: React.FC = () => {
   const { theme } = useWeather();
   const [logs, setLogs] = useState<ApiLogEntry[]>([]);
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<ApiLogSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadLogs = async () => {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain, Clock } from 'lucide-react-native';
+import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain, CloudSnow, Clock, Gauge } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
@@ -189,8 +189,12 @@ export default function HomeScreen() {
   );
 
   // Check if there's current rain data
-  const hasRainData = currentWeather.rain && currentWeather.rain['1h'];
-  const rainAmount = hasRainData ? currentWeather.rain['1h'] : 0;
+  const hasRainData = currentWeather.rain?.['1h'];
+  const rainAmount = hasRainData ? currentWeather.rain?.['1h'] : 0;
+
+  // Check if there's current snow data
+  const hasSnowData = currentWeather.snow?.['1h'];
+  const snowAmount = hasSnowData ? currentWeather.snow?.['1h'] : 0;
 
   return (
     <View style={styles.container}>
@@ -259,6 +263,21 @@ export default function HomeScreen() {
             <Text style={styles.sectionTitle}>Details</Text>
             
             <View style={styles.detailsGrid}>
+
+              {/* Show rain amount if there's current rain data */}
+              {hasRainData && renderDetailCard(
+                <CloudRain size={24} color={theme.primary} />,
+                'Rain (1h)',
+                `${rainAmount!.toFixed(1)} mm`
+              )}
+
+              {/* Show snow amount if there's current rain data */}
+              {hasSnowData && renderDetailCard(
+                <CloudSnow size={24} color={theme.primary} />,
+                'Snow (1h)',
+                `${snowAmount!.toFixed(1)} mm`
+              )}
+
               {renderDetailCard(
                 <Eye size={24} color={theme.primary} />,
                 'Visibility',
@@ -271,13 +290,6 @@ export default function HomeScreen() {
                 `${currentWeather.main.humidity}%`
               )}
               
-              {/* Show rain amount if there's current rain data */}
-              {hasRainData && renderDetailCard(
-                <CloudRain size={24} color={theme.primary} />,
-                'Rain (1h)',
-                `${rainAmount.toFixed(1)} mm`
-              )}
-              
               {renderDetailCard(
                 <Wind size={24} color={theme.primary} />,
                 'Wind Speed',
@@ -285,7 +297,7 @@ export default function HomeScreen() {
               )}
               
               {renderDetailCard(
-                <Wind size={24} color={theme.primary} />,
+                <Gauge size={24} color={theme.primary} />,
                 'Pressure',
                 `${currentWeather.main.pressure} hPa`
               )}
