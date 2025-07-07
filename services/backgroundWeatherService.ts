@@ -1,4 +1,3 @@
-import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
 import { weatherService } from './weatherService';
 import { caiyunService } from './caiyunService';
@@ -38,7 +37,7 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
     const now = Date.now();
     if (now - lastUpdated < refreshRate * 60 * 1000 * 0.9) {
       console.log('⏭️ Background fetch: Data is still fresh, skipping refresh');
-      return BackgroundFetch.BackgroundFetchResult.NoData;
+      return TaskManager.BackgroundFetchResult.NoData;
     }
 
     // Get location from storage first, fallback to current location
@@ -49,7 +48,7 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
 
     if (!coords) {
       console.log('❌ Background fetch: No location available');
-      return BackgroundFetch.BackgroundFetchResult.Failed;
+      return TaskManager.BackgroundFetchResult.Failed;
     }
 
     // Use the new One Call API to get both current weather and forecast in a single call
@@ -94,10 +93,10 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
     }
 
     console.log('✅ Background weather fetch completed successfully');
-    return BackgroundFetch.BackgroundFetchResult.NewData;
+    return TaskManager.BackgroundFetchResult.NewData;
   } catch (e) {
     console.error('❌ Background weather fetch failed:', e);
-    return BackgroundFetch.BackgroundFetchResult.Failed;
+    return TaskManager.BackgroundFetchResult.Failed;
   }
 });
 
@@ -109,13 +108,13 @@ export async function registerBackgroundWeatherTask() {
       return;
     }
 
-    const status = await BackgroundFetch.getStatusAsync();
-    if (status === BackgroundFetch.BackgroundFetchStatus.Restricted) {
+    const status = await TaskManager.getBackgroundFetchStatusAsync();
+    if (status === TaskManager.BackgroundFetchStatus.Restricted) {
       console.log('⚠️ Background fetch is restricted on this device');
       return;
     }
     
-    await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+    await TaskManager.registerTaskAsync(BACKGROUND_FETCH_TASK, {
       minimumInterval: 15 * 60, // 15 minutes (iOS minimum)
       stopOnTerminate: false,   // Continue when app is terminated
       startOnBoot: true,        // Start when device boots
@@ -129,7 +128,7 @@ export async function registerBackgroundWeatherTask() {
 
 export async function unregisterBackgroundWeatherTask() {
   try {
-    await BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
+    await TaskManager.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
     console.log('✅ Background weather fetch unregistered');
   } catch (error) {
     console.error('❌ Failed to unregister background weather fetch:', error);
