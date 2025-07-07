@@ -287,11 +287,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       setLoading(true);
       setError(null);
 
-      // Fetch current weather and forecast in parallel
-      const [weatherData, forecastData] = await Promise.all([
-        weatherService.getCurrentWeather(coords, trigger),
-        weatherService.getForecast(coords, trigger),
-      ]);
+      // Use the new One Call API to get both current weather and forecast in a single call
+      const { currentWeather: weatherData, forecast: forecastData } = await weatherService.getWeatherData(coords, trigger);
 
       // Get city name
       const city = await locationService.getCityName(coords);

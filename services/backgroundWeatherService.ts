@@ -1,4 +1,4 @@
-import * as BackgroundTask from 'expo-background-task';
+import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
 import { weatherService } from './weatherService';
 import { caiyunService } from './caiyunService';
@@ -16,11 +16,11 @@ import {
   loadLocation 
 } from '../utils/weatherStorage';
 
-const BACKGROUND_WEATHER_TASK = 'background-weather-fetch';
+const BACKGROUND_FETCH_TASK = 'background-weather-fetch';
 
-TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
+TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   try {
-    console.log('🔄 Background weather task started');
+    console.log('🔄 Background weather fetch started');
     
     // Get refresh rate from storage
     let refreshRate = 15;
@@ -37,8 +37,8 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
     
     const now = Date.now();
     if (now - lastUpdated < refreshRate * 60 * 1000 * 0.9) {
-      console.log('⏭️ Background task: Data is still fresh, skipping refresh');
-      return BackgroundTask.BackgroundTaskResult.Success;
+      console.log('⏭️ Background fetch: Data is still fresh, skipping refresh');
+      return BackgroundFetch.BackgroundFetchResult.NoData;
     }
 
     // Get location from storage first, fallback to current location
@@ -48,15 +48,12 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
     }
 
     if (!coords) {
-      console.log('❌ Background task: No location available');
-      return BackgroundTask.BackgroundTaskResult.Failed;
+      console.log('❌ Background fetch: No location available');
+      return BackgroundFetch.BackgroundFetchResult.Failed;
     }
 
-    // Fetch weather data
-    const [weatherData, forecastData] = await Promise.all([
-      weatherService.getCurrentWeather(coords, 'auto'),
-      weatherService.getForecast(coords, 'auto'),
-    ]);
+    // Use the new One Call API to get both current weather and forecast in a single call
+    const { currentWeather: weatherData, forecast: forecastData } = await weatherService.getWeatherData(coords, 'auto');
 
     // Save data to storage (this will be picked up by UI when app opens)
     await Promise.all([
@@ -65,7 +62,7 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
       saveLastUpdated(now)
     ]);
 
-    console.log('✅ Background task: Weather data updated successfully');
+    console.log('✅ Background fetch: Weather data updated successfully');
 
     // Fetch weather alerts
     try {
@@ -90,49 +87,51 @@ TaskManager.defineTask(BACKGROUND_WEATHER_TASK, async () => {
       } else {
         await saveWeatherAlerts([]);
       }
-      console.log('✅ Background task: Weather alerts fetched successfully');
+      console.log('✅ Background fetch: Weather alerts fetched successfully');
     } catch (e) {
       // Ignore alert errors in background
-      console.log('⚠️ Background task: Alert fetch failed, continuing without alerts');
+      console.log('⚠️ Background fetch: Alert fetch failed, continuing without alerts');
     }
 
-    console.log('✅ Background weather task completed successfully');
-    return BackgroundTask.BackgroundTaskResult.Success;
+    console.log('✅ Background weather fetch completed successfully');
+    return BackgroundFetch.BackgroundFetchResult.NewData;
   } catch (e) {
-    console.error('❌ Background weather task failed:', e);
-    return BackgroundTask.BackgroundTaskResult.Failed;
+    console.error('❌ Background weather fetch failed:', e);
+    return BackgroundFetch.BackgroundFetchResult.Failed;
   }
 });
 
 export async function registerBackgroundWeatherTask() {
   try {
-    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_WEATHER_TASK);
+    const isRegistered = await TaskManager.isTaskRegisteredAsync(BACKGROUND_FETCH_TASK);
     if (isRegistered) {
-      console.log('✅ Background weather task is already registered');
+      console.log('✅ Background weather fetch is already registered');
       return;
     }
 
-    const status = await BackgroundTask.getStatusAsync();
-    if (status === BackgroundTask.BackgroundTaskStatus.Restricted) {
-      console.log('⚠️ Background tasks are restricted on this device');
+    const status = await BackgroundFetch.getStatusAsync();
+    if (status === BackgroundFetch.BackgroundFetchStatus.Restricted) {
+      console.log('⚠️ Background fetch is restricted on this device');
       return;
     }
     
-    await BackgroundTask.registerTaskAsync(BACKGROUND_WEATHER_TASK, {
-      minimumInterval: 15, // 15 minutes (Expo minimum)
+    await BackgroundFetch.registerTaskAsync(BACKGROUND_FETCH_TASK, {
+      minimumInterval: 15 * 60, // 15 minutes (iOS minimum)
+      stopOnTerminate: false,   // Continue when app is terminated
+      startOnBoot: true,        // Start when device boots
     });
     
-    console.log('✅ Background weather task registered');
+    console.log('✅ Background weather fetch registered');
   } catch (error) {
-    console.error('❌ Failed to register background weather task:', error);
+    console.error('❌ Failed to register background weather fetch:', error);
   }
 }
 
 export async function unregisterBackgroundWeatherTask() {
   try {
-    await BackgroundTask.unregisterTaskAsync(BACKGROUND_WEATHER_TASK);
-    console.log('✅ Background weather task unregistered');
+    await BackgroundFetch.unregisterTaskAsync(BACKGROUND_FETCH_TASK);
+    console.log('✅ Background weather fetch unregistered');
   } catch (error) {
-    console.error('❌ Failed to unregister background weather task:', error);
+    console.error('❌ Failed to unregister background weather fetch:', error);
   }
 }
