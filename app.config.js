@@ -4,19 +4,23 @@ export default {
     "slug": "weathermonitor-nt",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "android": {
+      "package": "com.hahastudio.weathermonitornt",
+      "icon": "./assets/images/icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon-foreground.png",
         "backgroundImage": "./assets/images/adaptive-icon-background.png",
         "monochromeImage": "./assets/images/adaptive-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "googleServicesFile": process.env.ANDROID_GOOGLE_SERVICES_FILE_PATH,
     },
     "ios": {
+      "bundleIdentifier": "com.hahastudio.weathermonitornt",
+      "icon": "./assets/images/icon.png",
       "supportsTablet": true
     },
     "web": {
@@ -44,17 +48,13 @@ export default {
       [
         "expo-location",
         {
-          isIosBackgroundLocationEnabled: true,
-          isAndroidBackgroundLocationEnabled: true,
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true,
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    },
-    "android": {
-      "package": "com.hahastudio.weathermonitornt",
-      "googleServicesFile": process.env.ANDROID_GOOGLE_SERVICES_FILE_PATH
     },
     "extra": {
       "router": {},
