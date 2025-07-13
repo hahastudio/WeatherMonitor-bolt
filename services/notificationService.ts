@@ -36,9 +36,9 @@ class NotificationService {
     try {
       if (Platform.OS === 'web') {
         if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(`Weather Alert: ${alert.title}`, {
+          new Notification(`${alert.title}`, {
             body: alert.description,
-            icon: '/assets/images/icon.png',
+            icon: '/assets/images/adaptive-icon-monochrome.png',
             tag: 'weather-alert',
           });
         }
@@ -47,7 +47,7 @@ class NotificationService {
 
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: `Weather Alert: ${alert.title}`,
+          title: `${alert.title}`,
           body: alert.description,
           sound: true,
           priority: Notifications.AndroidNotificationPriority.HIGH,
@@ -65,7 +65,7 @@ class NotificationService {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(title, {
             body,
-            icon: '/assets/images/icon.png',
+            icon: '/assets/images/adaptive-icon-monochrome.png',
           });
         }
         return;
