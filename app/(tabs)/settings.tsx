@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert, Modal } from 'react-native';
+import * as Application from 'expo-application';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Moon, 
@@ -23,8 +24,6 @@ import { alertTracker } from '../../services/alertTracker';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
 
 const REFRESH_RATE_OPTIONS = [
-  { label: '5 minutes', value: 5 },
-  { label: '10 minutes', value: 10 },
   { label: '15 minutes', value: 15 },
   { label: '30 minutes', value: 30 },
   { label: '1 hour', value: 60 },
@@ -116,9 +115,11 @@ export default function SettingsScreen() {
   };
 
   const showAbout = () => {
+    const version = Application.nativeApplicationVersion || '1.0.0';
+
     Alert.alert(
       'About Weather App',
-      'A beautiful weather app built with React Native and Expo. Weather data provided by OpenWeatherMap.\n\nVersion 1.0.0',
+      `A beautiful weather app built with React Native and Expo. Weather data provided by OpenWeatherMap.\n\nVersion ${version}`,
       [{ text: 'OK' }]
     );
   };
