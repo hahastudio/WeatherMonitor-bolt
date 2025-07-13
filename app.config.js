@@ -2,9 +2,8 @@ export default {
   "expo": {
     "name": "Weather Monitor NT",
     "slug": "weathermonitor-nt",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "android": {
@@ -44,14 +43,21 @@ export default {
       "expo-router",
       "expo-font",
       "expo-web-browser",
-      "expo-background-task",
       [
         "expo-location",
         {
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": true,
         }
-      ]
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#ffffff"
+        }
+      ],
+      "react-native-background-fetch"
     ],
     "experiments": {
       "typedRoutes": true

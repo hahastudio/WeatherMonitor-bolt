@@ -242,7 +242,7 @@ For mobile app builds, you'll need to use EAS Build:
 ### App Settings
 
 Users can configure:
-- **Auto-refresh rate**: 15 minutes to 1 hours
+- **Auto-refresh rate**: 15 minutes to 2 hours
 - **Dark/Light mode**: Manual toggle or automatic based on time
 - **Notification preferences**: Enable/disable weather alerts
 - **Location settings**: Manual refresh or automatic detection
