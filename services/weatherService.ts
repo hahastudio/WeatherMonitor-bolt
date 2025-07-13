@@ -1,111 +1,9 @@
 import { fetch } from 'expo/fetch';
-import { CurrentWeather, ForecastResponse, LocationCoords, HourlyForecast } from '../types/weather';
+import { CurrentWeather, ForecastResponse, LocationCoords, OneCallResponse, HourlyForecast, DailyForecast } from '../types/weather';
 import { apiLogger } from './apiLogger';
 
 const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/3.0/onecall';
-
-interface OneCallResponse {
-  lat: number;
-  lon: number;
-  timezone: string;
-  timezone_offset: number;
-  current: {
-    dt: number;
-    sunrise: number;
-    sunset: number;
-    temp: number;
-    feels_like: number;
-    pressure: number;
-    humidity: number;
-    dew_point: number;
-    uvi: number;
-    clouds: number;
-    visibility: number;
-    wind_speed: number;
-    wind_deg: number;
-    wind_gust?: number;
-    weather: Array<{
-      id: number;
-      main: string;
-      description: string;
-      icon: string;
-    }>;
-    rain?: {
-      '1h': number;
-    };
-    snow?: {
-      '1h': number;
-    };
-  };
-  hourly: Array<{
-    dt: number;
-    temp: number;
-    feels_like: number;
-    pressure: number;
-    humidity: number;
-    dew_point: number;
-    uvi: number;
-    clouds: number;
-    visibility: number;
-    wind_speed: number;
-    wind_deg: number;
-    wind_gust?: number;
-    weather: Array<{
-      id: number;
-      main: string;
-      description: string;
-      icon: string;
-    }>;
-    pop: number;
-    rain?: {
-      '1h': number;
-    };
-    snow?: {
-      '1h': number;
-    };
-  }>;
-  daily: Array<{
-    dt: number;
-    sunrise: number;
-    sunset: number;
-    moonrise: number;
-    moonset: number;
-    moon_phase: number;
-    summary: string;
-    temp: {
-      day: number;
-      min: number;
-      max: number;
-      night: number;
-      eve: number;
-      morn: number;
-    };
-    feels_like: {
-      day: number;
-      night: number;
-      eve: number;
-      morn: number;
-    };
-    pressure: number;
-    humidity: number;
-    dew_point: number;
-    wind_speed: number;
-    wind_deg: number;
-    wind_gust?: number;
-    weather: Array<{
-      id: number;
-      main: string;
-      description: string;
-      icon: string;
-    }>;
-    clouds: number;
-    pop: number;
-    rain?: number;
-    snow?: number;
-    uvi: number;
-  }>;
-}
 
 class WeatherService {
   private transformOneCallToCurrentWeather(data: OneCallResponse): CurrentWeather {
@@ -149,15 +47,8 @@ class WeatherService {
   }
 
   private transformOneCallToForecast(data: OneCallResponse): ForecastResponse {
-    // Convert hourly data to 3-hour intervals to match the old API format
-    const hourlyForecasts: HourlyForecast[] = [];
-    
-    // Take every 3rd hour to simulate 3-hour intervals (up to 40 entries for 5 days)
-    for (let i = 0; i < Math.min(data.hourly.length, 40); i += 3) {
-      const hourly = data.hourly[i];
-      if (!hourly) continue;
-
-      hourlyForecasts.push({
+    // Convert hourly data to match the old API format
+    const hourlyForecasts: HourlyForecast[] = data.hourly.map((hourly) => ({
         dt: hourly.dt,
         main: {
           temp: hourly.temp,
@@ -179,16 +70,42 @@ class WeatherService {
         visibility: hourly.visibility,
         pop: hourly.pop,
         dt_txt: new Date(hourly.dt * 1000).toISOString().replace('T', ' ').slice(0, 19),
-        rain: hourly.rain ? { '3h': hourly.rain['1h'] * 3 } : undefined,
-        snow: hourly.snow ? { '3h': hourly.snow['1h'] * 3 } : undefined,
-      });
-    }
+        rain: hourly.rain,
+        snow: hourly.snow,
+      }));
+
+    // Convert daily data to match the old API format
+    const dailyForecasts: DailyForecast[] = data.daily.map((daily) => ({
+      dt: daily.dt,
+      main: {
+        temp: daily.temp.day,
+        feels_like: daily.feels_like.day,
+        temp_min: daily.temp.min,
+        temp_max: daily.temp.max,
+        pressure: daily.pressure,
+        humidity: daily.humidity,
+      },
+      weather: daily.weather,
+      clouds: {
+        all: daily.clouds,
+      },
+      wind: {
+        speed: daily.wind_speed,
+        deg: daily.wind_deg,
+        gust: daily.wind_gust,
+      },
+      pop: daily.pop,
+      dt_txt: new Date(daily.dt * 1000).toISOString().replace('T', ' ').slice(0, 19),
+      rain: daily.rain,
+      snow: daily.snow,
+    }));
 
     return {
       cod: '200',
       message: 0,
       cnt: hourlyForecasts.length,
-      list: hourlyForecasts,
+      hourly: hourlyForecasts,
+      daily: dailyForecasts,
       city: {
         id: 0,
         name: '',

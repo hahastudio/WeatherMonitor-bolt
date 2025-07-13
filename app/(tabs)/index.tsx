@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain, CloudSnow, Clock, Gauge } from 'lucide-react-native';
+import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain, CloudSnow, Clock, Gauge, AirVent } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
@@ -11,10 +11,15 @@ import { WeatherAlerts } from '../../components/WeatherAlerts';
 import { WeatherSummary } from '../../components/WeatherSummary';
 import { formatTemperature, formatTime, capitalizeWords } from '../../utils/weatherTheme';
 
+const windSectors = [
+  "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"
+];
+
 export default function HomeScreen() {
   const { 
     currentWeather, 
     weatherAlerts,
+    weatherAirQuality,
     cityName, 
     loading, 
     error, 
@@ -188,6 +193,10 @@ export default function HomeScreen() {
     </View>
   );
 
+  // Get wind direction
+  const pos = ((currentWeather.wind.deg % 360) / 22.5) | 0;
+  const windDirection = windSectors[pos];
+
   // Check if there's current rain data
   const hasRainData = currentWeather.rain?.['1h'];
   const rainAmount = hasRainData ? currentWeather.rain?.['1h'] : 0;
@@ -195,6 +204,9 @@ export default function HomeScreen() {
   // Check if there's current snow data
   const hasSnowData = currentWeather.snow?.['1h'];
   const snowAmount = hasSnowData ? currentWeather.snow?.['1h'] : 0;
+
+  // Check if there's current air quality data
+  const hasAirQualityData = weatherAirQuality?.aqi?.usa !== undefined;
 
   return (
     <View style={styles.container}>
@@ -265,7 +277,7 @@ export default function HomeScreen() {
             <View style={styles.detailsGrid}>
 
               {/* Show rain amount if there's current rain data */}
-              {hasRainData && renderDetailCard(
+              {renderDetailCard(
                 <CloudRain size={24} color={theme.primary} />,
                 'Rain (1h)',
                 `${rainAmount!.toFixed(1)} mm`
@@ -279,6 +291,19 @@ export default function HomeScreen() {
               )}
 
               {renderDetailCard(
+                <Wind size={24} color={theme.primary} />,
+                'Wind',
+                `${(currentWeather.wind.speed * 3.6).toFixed(1)} km/h ${windDirection}`
+              )}
+
+              {/* Show air quality data if available */}
+              {hasAirQualityData && renderDetailCard(
+                <AirVent size={24} color={theme.primary} />,
+                'Air Quality',
+                `AQI ${weatherAirQuality.aqi.usa.toFixed(1)}`
+              )}
+
+              {renderDetailCard(
                 <Eye size={24} color={theme.primary} />,
                 'Visibility',
                 `${(currentWeather.visibility / 1000).toFixed(1)} km`
@@ -287,19 +312,13 @@ export default function HomeScreen() {
               {renderDetailCard(
                 <Droplets size={24} color={theme.primary} />,
                 'Humidity',
-                `${currentWeather.main.humidity}%`
-              )}
-              
-              {renderDetailCard(
-                <Wind size={24} color={theme.primary} />,
-                'Wind Speed',
-                `${currentWeather.wind.speed} m/s`
+                `${currentWeather.main.humidity.toFixed(1)}%`
               )}
               
               {renderDetailCard(
                 <Gauge size={24} color={theme.primary} />,
                 'Pressure',
-                `${currentWeather.main.pressure} hPa`
+                `${currentWeather.main.pressure.toFixed(1)} hPa`
               )}
               
               {renderDetailCard(

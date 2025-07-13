@@ -75,18 +75,31 @@ export interface HourlyForecast {
   pop: number;
   dt_txt: string;
   rain?: {
-    '3h': number;
+    '1h': number;
   };
   snow?: {
-    '3h': number;
+    '1h': number;
   };
+}
+
+export interface DailyForecast {
+  dt: number;
+  main: MainWeatherInfo;
+  weather: WeatherData[];
+  clouds: CloudsInfo;
+  wind: WindInfo;
+  pop: number;
+  dt_txt: string;
+  rain?: number;
+  snow?: number;
 }
 
 export interface ForecastResponse {
   cod: string;
   message: number;
   cnt: number;
-  list: HourlyForecast[];
+  hourly: HourlyForecast[];
+  daily: DailyForecast[];
   city: {
     id: number;
     name: string;
@@ -100,6 +113,108 @@ export interface ForecastResponse {
     sunrise: number;
     sunset: number;
   };
+}
+
+export interface OneCallResponse {
+  lat: number;
+  lon: number;
+  timezone: string;
+  timezone_offset: number;
+  current: {
+    dt: number;
+    sunrise: number;
+    sunset: number;
+    temp: number;
+    feels_like: number;
+    pressure: number;
+    humidity: number;
+    dew_point: number;
+    uvi: number;
+    clouds: number;
+    visibility: number;
+    wind_speed: number;
+    wind_deg: number;
+    wind_gust?: number;
+    weather: Array<{
+      id: number;
+      main: string;
+      description: string;
+      icon: string;
+    }>;
+    rain?: {
+      '1h': number;
+    };
+    snow?: {
+      '1h': number;
+    };
+  };
+  hourly: Array<{
+    dt: number;
+    temp: number;
+    feels_like: number;
+    pressure: number;
+    humidity: number;
+    dew_point: number;
+    uvi: number;
+    clouds: number;
+    visibility: number;
+    wind_speed: number;
+    wind_deg: number;
+    wind_gust?: number;
+    weather: Array<{
+      id: number;
+      main: string;
+      description: string;
+      icon: string;
+    }>;
+    pop: number;
+    rain?: {
+      '1h': number;
+    };
+    snow?: {
+      '1h': number;
+    };
+  }>;
+  daily: Array<{
+    dt: number;
+    sunrise: number;
+    sunset: number;
+    moonrise: number;
+    moonset: number;
+    moon_phase: number;
+    summary: string;
+    temp: {
+      day: number;
+      min: number;
+      max: number;
+      night: number;
+      eve: number;
+      morn: number;
+    };
+    feels_like: {
+      day: number;
+      night: number;
+      eve: number;
+      morn: number;
+    };
+    pressure: number;
+    humidity: number;
+    dew_point: number;
+    wind_speed: number;
+    wind_deg: number;
+    wind_gust?: number;
+    weather: Array<{
+      id: number;
+      main: string;
+      description: string;
+      icon: string;
+    }>;
+    clouds: number;
+    pop: number;
+    rain?: number;
+    snow?: number;
+    uvi: number;
+  }>;
 }
 
 // Caiyun API Weather Alert Types - Updated to match actual mock data structure
@@ -127,7 +242,14 @@ export interface CaiyunWeatherAlert {
   endTime?: string;
 }
 
-export interface CaiyunAlertsResponse {
+export interface CaiyunAirQuality {
+  aqi: {
+    chn: number;
+    usa: number;
+  };
+}
+
+export interface CaiyunWeatherResponse {
   status: string;
   api_version: string;
   api_status: string;
@@ -142,6 +264,9 @@ export interface CaiyunAlertsResponse {
       status: string;
       content: CaiyunWeatherAlert[];
     };
+    realtime?: {
+      air_quality?: CaiyunAirQuality
+    }
   };
 }
 

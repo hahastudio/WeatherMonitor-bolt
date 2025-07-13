@@ -48,7 +48,7 @@ export default function ForecastScreen() {
     },
     content: {
       paddingHorizontal: 20,
-      paddingBottom: 100,
+      paddingBottom: 0,
     },
     sectionTitle: {
       color: theme.text,
@@ -96,6 +96,7 @@ export default function ForecastScreen() {
     // 5-day forecast styles
     dailyContainer: {
       gap: 12,
+      paddingBottom: 40
     },
     dailyItem: {
       backgroundColor: theme.surface + '90',
@@ -107,7 +108,7 @@ export default function ForecastScreen() {
     },
     dailyLeft: {
       flex: 1,
-      marginRight: 16,
+      marginRight: 4,
     },
     dailyDate: {
       color: theme.text,
@@ -148,7 +149,7 @@ export default function ForecastScreen() {
       backgroundColor: theme.textSecondary + '20',
       borderRadius: 2,
       marginBottom: 4,
-      width: 60,
+      width: 80,
     },
     tempBarFill: {
       height: '100%',
@@ -168,40 +169,18 @@ export default function ForecastScreen() {
     },
   });
 
-  // Group forecast by days
-  const groupedForecast = forecast.list.reduce((acc, item) => {
-    const date = new Date(item.dt * 1000).toDateString();
-    if (!acc[date]) {
-      acc[date] = [];
-    }
-    acc[date].push(item);
-    return acc;
-  }, {} as Record<string, typeof forecast.list>);
-
-  // Get next 24 hours forecast (8 data points, 3 hours each)
-  const next24Hours = forecast.list.slice(0, 8);
+  // Get next 48 hours forecast
+  const next48Hours = forecast.hourly;
 
   // Get 5-day forecast data
-  const dailyForecast = Object.entries(groupedForecast).slice(0, 5).map(([date, items]) => {
-    const dayItems = items.filter(item => {
-      const hour = new Date(item.dt * 1000).getHours();
-      return hour >= 6 && hour <= 18; // Daytime hours
-    });
-    
-    const representativeItem = dayItems.length > 0 
-      ? dayItems[Math.floor(dayItems.length / 2)] 
-      : items[0];
-    
-    const maxTemp = Math.max(...items.map(item => item.main.temp_max));
-    const minTemp = Math.min(...items.map(item => item.main.temp_min));
-    const avgPrecipChance = Math.round(items.reduce((sum, item) => sum + item.pop, 0) / items.length * 100);
+  const dailyForecast = forecast.daily.map((dayItem) => {
     
     return {
-      date: representativeItem.dt,
-      weather: representativeItem.weather[0],
-      maxTemp,
-      minTemp,
-      precipChance: avgPrecipChance,
+      date: dayItem.dt,
+      weather: dayItem.weather[0],
+      maxTemp: dayItem.main.temp_max,
+      minTemp: dayItem.main.temp_min,
+      precipChance: dayItem.pop * 100, // Convert to percentage
     };
   });
 
@@ -257,9 +236,9 @@ export default function ForecastScreen() {
             />
           }
         >
-          {/* 24-Hour Forecast */}
+          {/* 48-Hour Forecast */}
           <View style={styles.hourlyContainer}>
-            <Text style={styles.sectionTitle}>Next 24 Hours</Text>
+            <Text style={styles.sectionTitle}>Next 48 Hours</Text>
             
             <ScrollView 
               horizontal 
@@ -267,7 +246,7 @@ export default function ForecastScreen() {
               style={styles.hourlyScrollView}
               contentContainerStyle={{ paddingRight: 20 }}
             >
-              {next24Hours.map((item, index) => (
+              {next48Hours.map((item, index) => (
                 <View key={index} style={styles.hourlyItem}>
                   <Text style={styles.hourlyTime}>
                     {index === 0 ? 'Now' : formatTime(item.dt)}
@@ -293,8 +272,8 @@ export default function ForecastScreen() {
             </ScrollView>
           </View>
 
-          {/* 5-Day Forecast */}
-          <Text style={styles.sectionTitle}>5-Day Forecast</Text>
+          {/* 7-Day Forecast */}
+          <Text style={styles.sectionTitle}>7-Day Forecast</Text>
 
           <View style={styles.dailyContainer}>
             {dailyForecast.map((day, index) => (
@@ -339,7 +318,7 @@ export default function ForecastScreen() {
                   </View>
                   
                   <Text style={styles.precipChance}>
-                    {day.precipChance}% rain
+                    {day.precipChance.toFixed(1)}% rain
                   </Text>
                 </View>
               </View>

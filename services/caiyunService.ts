@@ -1,12 +1,13 @@
 import { fetch } from 'expo/fetch';
-import { CaiyunAlertsResponse, LocationCoords } from '../types/weather';
+import { CaiyunWeatherResponse, LocationCoords } from '../types/weather';
 import { apiLogger } from './apiLogger';
 
 const API_KEY = process.env.EXPO_PUBLIC_CAIYUN_API_KEY;
 const BASE_URL = 'https://api.caiyunapp.com/v2.5';
 
 class CaiyunService {
-  async getWeatherAlerts(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<CaiyunAlertsResponse> {
+  
+  async getWeatherData(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<CaiyunWeatherResponse> {
     if (!API_KEY || API_KEY === 'your_caiyun_api_key_here') {
       throw new Error('Caiyun API key not configured. Please add your API key to .env file.');
     }

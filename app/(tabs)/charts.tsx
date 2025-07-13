@@ -35,7 +35,7 @@ export default function ChartsScreen() {
     return <ErrorDisplay error={error} onRetry={refreshWeather} />;
   }
 
-  if (!forecast || !forecast.list || forecast.list.length === 0) {
+  if (!forecast || !forecast.hourly || forecast.hourly.length === 0) {
     return <LoadingSpinner message="Loading chart data..." />;
   }
 
@@ -68,7 +68,7 @@ export default function ChartsScreen() {
     },
     content: {
       paddingHorizontal: 20,
-      paddingBottom: 100,
+      paddingBottom: 20,
     },
     chartCard: {
       backgroundColor: theme.surface,
@@ -163,8 +163,7 @@ export default function ChartsScreen() {
     },
   });
 
-  // Get next 48 hours of data (16 data points, 3 hours each)
-  const next48Hours = forecast.list.slice(0, 16);
+  const next48Hours = forecast.hourly;
 
   // Ensure we have data to work with
   if (next48Hours.length === 0) {
@@ -198,8 +197,8 @@ export default function ChartsScreen() {
   });
 
   const precipitationData = next48Hours.map((item, index) => {
-    const rain = item.rain?.['3h'] || 0;
-    const snow = item.snow?.['3h'] || 0;
+    const rain = item.rain?.['1h'] || 0;
+    const snow = item.snow?.['1h'] || 0;
     const precip = rain + snow;
     return {
       x: index,

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, LocationCoords } from '../types/weather';
+import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, CaiyunAirQuality, LocationCoords } from '../types/weather';
 import type { AlertTracker } from '../services/alertTracker';
 import type { ApiLogEntry } from '../services/apiLogger';
 import type { WeatherSummary } from '../services/geminiService';
@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   CURRENT_WEATHER: '@weather_app_current_weather',
   FORECAST: '@weather_app_forecast',
   WEATHER_ALERTS: '@weather_app_weather_alerts',
+  WEATHER_AIR_QUALITY: '@weather_app_weather_air_quality',
   WEATHER_SUMMARY: '@weather_app_weather_summary',
   LOCATION: '@weather_app_location',
   CITY_NAME: '@weather_app_city_name',
@@ -36,6 +37,10 @@ export async function saveForecast(forecast: ForecastResponse | null) {
 
 export async function saveWeatherAlerts(alerts: CaiyunWeatherAlert[]) {
   await AsyncStorage.setItem(STORAGE_KEYS.WEATHER_ALERTS, JSON.stringify(alerts));
+}
+
+export async function saveWeatherAirQuality(airQuality: CaiyunAirQuality | null) {
+  await AsyncStorage.setItem(STORAGE_KEYS.WEATHER_AIR_QUALITY, JSON.stringify(airQuality));
 }
 
 export async function saveWeatherSummary(summary: WeatherSummary | null) {
@@ -75,6 +80,11 @@ export async function loadForecast(): Promise<ForecastResponse | null> {
 export async function loadWeatherAlerts(): Promise<CaiyunWeatherAlert[]> {
   const data = await AsyncStorage.getItem(STORAGE_KEYS.WEATHER_ALERTS);
   return data ? JSON.parse(data) : [];
+}
+
+export async function loadWeatherAirQuality(): Promise<CaiyunAirQuality | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.WEATHER_AIR_QUALITY);
+  return data ? JSON.parse(data) : null;
 }
 
 export async function loadWeatherSummary(): Promise<(WeatherSummary & { generatedAt: number }) | null> {

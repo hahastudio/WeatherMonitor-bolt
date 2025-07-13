@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { CurrentWeather, ForecastResponse, LocationCoords, WeatherCondition, CaiyunWeatherAlert } from '../types/weather';
+import { CurrentWeather, ForecastResponse, LocationCoords, WeatherCondition, CaiyunWeatherAlert, CaiyunAirQuality } from '../types/weather';
 import { weatherService } from '../services/weatherService';
 import { caiyunService } from '../services/caiyunService';
 import { locationService } from '../services/locationService';
@@ -11,7 +11,8 @@ import { registerBackgroundWeatherTask } from '../services/backgroundWeatherServ
 import { 
   saveCurrentWeather, 
   saveForecast, 
-  saveWeatherAlerts, 
+  saveWeatherAlerts,
+  saveWeatherAirQuality,
   saveWeatherSummary,
   saveLastUpdated, 
   loadLastUpdated, 
@@ -22,6 +23,7 @@ import {
   loadCurrentWeather, 
   loadForecast, 
   loadWeatherAlerts,
+  loadWeatherAirQuality,
   loadWeatherSummary,
   saveLocation,
   loadLocation,
@@ -33,6 +35,7 @@ interface WeatherContextType {
   currentWeather: CurrentWeather | null;
   forecast: ForecastResponse | null;
   weatherAlerts: CaiyunWeatherAlert[];
+  weatherAirQuality: CaiyunAirQuality | null;
   weatherSummary: WeatherSummary | null;
   summaryGeneratedAt: number | null;
   location: LocationCoords | null;
@@ -62,6 +65,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [weatherAlerts, setWeatherAlerts] = useState<CaiyunWeatherAlert[]>([]);
+  const [weatherAirQuality, setWeatherAirQuality] = useState<CaiyunAirQuality | null>(null);
   const [weatherSummary, setWeatherSummary] = useState<WeatherSummary | null>(null);
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<number | null>(null);
   const [location, setLocation] = useState<LocationCoords | null>(null);
@@ -90,6 +94,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         storedWeather,
         storedForecast,
         storedAlerts,
+        storedAirQuality,
         storedSummary,
         storedLocation,
         storedCityName,
@@ -100,6 +105,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         loadCurrentWeather(),
         loadForecast(),
         loadWeatherAlerts(),
+        loadWeatherAirQuality(),
         loadWeatherSummary(),
         loadLocation(),
         loadCityName(),
@@ -122,6 +128,11 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       if (storedAlerts) {
         setWeatherAlerts(storedAlerts);
         console.log('✅ Loaded weather alerts from storage');
+      }
+
+      if (storedAirQuality) {
+        setWeatherAirQuality(storedAirQuality);
+        console.log('✅ Loaded weather air quality from storage');
       }
 
       if (storedSummary) {
@@ -178,6 +189,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     weather?: CurrentWeather | null;
     forecast?: ForecastResponse | null;
     alerts?: CaiyunWeatherAlert[];
+    airQuality?: CaiyunAirQuality | null;
     summary?: WeatherSummary | null;
     location?: LocationCoords | null;
     cityName?: string;
@@ -201,6 +213,11 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       if (data.alerts !== undefined) {
         savePromises.push(saveWeatherAlerts(data.alerts));
         setWeatherAlerts(data.alerts);
+      }
+
+      if (data.airQuality !== undefined) {
+        savePromises.push(saveWeatherAirQuality(data.airQuality));
+        setWeatherAirQuality(data.airQuality);
       }
 
       if (data.summary !== undefined) {
@@ -305,15 +322,16 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         lastUpdated: now
       });
 
+      let alerts = weatherAlerts;
       // Fetch weather alerts (only on manual refresh or app start to avoid too many requests)
       if (trigger === 'manual' || trigger === 'app_start') {
         try {
           console.log('🌩️ Fetching weather alerts from Caiyun API...');
           
-          const alertsResponse = await caiyunService.getWeatherAlerts(coords, trigger);
+          const caiyunResponse = await caiyunService.getWeatherData(coords, trigger);
           
-          if (alertsResponse.result?.alert?.content && alertsResponse.result.alert.content.length > 0) {
-            const alerts = alertsResponse.result.alert.content;
+          if (caiyunResponse.result?.alert?.content && caiyunResponse.result.alert.content.length > 0) {
+             alerts = caiyunResponse.result.alert.content;
             
             // Save alerts to storage and update UI
             await saveDataToStorage({ alerts });
@@ -343,6 +361,14 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
             console.log('ℹ️ No weather alerts found for this location');
             await saveDataToStorage({ alerts: [] });
           }
+
+          if (caiyunResponse?.result?.realtime?.air_quality?.aqi) {
+            const airQuality: CaiyunAirQuality = caiyunResponse.result.realtime.air_quality;
+            await saveDataToStorage({ airQuality });
+            setWeatherAirQuality(airQuality);
+            console.log('✅ Loaded weather air quality data from Caiyun API');
+          }
+
         } catch (alertError) {
           console.log('⚠️ Weather alerts not available for this location:', alertError);
           await saveDataToStorage({ alerts: [] });
@@ -356,7 +382,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
           const summary = await geminiService.generateWeatherSummary({
             currentWeather: weatherData,
             forecast: forecastData,
-            alerts: weatherAlerts,
+            alerts: alerts,
             cityName: city,
           }, trigger);
 
@@ -529,6 +555,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     currentWeather,
     forecast,
     weatherAlerts,
+    weatherAirQuality,
     weatherSummary,
     summaryGeneratedAt,
     location,
