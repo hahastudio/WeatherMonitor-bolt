@@ -7,7 +7,7 @@ import { notificationService } from '../services/notificationService';
 import { alertTracker } from '../services/alertTracker';
 import { geminiService, WeatherSummary } from '../services/geminiService';
 import { getWeatherCondition, getWeatherTheme, WeatherTheme } from '../utils/weatherTheme';
-import { registerBackgroundWeatherTask } from '../services/backgroundWeatherService';
+import { initBackgroundFetch } from '../services/backgroundWeatherService';
 import { 
   saveCurrentWeather, 
   saveForecast, 
@@ -484,7 +484,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         notificationService.requestPermissions();
 
         // Register background weather fetch task
-        await registerBackgroundWeatherTask();
+        await initBackgroundFetch();
 
         // Step 1: Load all data from storage first
         const storageData = await loadDataFromStorage();
