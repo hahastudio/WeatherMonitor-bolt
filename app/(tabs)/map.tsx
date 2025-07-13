@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView } from 'react-native-webview';
 import { 
   Map as MapIcon, 
   Layers, 
+  CloudSunRain,
   Wind, 
   CloudRain, 
   Thermometer, 
@@ -16,7 +17,7 @@ import {
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
-type WeatherLayer = 'wind' | 'rain' | 'temp' | 'clouds';
+type WeatherLayer = 'weather' | 'wind' | 'rain' | 'temp' | 'clouds';
 
 interface MapSettings {
   layer: WeatherLayer;
@@ -32,7 +33,7 @@ export default function MapScreen() {
 
   const webViewRef = useRef<WebView>(null);
   const [mapSettings, setMapSettings] = useState<MapSettings>({
-    layer: 'wind', // Wind is already the default
+    layer: 'weather', // Weather is already the default
     zoom: 8
   });
   const [webViewLoading, setWebViewLoading] = useState(true);
@@ -41,6 +42,7 @@ export default function MapScreen() {
   const [loadingTimeout, setLoadingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
   const layerOptions = [
+    { key: 'weather', label: 'Weather', icon: CloudSunRain, color: '#F5B120', overlay: 'radar' },
     { key: 'wind', label: 'Wind', icon: Wind, color: '#50C878', overlay: 'wind' },
     { key: 'rain', label: 'Rain', icon: CloudRain, color: '#4A90E2', overlay: 'rain' },
     { key: 'temp', label: 'Temperature', icon: Thermometer, color: '#FF6B6B', overlay: 'temp' },
@@ -56,7 +58,7 @@ export default function MapScreen() {
     
     // Get the correct overlay name
     const selectedLayer = layerOptions.find(l => l.key === layer);
-    const overlay = selectedLayer?.overlay || 'wind';
+    const overlay = selectedLayer?.overlay || 'weather';
     
     // Use the exact Windy embed URL format you specified
     const params = new URLSearchParams({
@@ -64,13 +66,14 @@ export default function MapScreen() {
       location: 'coordinates',
       metricRain: 'mm',
       metricTemp: '°C',
-      metricWind: 'm/s',
+      metricWind: 'km/h',
       zoom: zoom.toString(),
       overlay: overlay,
       product: 'ecmwf',
       level: 'surface',
       lat: latitude.toFixed(2),
-      lon: longitude.toFixed(2)
+      lon: longitude.toFixed(2),
+      marker: 'true'
     });
 
     return `https://embed.windy.com/embed.html?${params.toString()}`;
@@ -417,31 +420,37 @@ export default function MapScreen() {
           </View>
           
           <View style={styles.layerSelector}>
-            {layerOptions.map((option) => (
-              <TouchableOpacity
-                key={option.key}
-                style={[
-                  styles.layerButton,
-                  mapSettings.layer === option.key && styles.layerButtonActive,
-                ]}
-                onPress={() => handleLayerChange(option.key)}
-              >
-                <View style={styles.layerIcon}>
-                  <option.icon 
-                    size={16} 
-                    color={mapSettings.layer === option.key ? theme.primary : option.color} 
-                  />
-                </View>
-                <Text 
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingRight: 20 }}
+            >
+              {layerOptions.map((option) => (
+                <TouchableOpacity
+                  key={option.key}
                   style={[
-                    styles.layerText,
-                    mapSettings.layer === option.key && styles.layerTextActive,
+                    styles.layerButton,
+                    mapSettings.layer === option.key && styles.layerButtonActive,
                   ]}
+                  onPress={() => handleLayerChange(option.key)}
                 >
-                  {option.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <View style={styles.layerIcon}>
+                    <option.icon 
+                      size={16} 
+                      color={mapSettings.layer === option.key ? theme.primary : option.color} 
+                    />
+                  </View>
+                  <Text 
+                    style={[
+                      styles.layerText,
+                      mapSettings.layer === option.key && styles.layerTextActive,
+                    ]}
+                  >
+                    {option.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           </View>
         </View>
 
