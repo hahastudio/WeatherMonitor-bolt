@@ -37,3 +37,6 @@ yarn-error.*
 
 # config
 google-services.json
+
+# build
+*.apk
