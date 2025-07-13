@@ -270,9 +270,6 @@ export const WeatherSummary: React.FC = () => {
       alignSelf: 'flex-start',
       backgroundColor: theme.background + '50',
       borderRadius: 12,
-      paddingHorizontal: 8,
-      paddingVertical: 4,
-      marginTop: 8,
     },
     moodText: {
       fontSize: 12,
@@ -355,6 +352,14 @@ export const WeatherSummary: React.FC = () => {
 
           {weatherSummary && (
             <View style={styles.content}>
+
+              <View style={styles.moodIndicator}>
+                {getMoodIcon(weatherSummary.mood)}
+                <Text style={[styles.moodText, { color: getMoodColor(weatherSummary.mood) }]}>
+                  {weatherSummary.mood}
+                </Text>
+              </View>
+
               <Text style={styles.overviewText}>{weatherSummary.todayOverview}</Text>
 
               {weatherSummary.alertSummary && (
@@ -384,13 +389,6 @@ export const WeatherSummary: React.FC = () => {
                         <Text style={styles.recommendationText}>{rec}</Text>
                       </View>
                     ))}
-                  </View>
-
-                  <View style={styles.moodIndicator}>
-                    {getMoodIcon(weatherSummary.mood)}
-                    <Text style={[styles.moodText, { color: getMoodColor(weatherSummary.mood) }]}>
-                      {weatherSummary.mood}
-                    </Text>
                   </View>
                 </>
               )}

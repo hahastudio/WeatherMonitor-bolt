@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenAI } from '@google/genai';
 import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert } from '../types/weather';
 import { apiLogger } from './apiLogger';
 
@@ -20,11 +20,11 @@ export interface WeatherSummary {
 }
 
 class GeminiService {
-  private genAI: GoogleGenerativeAI | null = null;
+  private genAI: GoogleGenAI | null = null;
 
   constructor() {
     if (API_KEY && API_KEY !== 'your_gemini_api_key_here') {
-      this.genAI = new GoogleGenerativeAI(API_KEY);
+      this.genAI = new GoogleGenAI({apiKey: API_KEY});
     }
   }
 
@@ -39,15 +39,28 @@ class GeminiService {
     const startTime = Date.now();
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
       const prompt = this.buildPrompt(input);
       
-      const result = await model.generateContent(prompt);
+      const result = await this.genAI.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'object',
+            properties: {
+              todayOverview: { type: 'string' },
+              alertSummary: { type: 'string', nullable: true },
+              futureWarnings: { type: 'string', nullable: true },
+              recommendations: { type: 'array', items: { type: 'string' } },
+              mood: { type: 'string', enum: ['positive', 'neutral', 'warning', 'severe'] },
+            },
+            required: ['todayOverview', 'recommendations', 'mood'],
+          }
+        }
+      });
       const responseTime = Date.now() - startTime;
-      
-      const response = await result.response;
-      const text = response.text();
+      const text = result.text || '';
 
       await apiLogger.logRequest(
         'generateWeatherSummary (Gemini)',
@@ -80,13 +93,13 @@ class GeminiService {
     
     // Get today's forecast data
     const today = new Date();
-    const todayForecasts = forecast.list.filter(item => {
+    const todayForecasts = forecast.hourly.filter(item => {
       const itemDate = new Date(item.dt * 1000);
       return itemDate.toDateString() === today.toDateString();
     });
 
     // Get next 5 days forecast for bad weather detection
-    const next5Days = forecast.list.slice(0, 40); // 5 days * 8 forecasts per day
+    const next5Days = forecast.daily.slice(0, 5);
 
     // Build weather data summary
     const currentTemp = Math.round(currentWeather.main.temp);
@@ -103,15 +116,15 @@ class GeminiService {
 
     // Precipitation data
     const todayPrecip = todayForecasts.reduce((sum, f) => {
-      const rain = f.rain?.['3h'] || 0;
-      const snow = f.snow?.['3h'] || 0;
+      const rain = f.rain?.['1h'] || 0;
+      const snow = f.snow?.['1h'] || 0;
       return sum + rain + snow;
     }, 0);
 
     // Future bad weather detection
     const badWeatherEvents = next5Days.filter(item => {
-      const rain = item.rain?.['3h'] || 0;
-      const snow = item.snow?.['3h'] || 0;
+      const rain = item.rain || 0;
+      const snow = item.snow || 0;
       const windSpeed = item.wind.speed;
       const condition = item.weather[0].main.toLowerCase();
       
@@ -151,8 +164,8 @@ FUTURE BAD WEATHER (Next 5 Days):
 ${badWeatherEvents.length > 0 
   ? badWeatherEvents.slice(0, 3).map(event => {
       const date = new Date(event.dt * 1000).toLocaleDateString();
-      const rain = event.rain?.['3h'] || 0;
-      const snow = event.snow?.['3h'] || 0;
+      const rain = event.rain || 0;
+      const snow = event.snow || 0;
       return `${date}: ${event.weather[0].description}, Rain: ${rain}mm, Snow: ${snow}mm, Wind: ${event.wind.speed}m/s`;
     }).join('\n')
   : 'No significant bad weather expected in the next 5 days'
@@ -185,13 +198,7 @@ Guidelines:
 
   private parseResponse(text: string): WeatherSummary {
     try {
-      // Clean the response text to extract JSON
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error('No JSON found in response');
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]);
+      const parsed = JSON.parse(text);
       
       // Validate the response structure
       if (!parsed.todayOverview || !Array.isArray(parsed.recommendations)) {
