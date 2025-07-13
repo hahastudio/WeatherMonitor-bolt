@@ -111,8 +111,9 @@ export async function initBackgroundFetch() {
       console.error('❌ BackgroundFetch event failed:', e);
       BackgroundFetch.finish(taskId);
     }
-  }, (error) => {
-    console.error('❌ BackgroundFetch failed to start:', error);
+  }, (taskId) => {
+    console.warn('❌ BackgroundFetch failed to start:', taskId);
+    BackgroundFetch.finish(taskId);
   });
 
   console.log('BackgroundFetch configure status: ', status);
