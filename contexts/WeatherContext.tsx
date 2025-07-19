@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { CurrentWeather, ForecastResponse, LocationCoords, WeatherCondition, CaiyunWeatherAlert, CaiyunAirQuality } from '../types/weather';
 import { weatherService } from '../services/weatherService';
 import { caiyunService } from '../services/caiyunService';
@@ -30,6 +30,7 @@ import {
   saveCityName,
   loadCityName
 } from '../utils/weatherStorage';
+import { AppState, AppStateStatus } from 'react-native';
 
 interface WeatherContextType {
   currentWeather: CurrentWeather | null;
@@ -50,7 +51,6 @@ interface WeatherContextType {
   refreshWeather: () => Promise<void>;
   generateWeatherSummary: () => Promise<void>;
   toggleDarkMode: () => void;
-  setRefreshRate: (minutes: number) => Promise<void>;
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
@@ -75,8 +75,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [refreshRate, setRefreshRateState] = useState<number>(DEFAULT_REFRESH_RATE);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const appState = React.useRef(AppState.currentState);
 
   const weatherCondition: WeatherCondition = currentWeather 
     ? getWeatherCondition(currentWeather.weather[0].main)
@@ -323,56 +323,54 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       });
 
       let alerts = weatherAlerts;
-      // Fetch weather alerts (only on manual refresh or app start to avoid too many requests)
-      if (trigger === 'manual' || trigger === 'app_start') {
-        try {
-          console.log('🌩️ Fetching weather alerts from Caiyun API...');
+      
+      try {
+        console.log('🌩️ Fetching weather alerts from Caiyun API...');
+        
+        const caiyunResponse = await caiyunService.getWeatherData(coords, trigger);
+        
+        if (caiyunResponse.result?.alert?.content && caiyunResponse.result.alert.content.length > 0) {
+            alerts = caiyunResponse.result.alert.content;
           
-          const caiyunResponse = await caiyunService.getWeatherData(coords, trigger);
+          // Save alerts to storage and update UI
+          await saveDataToStorage({ alerts });
+
+          // Filter out alerts that have already been notified
+          const alertIds = alerts.map(alert => alert.alertId);
+          const newAlertIds = await alertTracker.filterNewAlerts(alertIds);
           
-          if (caiyunResponse.result?.alert?.content && caiyunResponse.result.alert.content.length > 0) {
-             alerts = caiyunResponse.result.alert.content;
-            
-            // Save alerts to storage and update UI
-            await saveDataToStorage({ alerts });
+          console.log(`📊 Total alerts: ${alerts.length}, New alerts: ${newAlertIds.length}`);
 
-            // Filter out alerts that have already been notified
-            const alertIds = alerts.map(alert => alert.alertId);
-            const newAlertIds = await alertTracker.filterNewAlerts(alertIds);
-            
-            console.log(`📊 Total alerts: ${alerts.length}, New alerts: ${newAlertIds.length}`);
-
-            // Show notifications only for new alerts
-            const newAlerts = alerts.filter(alert => newAlertIds.includes(alert.alertId));
-            
-            for (const alert of newAlerts) {
-              console.log('📢 Showing notification for new alert:', alert.title);
-              await notificationService.showWeatherAlert(alert);
-            }
-
-            // Track all alert IDs to prevent future duplicates
-            if (alertIds.length > 0) {
-              await alertTracker.addMultipleAlertIds(alertIds);
-              console.log(`✅ Tracked ${alertIds.length} alert IDs for duplicate prevention`);
-            }
-            
-            console.log(`✅ Loaded ${alerts.length} weather alerts from Caiyun API (${newAlerts.length} new notifications sent)`);
-          } else {
-            console.log('ℹ️ No weather alerts found for this location');
-            await saveDataToStorage({ alerts: [] });
+          // Show notifications only for new alerts
+          const newAlerts = alerts.filter(alert => newAlertIds.includes(alert.alertId));
+          
+          for (const alert of newAlerts) {
+            console.log('📢 Showing notification for new alert:', alert.title);
+            await notificationService.showWeatherAlert(alert);
           }
 
-          if (caiyunResponse?.result?.realtime?.air_quality?.aqi) {
-            const airQuality: CaiyunAirQuality = caiyunResponse.result.realtime.air_quality;
-            await saveDataToStorage({ airQuality });
-            setWeatherAirQuality(airQuality);
-            console.log('✅ Loaded weather air quality data from Caiyun API');
+          // Track all alert IDs to prevent future duplicates
+          if (alertIds.length > 0) {
+            await alertTracker.addMultipleAlertIds(alertIds);
+            console.log(`✅ Tracked ${alertIds.length} alert IDs for duplicate prevention`);
           }
-
-        } catch (alertError) {
-          console.log('⚠️ Weather alerts not available for this location:', alertError);
+          
+          console.log(`✅ Loaded ${alerts.length} weather alerts from Caiyun API (${newAlerts.length} new notifications sent)`);
+        } else {
+          console.log('ℹ️ No weather alerts found for this location');
           await saveDataToStorage({ alerts: [] });
         }
+
+        if (caiyunResponse?.result?.realtime?.air_quality?.aqi) {
+          const airQuality: CaiyunAirQuality = caiyunResponse.result.realtime.air_quality;
+          await saveDataToStorage({ airQuality });
+          setWeatherAirQuality(airQuality);
+          console.log('✅ Loaded weather air quality data from Caiyun API');
+        }
+
+      } catch (alertError) {
+        console.log('⚠️ Weather alerts not available for this location:', alertError);
+        await saveDataToStorage({ alerts: [] });
       }
 
       // Auto-generate weather summary if needed (only on manual refresh or app start)
@@ -445,34 +443,48 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
-  const setRefreshRate = async (minutes: number) => {
-    setRefreshRateState(minutes);
-    try {
-      await saveRefreshRate(minutes);
-      console.log(`✅ Refresh rate updated to ${minutes} minutes`);
-      
-      // Clear existing interval
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
-      }
-      
-      // Set up new interval with the updated rate
-      const newInterval = setInterval(async () => {
-        if (location) {
-          const storageData = await loadDataFromStorage();
-            const needsRefresh = !storageData.hasWeatherData || 
-                           shouldAutoRefresh(storageData.lastUpdated, storageData.refreshRate);
-            if (needsRefresh) {
-              console.log('🔄 Periodic refresh triggered');      
-              fetchWeatherData(location, 'auto');
-            }
+  const initWeatherData = async () => {
+    // Step 1: Load all data from storage first
+    const storageData = await loadDataFromStorage();
+    
+    // Step 2: Get current location
+    let coords = storageData.location;
+    if (!coords) {
+      try {
+        coords = await getCurrentLocation();
+        if (coords) {
+          await saveDataToStorage({ location: coords });
         }
-      }, minutes * 60 * 1000) as unknown as NodeJS.Timeout;
-      setRefreshInterval(newInterval);
-    } catch (error) {
-      console.error('❌ Failed to save refresh rate preference:', error);
+      } catch (locationError) {
+        console.error('❌ Failed to get location:', locationError);
+        setLoading(false);
+        setIsInitialized(true);
+        return;
+      }
     }
-  };
+
+    // Step 3: Check if we need to refresh data
+    const needsRefresh = !storageData.hasWeatherData || 
+                        shouldAutoRefresh(storageData.lastUpdated, storageData.refreshRate);
+
+    if (needsRefresh && coords) {
+      console.log('🔄 Data needs refresh, fetching new data...');
+      await fetchWeatherData(coords, 'app_start');
+    } else {
+      console.log('✅ Using cached data, no refresh needed');
+      setLoading(false);
+    }
+  }
+
+  // Function to handle AppState changes
+  const handleAppStateChange = useCallback(async (nextAppState: AppStateStatus) => {
+    if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
+      console.log('App has come to the foreground! Reloading data...');
+      await initWeatherData();
+    }
+    appState.current = nextAppState;
+    console.log('AppState', appState.current);
+  }, []);
 
   // Initialize app on mount
   useEffect(() => {
@@ -486,50 +498,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         // Register background weather fetch task
         await initBackgroundFetch();
 
-        // Step 1: Load all data from storage first
-        const storageData = await loadDataFromStorage();
-        
-        // Step 2: Get current location
-        let coords = storageData.location;
-        if (!coords) {
-          try {
-            coords = await getCurrentLocation();
-            if (coords) {
-              await saveDataToStorage({ location: coords });
-            }
-          } catch (locationError) {
-            console.error('❌ Failed to get location:', locationError);
-            setLoading(false);
-            setIsInitialized(true);
-            return;
-          }
-        }
-
-        // Step 3: Check if we need to refresh data
-        const needsRefresh = !storageData.hasWeatherData || 
-                           shouldAutoRefresh(storageData.lastUpdated, storageData.refreshRate);
-
-        if (needsRefresh && coords) {
-          console.log('🔄 Data needs refresh, fetching new data...');
-          await fetchWeatherData(coords, 'app_start');
-        } else {
-          console.log('✅ Using cached data, no refresh needed');
-          setLoading(false);
-        }
-
-        // Step 4: Set up periodic refresh interval
-        if (coords) {
-          const interval = setInterval(async () => {
-            const storageData = await loadDataFromStorage();
-            const needsRefresh = !storageData.hasWeatherData || 
-                           shouldAutoRefresh(storageData.lastUpdated, storageData.refreshRate);
-            if (needsRefresh) {
-              console.log('🔄 Periodic refresh triggered');      
-              fetchWeatherData(coords!, 'auto');
-            }
-          }, storageData.refreshRate * 60 * 1000) as unknown as NodeJS.Timeout;
-          setRefreshInterval(interval);
-        }
+        await initWeatherData();
 
         setIsInitialized(true);
         console.log('🚀 WeatherMonitor NT initialization completed');
@@ -542,12 +511,15 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     };
 
     initializeApp();
+    // Set up AppState listener
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
 
     // Cleanup interval on unmount
     return () => {
-      if (refreshInterval) {
-        clearInterval(refreshInterval);
+      if (subscription) {
+        subscription.remove();
       }
+      console.log('🧹 Cleaned up WeatherMonitor NT resources');
     };
   }, []);
 
@@ -570,7 +542,6 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     refreshWeather,
     generateWeatherSummary,
     toggleDarkMode,
-    setRefreshRate,
   };
 
   return (
