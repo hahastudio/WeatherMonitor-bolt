@@ -2,7 +2,7 @@ export default {
   "expo": {
     "name": "Weather Monitor NT",
     "slug": "weathermonitor-nt",
-    "version": "1.0.1",
+    "version": process.env.npm_package_version || "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
