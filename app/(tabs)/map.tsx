@@ -543,17 +543,6 @@ export default function MapScreen() {
                   </Text>
                 </View>
               )}
-
-              {!webViewLoading && !webViewError && (
-                <View style={styles.statusIndicator}>
-                  {selectedLayerOption && (
-                    <selectedLayerOption.icon size={12} color={selectedLayerOption.color} />
-                  )}
-                  <Text style={styles.statusText}>
-                    {selectedLayerOption?.label || 'Map'} • Live
-                  </Text>
-                </View>
-              )}
             </>
           )}
         </View>
