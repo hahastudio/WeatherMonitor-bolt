@@ -381,6 +381,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
             currentWeather: weatherData,
             forecast: forecastData,
             alerts: alerts,
+            airQuality: weatherAirQuality,
             cityName: city,
           }, trigger);
 

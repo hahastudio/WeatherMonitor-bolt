@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { Sparkles, TriangleAlert as AlertTriangle, CloudRain, Sun, Cloud, RefreshCw, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react-native';
+import { Sparkles, TriangleAlert as AlertTriangle, ThumbsDown, ThumbsUp, Cloud, RefreshCw, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 
 export const WeatherSummary: React.FC = () => {
@@ -56,9 +56,9 @@ export const WeatherSummary: React.FC = () => {
   const getMoodIcon = (mood: string) => {
     switch (mood) {
       case 'positive':
-        return <Sun size={20} color={theme.primary} />;
+        return <ThumbsUp size={20} color={theme.primary} />;
       case 'warning':
-        return <CloudRain size={20} color="#FF8800" />;
+        return <ThumbsDown size={20} color="#FF8800" />;
       case 'severe':
         return <AlertTriangle size={20} color="#FF4444" />;
       default:

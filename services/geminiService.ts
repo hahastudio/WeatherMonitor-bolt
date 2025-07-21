@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert } from '../types/weather';
+import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, CaiyunAirQuality } from '../types/weather';
 import { apiLogger } from './apiLogger';
 
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
@@ -8,6 +8,7 @@ interface WeatherSummaryInput {
   currentWeather: CurrentWeather;
   forecast: ForecastResponse;
   alerts: CaiyunWeatherAlert[];
+  airQuality: CaiyunAirQuality | null;
   cityName: string;
 }
 
@@ -141,9 +142,15 @@ class GeminiService {
     const alertInfo = alerts.length > 0 
       ? alerts.map(alert => `${alert.title}: ${alert.description}`).join('\n')
       : 'No active weather alerts';
+    
+    // Air quality information
+    const airQuality = input.airQuality?.aqi?.usa || 'N/A';
 
     const prompt = `
 You are a professional meteorologist providing a weather summary for ${cityName}. Generate a comprehensive weather analysis in JSON format.
+
+CURRENT TIME:
+${today.toLocaleString()}
 
 CURRENT WEATHER:
 - Temperature: ${currentTemp}°C (feels like ${feelsLike}°C)
@@ -151,16 +158,28 @@ CURRENT WEATHER:
 - Humidity: ${humidity}%
 - Wind Speed: ${windSpeed} m/s
 - Visibility: ${visibility} km
+- Air Quality Index: ${airQuality}
 
 TODAY'S FORECAST:
 - Temperature Range: ${todayMin}°C to ${todayMax}°C
 - Expected Precipitation: ${todayPrecip.toFixed(1)} mm
-- Number of forecast points: ${todayForecasts.length}
+- Raining hours:
+${todayForecasts.filter(f => f.rain && f.rain['1h'] > 0).map(f => {
+  const date = new Date(f.dt * 1000);
+  const rainAmount = f.rain?.['1h'] || 0;
+  return `  - ${date.getHours()}:00, ${rainAmount.toFixed(1)} mm`;
+}).join('\n') || '  None'}
+- Snowing hours:
+${todayForecasts.filter(f => f.snow && f.snow['1h'] > 0).map(f => {
+  const date = new Date(f.dt * 1000);
+  const snowAmount = f.snow?.['1h'] || 0;
+  return `  - ${date.getHours()}:00, ${snowAmount.toFixed(1)} mm`;
+}).join('\n') || '  None'}
 
 WEATHER ALERTS:
 ${alertInfo}
 
-FUTURE BAD WEATHER (Next 5 Days):
+FUTURE BAD WEATHER (Following Days):
 ${badWeatherEvents.length > 0 
   ? badWeatherEvents.slice(0, 3).map(event => {
       const date = new Date(event.dt * 1000).toLocaleDateString();
@@ -168,14 +187,14 @@ ${badWeatherEvents.length > 0
       const snow = event.snow || 0;
       return `${date}: ${event.weather[0].description}, Rain: ${rain}mm, Snow: ${snow}mm, Wind: ${event.wind.speed}m/s`;
     }).join('\n')
-  : 'No significant bad weather expected in the next 5 days'
+  : 'No significant bad weather expected in the following days'
 }
 
 Please provide a JSON response with the following structure:
 {
   "todayOverview": "A 2-3 sentence summary of today's weather conditions and what to expect",
   "alertSummary": "Summary of current weather alerts (null if no alerts)",
-  "futureWarnings": "Warning about upcoming bad weather in next 5 days (null if no bad weather expected)",
+  "futureWarnings": "Warning about upcoming bad weather in the following days (null if no bad weather expected)",
   "recommendations": ["Array of 2-4 practical recommendations based on the weather"],
   "mood": "positive|neutral|warning|severe"
 }
@@ -192,7 +211,6 @@ Guidelines:
 - Recommendations should be actionable (e.g., "Carry an umbrella", "Wear a jacket")
 - Answer in Chinese, using simplified characters
 `;
-
     return prompt;
   }
 
