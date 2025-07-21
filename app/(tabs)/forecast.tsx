@@ -107,7 +107,7 @@ export default function ForecastScreen() {
       // Remove shadow/elevation to prevent Android grey borders
     },
     dailyLeft: {
-      flex: 1,
+      minWidth: 80,
       marginRight: 4,
     },
     dailyDate: {
@@ -121,6 +121,7 @@ export default function ForecastScreen() {
       fontSize: 14,
     },
     dailyCenter: {
+      flex: 1,
       alignItems: 'center',
       marginRight: 16,
     },
@@ -131,7 +132,9 @@ export default function ForecastScreen() {
     tempRange: {
       flexDirection: 'row',
       alignItems: 'center',
+      justifyContent: 'space-between',
       marginBottom: 8,
+      width: '80%',
     },
     tempLow: {
       color: theme.textSecondary,
@@ -149,7 +152,7 @@ export default function ForecastScreen() {
       backgroundColor: theme.textSecondary + '20',
       borderRadius: 2,
       marginBottom: 4,
-      width: 80,
+      width: '80%',
     },
     tempBarFill: {
       height: '100%',
@@ -181,6 +184,7 @@ export default function ForecastScreen() {
       maxTemp: dayItem.main.temp_max,
       minTemp: dayItem.main.temp_min,
       precipChance: dayItem.pop * 100, // Convert to percentage
+      rain: (dayItem.rain || 0) + (dayItem.snow || 0), // Combine rain and snow
     };
   });
 
@@ -188,11 +192,14 @@ export default function ForecastScreen() {
   const allTemps = dailyForecast.flatMap(day => [day.maxTemp, day.minTemp]);
   const globalMin = Math.min(...allTemps);
   const globalMax = Math.max(...allTemps);
-  const tempRange = globalMax - globalMin || 1;
+  const globalMiddle = (globalMin + globalMax) / 2.0;
+  const tempRange = Math.max(globalMax - globalMin, 10.0);
+  const fixedGlobalMin = globalMiddle - tempRange / 2.0;
+  const fixedGlobalMax = globalMiddle + tempRange / 2.0;
 
   const getTempBarGradient = (minTemp: number, maxTemp: number): FlexStyle => {
-    const minPosition = ((minTemp - globalMin) / tempRange) * 100;
-    const maxPosition = ((maxTemp - globalMin) / tempRange) * 100;
+    const minPosition = ((minTemp - fixedGlobalMin) / tempRange) * 100;
+    const maxPosition = ((maxTemp - fixedGlobalMin) / tempRange) * 100;
     
     return {
       marginLeft: `${minPosition}%`,
@@ -208,11 +215,14 @@ export default function ForecastScreen() {
     
     if (date.toDateString() === today.toDateString()) {
       return 'Today';
-    } else if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
     } else {
-      return date.toLocaleDateString('en-US', { weekday: 'long' });
+      return date.toLocaleDateString('en-US', { weekday: 'short' });
     }
+  };
+
+  const formatDate = (timestamp: number): string => {
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   return (
@@ -267,6 +277,10 @@ export default function ForecastScreen() {
                   <Text style={styles.hourlyPrecip}>
                     {Math.round(item.pop * 100)}%
                   </Text>
+
+                  <Text style={styles.hourlyPrecip}>
+                    {((item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0)).toFixed(1)}mm
+                  </Text>
                 </View>
               ))}
             </ScrollView>
@@ -282,20 +296,12 @@ export default function ForecastScreen() {
                   <Text style={styles.dailyDate}>
                     {formatDayName(day.date)}
                   </Text>
-                  <Text style={styles.dailyDesc}>
-                    {day.weather.description}
+                  <Text style={styles.dailyDate}>
+                    {formatDate(day.date)}
                   </Text>
                 </View>
                 
                 <View style={styles.dailyCenter}>
-                  <WeatherIcon 
-                    weatherMain={day.weather.main}
-                    size={40}
-                    color={theme.primary}
-                  />
-                </View>
-                
-                <View style={styles.dailyRight}>
                   <View style={styles.tempRange}>
                     <Text style={styles.tempLow}>
                       {Math.round(day.minTemp)}°
@@ -316,9 +322,19 @@ export default function ForecastScreen() {
                       ]}
                     />
                   </View>
-                  
+                </View>
+
+                <View style={styles.dailyRight}>
+                  <WeatherIcon 
+                    weatherMain={day.weather.main}
+                    size={32}
+                    color={theme.primary}
+                  />
                   <Text style={styles.precipChance}>
-                    {day.precipChance.toFixed(1)}% rain
+                    {Math.round(day.precipChance)}% rain
+                  </Text>
+                  <Text style={styles.precipChance}>
+                    {day.rain.toFixed(1)} mm
                   </Text>
                 </View>
               </View>

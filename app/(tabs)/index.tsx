@@ -277,17 +277,24 @@ export default function HomeScreen() {
             <View style={styles.detailsGrid}>
 
               {/* Show rain amount if there's current rain data */}
-              {renderDetailCard(
+              {!hasSnowData && renderDetailCard(
                 <CloudRain size={24} color={theme.primary} />,
                 'Rain (1h)',
                 `${rainAmount!.toFixed(1)} mm`
               )}
 
               {/* Show snow amount if there's current rain data */}
-              {hasSnowData && renderDetailCard(
+              {!hasRainData && hasSnowData && renderDetailCard(
                 <CloudSnow size={24} color={theme.primary} />,
                 'Snow (1h)',
                 `${snowAmount!.toFixed(1)} mm`
+              )}
+
+              {/* Show rain & snow amount if there's current rain data */}
+              {hasRainData && hasSnowData && renderDetailCard(
+                <CloudSnow size={24} color={theme.primary} />,
+                'Rain/Snow (1h)',
+                `${((rainAmount || 0) + (snowAmount || 0) ).toFixed(1)} mm`
               )}
 
               {renderDetailCard(
