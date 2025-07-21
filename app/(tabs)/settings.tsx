@@ -22,6 +22,7 @@ import { useWeather } from '../../contexts/WeatherContext';
 import { notificationService } from '../../services/notificationService';
 import { alertTracker } from '../../services/alertTracker';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
+import { locationService } from '@/services/locationService';
 
 const REFRESH_RATE_OPTIONS = [
   { label: '15 minutes', value: 15 },
@@ -36,6 +37,7 @@ export default function SettingsScreen() {
     isDarkMode, 
     toggleDarkMode, 
     currentWeather,
+    refreshLocation,
     cityName,
     refreshWeather,
     refreshRate,
@@ -68,7 +70,16 @@ export default function SettingsScreen() {
       'This will get your current location and update the weather data.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Refresh', onPress: refreshWeather },
+        { text: 'Refresh', onPress: async () => {
+            try {
+              await refreshLocation();
+              await refreshWeather();
+              Alert.alert('Success', 'Location and weather data updated successfully');
+            } catch (error) {
+              Alert.alert('Error', 'Failed to refresh location');
+            }
+          }
+        },
       ]
     );
   };
@@ -118,8 +129,8 @@ export default function SettingsScreen() {
     const version = Application.nativeApplicationVersion || '1.0.0';
 
     Alert.alert(
-      'About Weather App',
-      `A beautiful weather app built with React Native and Expo. Weather data provided by OpenWeatherMap.\n\nVersion ${version}`,
+      'Weather Monitor NT',
+      `A beautiful weather app built with React Native and Expo. Weather data provided by OpenWeatherMap and ColorfulCloud.\n\nVersion ${version}`,
       [{ text: 'OK' }]
     );
   };

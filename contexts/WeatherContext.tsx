@@ -41,6 +41,7 @@ interface WeatherContextType {
   summaryGeneratedAt: number | null;
   location: LocationCoords | null;
   cityName: string;
+  refreshLocation: () => Promise<void>;
   loading: boolean;
   error: string | null;
   theme: WeatherTheme;
@@ -51,6 +52,7 @@ interface WeatherContextType {
   refreshWeather: () => Promise<void>;
   generateWeatherSummary: () => Promise<void>;
   toggleDarkMode: () => void;
+  setRefreshRate: (minutes: number) => Promise<void>;
 }
 
 const WeatherContext = createContext<WeatherContextType | undefined>(undefined);
@@ -70,13 +72,13 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<number | null>(null);
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [cityName, setCityName] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
   const [refreshRate, setRefreshRateState] = useState<number>(DEFAULT_REFRESH_RATE);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-  const [isInitialized, setIsInitialized] = useState<boolean>(false);
   const appState = React.useRef(AppState.currentState);
+  let isInitializing = false;
 
   const weatherCondition: WeatherCondition = currentWeather 
     ? getWeatherCondition(currentWeather.weather[0].main)
@@ -271,7 +273,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
     const now = Date.now();
     const timeSinceGenerated = now - summaryGeneratedTime;
-    const summaryRefreshInterval = 30 * 60 * 1000; // 30 minutes
+    const summaryRefreshInterval = 60 * 60 * 1000; // 60 minutes
 
     return timeSinceGenerated > summaryRefreshInterval;
   };
@@ -288,6 +290,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         currentWeather,
         forecast,
         alerts: weatherAlerts,
+        airQuality: weatherAirQuality,
         cityName,
       }, 'manual');
 
@@ -300,6 +303,10 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
   const fetchWeatherData = async (coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual') => {
     try {
+      if (loading) {
+        console.log('🔄 Already fetching weather data, skipping...');
+        return;
+      }
       console.log(`🔄 Fetching weather data (trigger: ${trigger})...`);
       setLoading(true);
       setError(null);
@@ -308,18 +315,12 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       const { currentWeather: weatherData, forecast: forecastData } = await weatherService.getWeatherData(coords, trigger);
 
       // Get city name
-      const city = await locationService.getCityName(coords);
-
-      // Update last updated time
-      const now = Date.now();
+      const city = cityName;
 
       // Save all data to storage and update UI
       await saveDataToStorage({
         weather: weatherData,
         forecast: forecastData,
-        location: coords,
-        cityName: city,
-        lastUpdated: now
       });
 
       let alerts = weatherAlerts;
@@ -373,6 +374,11 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         await saveDataToStorage({ alerts: [] });
       }
 
+      // Save last updated time
+      const now = Date.now();
+      await saveDataToStorage({ lastUpdated: now });
+      setLastUpdated(now);
+
       // Auto-generate weather summary if needed (only on manual refresh or app start)
       if ((trigger === 'manual' || trigger === 'app_start') && shouldRegenerateSummary(summaryGeneratedAt)) {
         try {
@@ -416,6 +422,26 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
+  const refreshLocation = async () => {
+    try {
+      console.log('🔄 Refreshing location...');
+      const coords = await getCurrentLocation();
+      if (coords) {
+        await saveDataToStorage({ location: coords });
+        setLocation(coords);
+        const city = await locationService.getCityName(coords);
+        await saveDataToStorage({ cityName: city });
+        setCityName(city);
+        console.log('✅ Location refreshed successfully');
+      } else {
+        console.log('⚠️ No location available to refresh');
+      }
+    } catch (error) {
+      console.error('❌ Failed to refresh location:', error);
+      setError('Failed to refresh location');
+    }
+  };
+
   const refreshWeather = async () => {
     try {
       let coords = location;
@@ -444,6 +470,16 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
+  const setRefreshRate = async (minutes: number) => {
+    try {
+      await saveRefreshRate(minutes);
+      console.log(`✅ Refresh rate updated to ${minutes} minutes`);
+    }
+    catch (error) {
+      console.error('❌ Failed to save refresh rate:', error);
+    }
+  }
+
   const initWeatherData = async () => {
     // Step 1: Load all data from storage first
     const storageData = await loadDataFromStorage();
@@ -451,17 +487,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     // Step 2: Get current location
     let coords = storageData.location;
     if (!coords) {
-      try {
-        coords = await getCurrentLocation();
-        if (coords) {
-          await saveDataToStorage({ location: coords });
-        }
-      } catch (locationError) {
-        console.error('❌ Failed to get location:', locationError);
-        setLoading(false);
-        setIsInitialized(true);
-        return;
-      }
+      await refreshLocation();
+      coords = await loadLocation();
     }
 
     // Step 3: Check if we need to refresh data
@@ -480,8 +507,10 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   // Function to handle AppState changes
   const handleAppStateChange = useCallback(async (nextAppState: AppStateStatus) => {
     if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App has come to the foreground! Reloading data...');
-      await initWeatherData();
+      console.log('App has come to the foreground!');
+      if (!isInitializing) {
+        await initWeatherData();
+      }
     }
     appState.current = nextAppState;
     console.log('AppState', appState.current);
@@ -491,23 +520,23 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   useEffect(() => {
     const initializeApp = async () => {
       try {
+        isInitializing = true;
         console.log('🚀 Initializing WeatherMonitor NT...');
         
         // Initialize notifications
-        notificationService.requestPermissions();
+        await notificationService.requestPermissions();
 
         // Register background weather fetch task
         await initBackgroundFetch();
 
         await initWeatherData();
 
-        setIsInitialized(true);
         console.log('🚀 WeatherMonitor NT initialization completed');
       } catch (error) {
         console.error('❌ App initialization failed:', error);
         setError('Failed to initialize app');
-        setLoading(false);
-        setIsInitialized(true);
+      } finally {
+        isInitializing = false;
       }
     };
 
@@ -533,6 +562,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     summaryGeneratedAt,
     location,
     cityName,
+    refreshLocation,
     loading,
     error,
     theme,
@@ -543,6 +573,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     refreshWeather,
     generateWeatherSummary,
     toggleDarkMode,
+    setRefreshRate
   };
 
   return (
