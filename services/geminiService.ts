@@ -99,8 +99,14 @@ class GeminiService {
       return itemDate.toDateString() === today.toDateString();
     });
 
+    // Get next 24 hours forecast
+    const next24Hours = forecast.hourly.slice(0, 24);
+
     // Get next 5 days forecast for bad weather detection
-    const next5Days = forecast.daily.slice(0, 5);
+    const next5Days = forecast.daily.filter(item => {
+      const itemDate = new Date(item.dt * 1000);
+      return itemDate.toDateString() !== today.toDateString();
+    }).slice(0, 5);
 
     // Build weather data summary
     const currentTemp = Math.round(currentWeather.main.temp);
@@ -130,8 +136,8 @@ class GeminiService {
       const condition = item.weather[0].main.toLowerCase();
       
       return (
-        rain > 5 || // Heavy rain
-        snow > 2 || // Snow
+        rain > 1 || // Rain
+        snow > 1 || // Snow
         windSpeed > 10 || // Strong wind
         condition.includes('thunderstorm') ||
         condition.includes('storm')
@@ -146,11 +152,21 @@ class GeminiService {
     // Air quality information
     const airQuality = input.airQuality?.aqi?.usa || 'N/A';
 
+    const localeOptions: Intl.DateTimeFormatOptions = {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      hour12: false
+    };
+
     const prompt = `
 You are a professional meteorologist providing a weather summary for ${cityName}. Generate a comprehensive weather analysis in JSON format.
 
 CURRENT TIME:
-${today.toLocaleString()}
+${today.toLocaleString('en-US', localeOptions)}
 
 CURRENT WEATHER:
 - Temperature: ${currentTemp}°C (feels like ${feelsLike}°C)
@@ -163,14 +179,16 @@ CURRENT WEATHER:
 TODAY'S FORECAST:
 - Temperature Range: ${todayMin}°C to ${todayMax}°C
 - Expected Precipitation: ${todayPrecip.toFixed(1)} mm
+
+FORECAST FOR NEXT 24 HOURS:
 - Raining hours:
-${todayForecasts.filter(f => f.rain && f.rain['1h'] > 0).map(f => {
+${next24Hours.filter(f => f.rain && f.rain['1h'] > 0).map(f => {
   const date = new Date(f.dt * 1000);
   const rainAmount = f.rain?.['1h'] || 0;
   return `  - ${date.getHours()}:00, ${rainAmount.toFixed(1)} mm`;
 }).join('\n') || '  None'}
 - Snowing hours:
-${todayForecasts.filter(f => f.snow && f.snow['1h'] > 0).map(f => {
+${next24Hours.filter(f => f.snow && f.snow['1h'] > 0).map(f => {
   const date = new Date(f.dt * 1000);
   const snowAmount = f.snow?.['1h'] || 0;
   return `  - ${date.getHours()}:00, ${snowAmount.toFixed(1)} mm`;
@@ -182,7 +200,7 @@ ${alertInfo}
 FUTURE BAD WEATHER (Following Days):
 ${badWeatherEvents.length > 0 
   ? badWeatherEvents.slice(0, 3).map(event => {
-      const date = new Date(event.dt * 1000).toLocaleDateString();
+      const date = new Date(event.dt * 1000).toLocaleDateString('en-US', localeOptions);
       const rain = event.rain || 0;
       const snow = event.snow || 0;
       return `${date}: ${event.weather[0].description}, Rain: ${rain}mm, Snow: ${snow}mm, Wind: ${event.wind.speed}m/s`;
@@ -211,6 +229,7 @@ Guidelines:
 - Recommendations should be actionable (e.g., "Carry an umbrella", "Wear a jacket")
 - Answer in Chinese, using simplified characters
 `;
+    console.log('Gemini prompt:', prompt); // Debugging output
     return prompt;
   }
 
