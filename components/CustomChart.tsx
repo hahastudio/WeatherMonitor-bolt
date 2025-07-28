@@ -295,10 +295,11 @@ export const CustomChart: React.FC<CustomChartProps> = ({
         {type === 'bar' ? (
           // Bar chart
           validData.map((point, index) => {
-            const barWidth = Math.max(8, (chartWidth - padding.left - padding.right) / validData.length * 0.6);
+            const barWidth = Math.max(4, (chartWidth - padding.left - padding.right) / validData.length * 0.6);
             const x = xScale(index) - barWidth / 2;
             const y = yScale(point.y);
             const height = Math.max(2, chartHeight - padding.bottom - y);
+            const barColor = index % 12 === 0 ? theme.secondary : color; // Alternate color every 12 bars
             
             return (
               <Rect
@@ -307,7 +308,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
                 y={y}
                 width={barWidth}
                 height={height}
-                fill={`url(#bar-gradient-${color.replace('#', '')})`}
+                fill={`url(#bar-gradient-${barColor.replace('#', '')})`}
                 stroke={color}
                 strokeWidth={1}
                 rx={3}
@@ -336,17 +337,21 @@ export const CustomChart: React.FC<CustomChartProps> = ({
             />
             
             {/* Data points for line charts */}
-            {type === 'line' && validData.map((point, index) => (
-              <Circle
-                key={`point-${index}`}
-                cx={xScale(index)}
-                cy={yScale(point.y)}
-                r={3}
-                fill={color}
-                stroke="rgba(255,255,255,0.9)"
-                strokeWidth={2}
-              />
-            ))}
+            {type === 'line' && validData.map((point, index) => {
+              if (index % 12 === 0)
+                return (
+                  <Circle
+                    key={`point-${index}`}
+                    cx={xScale(index)}
+                    cy={yScale(point.y)}
+                    r={3}
+                    fill={color}
+                    stroke="rgba(255,255,255,0.9)"
+                    strokeWidth={2}
+                  />
+                );
+              return <></>;
+            })}
           </>
         )}
         

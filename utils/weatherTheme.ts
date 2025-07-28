@@ -238,7 +238,13 @@ export const formatTemperature = (temp: number): string => {
 };
 
 export const formatTime = (timestamp: number): string => {
-  return new Date(timestamp * 1000).toLocaleTimeString('en-US', {
+  var time = new Date(timestamp * 1000);
+  if ((time.getHours() === 0) && (time.getMinutes() === 0))
+    return time.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  return time.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
