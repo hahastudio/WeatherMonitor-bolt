@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain, CloudSnow, Clock, Gauge, AirVent } from 'lucide-react-native';
+import { MapPin, Eye, Droplets, Wind, Sunrise, Sunset, RefreshCw, CloudRain, CloudSnow, Clock, Gauge, AirVent, MousePointer2 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
@@ -298,7 +298,9 @@ export default function HomeScreen() {
               )}
 
               {renderDetailCard(
-                <Wind size={24} color={theme.primary} />,
+                <View style={{ transform: [{ rotate: `${currentWeather.wind.deg + 225}deg` }] }}>
+                  <MousePointer2 size={24} color={theme.primary} />
+                </View>,
                 'Wind',
                 `${(currentWeather.wind.speed * 3.6).toFixed(1)} km/h ${windDirection}`
               )}

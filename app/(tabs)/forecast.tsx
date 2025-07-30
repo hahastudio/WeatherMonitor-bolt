@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet, RefreshControl, Platform, FlexStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MousePointer2 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
@@ -92,6 +93,20 @@ export default function ForecastScreen() {
       color: theme.primary,
       fontSize: 11,
       fontWeight: '500',
+    },
+    windContainer: {
+      alignItems: 'center',
+      marginTop: 4,
+      marginBottom: 4,
+    },
+    windIcon: {
+      marginBottom: 2,
+    },
+    windSpeed: {
+      color: theme.textSecondary,
+      fontSize: 10,
+      fontWeight: '500',
+      textAlign: 'center',
     },
     // 5-day forecast styles
     dailyContainer: {
@@ -273,7 +288,7 @@ export default function ForecastScreen() {
                   <Text style={styles.hourlyTemp}>
                     {Math.round(item.main.temp)}°
                   </Text>
-                  
+
                   <Text style={styles.hourlyPrecip}>
                     {Math.round(item.pop * 100)}%
                   </Text>
@@ -281,6 +296,15 @@ export default function ForecastScreen() {
                   <Text style={styles.hourlyPrecip}>
                     {((item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0)).toFixed(1)}mm
                   </Text>
+
+                  <View style={styles.windContainer}>
+                    <View style={[styles.windIcon, { transform: [{ rotate: `${item.wind.deg + 225}deg` }] }]}>
+                      <MousePointer2 size={16} color={theme.textSecondary} />
+                    </View>
+                    <Text style={styles.windSpeed}>
+                      {(item.wind.speed * 3.6).toFixed(1)} km/h
+                    </Text>
+                  </View>
                 </View>
               ))}
             </ScrollView>
