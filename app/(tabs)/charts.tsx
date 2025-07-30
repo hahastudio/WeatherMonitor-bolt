@@ -189,10 +189,11 @@ export default function ChartsScreen() {
   // Prepare data for charts with proper number formatting
   const temperatureData = next48Hours.map((item, index) => {
     const temp = item.main?.temp;
+    const hour = new Date(item.dt * 1000).getHours();
     return {
       x: index,
       y: typeof temp === 'number' ? parseFloat(temp.toFixed(1)) : 0,
-      label: index % 4 === 0 ? formatTime(item.dt) : '',
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
     };
   });
 
@@ -200,38 +201,42 @@ export default function ChartsScreen() {
     const rain = item.rain?.['1h'] || 0;
     const snow = item.snow?.['1h'] || 0;
     const precip = rain + snow;
+    const hour = new Date(item.dt * 1000).getHours();
     return {
       x: index,
       y: typeof precip === 'number' ? parseFloat(precip.toFixed(2)) : 0,
-      label: index % 4 === 0 ? formatTime(item.dt) : '',
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
     };
   });
 
   const windData = next48Hours.map((item, index) => {
     const windSpeed = item.wind?.speed || 0;
     const windKmh = windSpeed * 3.6; // Convert m/s to km/h
+    const hour = new Date(item.dt * 1000).getHours();
     return {
       x: index,
       y: typeof windKmh === 'number' ? parseFloat(windKmh.toFixed(1)) : 0,
-      label: index % 4 === 0 ? formatTime(item.dt) : '',
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
     };
   });
 
   const pressureData = next48Hours.map((item, index) => {
     const pressure = item.main?.pressure;
+    const hour = new Date(item.dt * 1000).getHours();
     return {
       x: index,
       y: typeof pressure === 'number' ? parseFloat(pressure.toFixed(0)) : 1013,
-      label: index % 4 === 0 ? formatTime(item.dt) : '',
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
     };
   });
 
   const humidityData = next48Hours.map((item, index) => {
     const humidity = item.main?.humidity;
+    const hour = new Date(item.dt * 1000).getHours();
     return {
       x: index,
       y: typeof humidity === 'number' ? parseFloat(humidity.toFixed(0)) : 0,
-      label: index % 4 === 0 ? formatTime(item.dt) : '',
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
     };
   });
 

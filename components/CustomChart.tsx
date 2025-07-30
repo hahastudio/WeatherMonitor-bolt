@@ -247,9 +247,8 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   // Generate X-axis labels
   const generateXLabels = () => {
     const labels = [];
-    const step = Math.max(1, Math.floor(validData.length / 4));
     
-    for (let i = 0; i < validData.length; i += step) {
+    for (let i = 0; i < validData.length; i += 1) {
       const dataPoint = validData[i];
       if (dataPoint.label) {
         labels.push(
@@ -299,7 +298,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
             const x = xScale(index) - barWidth / 2;
             const y = yScale(point.y);
             const height = Math.max(2, chartHeight - padding.bottom - y);
-            const barColor = index % 12 === 0 ? theme.secondary : color; // Alternate color every 12 bars
+            const barColor = point.label ? theme.secondary : color; // Alternate color every 12 bars
             
             return (
               <Rect
@@ -338,7 +337,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
             
             {/* Data points for line charts */}
             {type === 'line' && validData.map((point, index) => {
-              if (index % 12 === 0)
+              if (point.label)
                 return (
                   <Circle
                     key={`point-${index}`}
