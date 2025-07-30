@@ -2,14 +2,17 @@
 
 A beautiful, production-ready weather monitoring app built with React Native, Expo, and TypeScript. Features real-time weather data, forecasts, interactive charts, weather alerts, AI-powered weather summaries, and interactive weather maps with a responsive design that adapts to weather conditions.
 
-It's mainly built with [Bolt](https://bolt.new/)
+It's mainly built with [Bolt](https://bolt.new/).
+
+![Screenshot 1](/doc/app_screenshot_1.png)
+![Screenshot 2](/doc/app_screenshot_2.png)
 
 ## ✨ Features
 
 - **Real-time Weather Data**: Current conditions, temperature, humidity, wind speed, and more
 - **AI Weather Summaries**: Intelligent weather analysis powered by Google Gemini AI
 - **Interactive Weather Maps**: Powered by Windy with multiple weather layers
-- **5-Day Forecast**: Detailed weather predictions with hourly breakdowns
+- **7-Day Forecast**: Detailed weather predictions with hourly breakdowns
 - **Interactive Charts**: Visual representations of temperature, precipitation, wind, pressure, and humidity trends
 - **Weather Alerts**: Real-time weather warnings and advisories with severity levels
 - **Adaptive Themes**: Dynamic color schemes that change based on weather conditions and time of day
@@ -297,48 +300,6 @@ The Windy map integration includes:
 - **Layer switching**: Real-time weather layer changes
 - **Error handling**: Fallback UI when map fails to load
 - **Platform optimization**: Web and mobile-specific implementations
-
-### Testing
-
-```bash
-# Run linting
-npm run lint
-
-# Type checking
-npx tsc --noEmit
-```
-
-### Platform-Specific Code
-
-Use Platform.select() for platform-specific implementations:
-
-```typescript
-import { Platform } from 'react-native';
-
-const styles = StyleSheet.create({
-  container: {
-    ...Platform.select({
-      ios: { shadowColor: '#000' },
-      android: { elevation: 4 },
-      web: { boxShadow: '0 2px 4px rgba(0,0,0,0.1)' },
-    }),
-  },
-});
-```
-
-## 📱 Supported Platforms
-
-- **iOS**: iPhone and iPad (iOS 13+)
-- **Android**: Android 6.0+ (API level 23+)
-- **Web**: Modern browsers (Chrome, Firefox, Safari, Edge)
-
-## 🔒 Privacy & Security
-
-- **Location Data**: Only used for weather data, not stored or transmitted
-- **API Keys**: Securely managed through environment variables
-- **No Personal Data**: App doesn't collect or store personal information
-- **Local Storage**: Only app preferences and API logs stored locally
-- **AI Processing**: Weather data sent to Gemini for analysis, no personal information included
 
 ## 📄 License
 
