@@ -229,7 +229,6 @@ Guidelines:
 - Recommendations should be actionable (e.g., "Carry an umbrella", "Wear a jacket")
 - Answer in Chinese, using simplified characters
 `;
-    console.log('Gemini prompt:', prompt); // Debugging output
     return prompt;
   }
 

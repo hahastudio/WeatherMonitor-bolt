@@ -268,7 +268,6 @@ export const WeatherSummary: React.FC = () => {
       flexDirection: 'row',
       alignItems: 'center',
       alignSelf: 'flex-start',
-      backgroundColor: theme.background + '50',
       borderRadius: 12,
     },
     moodText: {
