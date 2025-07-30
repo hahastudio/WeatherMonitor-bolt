@@ -1,6 +1,8 @@
+import { fetch } from 'expo/fetch';
 import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { LocationCoords } from '../types/weather';
+import { apiLogger } from './apiLogger';
 
 class LocationService {
   async getCurrentLocation(): Promise<LocationCoords> {
@@ -61,8 +63,78 @@ class LocationService {
     });
   }
 
+  private async getOpenWeatherMapLocation(coords: LocationCoords): Promise<string> {
+    const endpoint = 'geocoding (reverse)';
+    const startTime = Date.now();
+    
+    try {
+      console.log('Fetching OpenWeatherMap location for coords:', coords);
+      const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
+      const response = await fetch(
+        `https://api.openweathermap.org/geo/1.0/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1&appid=${apiKey}`
+      );
+      
+      const responseTime = Date.now() - startTime;
+      if (!response.ok) {
+        await apiLogger.logRequest(
+          endpoint,
+          'GET',
+          'error',
+          'auto',
+          responseTime,
+          `${response.status} ${response.statusText}`,
+          'openweather'
+        );
+        throw new Error('OpenWeatherMap geocoding failed');
+      }
+
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const location = data[0];
+        await apiLogger.logRequest(
+          endpoint,
+          'GET',
+          'success',
+          'auto',
+          responseTime,
+          undefined,
+          'openweather'
+        );
+        if (location.local_names?.en) {
+          return location.local_names.en;
+        }
+        return location.name || 'Unknown Location';
+      }
+      
+      await apiLogger.logRequest(
+        endpoint,
+        'GET',
+        'error',
+        'auto',
+        responseTime,
+        'No location data returned',
+        'openweather'
+      );
+      throw new Error('No location data');
+    } catch (error) {
+      const responseTime = Date.now() - startTime;
+      console.warn('OpenWeatherMap geocoding error:', error);
+      await apiLogger.logRequest(
+        endpoint,
+        'GET',
+        'error',
+        'auto',
+        responseTime,
+        error instanceof Error ? error.message : 'Unknown error',
+        'openweather'
+      );
+      return 'Unknown Location';
+    }
+  }
+
   async getCityName(coords: LocationCoords): Promise<string> {
     try {
+      // First try Expo's reverse geocoding
       const reverseGeocode = await Location.reverseGeocodeAsync({
         latitude: coords.latitude,
         longitude: coords.longitude,
@@ -70,12 +142,20 @@ class LocationService {
 
       if (reverseGeocode.length > 0) {
         const address = reverseGeocode[0];
-        return address.city || address.subregion || address.region || 'Unknown Location';
+        console.log('Expo geocoding result:', address);
+        const cityName = address.city || address.subregion || address.region;
+        if (cityName) {
+          return cityName;
+        }
       }
       
-      return 'Unknown Location';
+      // If Expo geocoding doesn't return useful results, try OpenWeatherMap
+      console.log('Falling back to OpenWeatherMap geocoding');
+      return await this.getOpenWeatherMapLocation(coords);
     } catch (error) {
-      return 'Unknown Location';
+      console.warn('Geocoding error:', error);
+      // Try OpenWeatherMap as fallback even if Expo geocoding throws error
+      return await this.getOpenWeatherMapLocation(coords);
     }
   }
 }
