@@ -380,7 +380,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       setLastUpdated(now);
 
       // Auto-generate weather summary if needed (only on manual refresh or app start)
-      if ((trigger === 'manual' || trigger === 'app_start') && shouldRegenerateSummary(summaryGeneratedAt)) {
+      if ((trigger === 'manual') && shouldRegenerateSummary(summaryGeneratedAt)) {
         try {
           console.log('🤖 Auto-generating weather summary...');
           const summary = await geminiService.generateWeatherSummary({
