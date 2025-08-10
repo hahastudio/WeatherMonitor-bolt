@@ -13,10 +13,17 @@ import {
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
-import { CustomChart } from '../../components/CustomChart';
+import { CustomChart, DataPoint } from '../../components/CustomChart';
 import { formatTime, formatDate } from '../../utils/weatherTheme';
 
 const { width: screenWidth } = Dimensions.get('window');
+
+interface chartStats {
+  min?: number;
+  max?: number;
+  avg?: number;
+  total?: number;
+}
 
 export default function ChartsScreen() {
   const { 
@@ -241,9 +248,9 @@ export default function ChartsScreen() {
   });
 
   // Calculate statistics with proper number handling
-  const calculateStats = (data: any[]) => {
+  const calculateStats = (data: DataPoint[]): chartStats | undefined => {
     const values = data.map(d => d.y).filter(v => typeof v === 'number' && !isNaN(v));
-    if (values.length === 0) return null;
+    if (values.length === 0) return undefined;
     
     return {
       min: parseFloat(Math.min(...values).toFixed(1)),
@@ -264,11 +271,11 @@ export default function ChartsScreen() {
   const renderChart = (
     title: string,
     icon: React.ReactNode,
-    data: any[],
+    data: DataPoint[],
     color: string,
     unit: string,
     chartType: 'line' | 'area' | 'bar' = 'line',
-    stats?: any
+    stats?: chartStats
   ) => {
     return (
       <View key={title} style={styles.chartCard}>

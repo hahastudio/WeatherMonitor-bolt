@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { WebView } from 'react-native-webview';
+import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import { 
   Map as MapIcon, 
   Layers, 
@@ -163,7 +163,7 @@ export default function MapScreen() {
     })();
   `;
 
-  const handleWebViewMessage = (event: any) => {
+  const handleWebViewMessage = (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
       

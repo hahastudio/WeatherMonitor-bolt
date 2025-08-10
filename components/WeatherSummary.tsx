@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, GestureResponderEvent } from 'react-native';
 import { Sparkles, TriangleAlert as AlertTriangle, ThumbsDown, ThumbsUp, Cloud, RefreshCw, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 
@@ -40,7 +40,7 @@ export const WeatherSummary: React.FC = () => {
     }
   };
 
-  const handleRefreshPress = (event: any) => {
+  const handleRefreshPress = (event: GestureResponderEvent) => {
     // Prevent the card press event from firing
     event.stopPropagation();
     handleGenerateSummary();

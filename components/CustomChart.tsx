@@ -8,7 +8,7 @@ const chartWidth = screenWidth - 60; // Increased chart width
 const chartHeight = 180;
 const padding = { top: 20, right: 20, bottom: 40, left: 65 }; // Increased left padding for Y-axis labels
 
-interface DataPoint {
+export interface DataPoint {
   x: number;
   y: number;
   label?: string;
