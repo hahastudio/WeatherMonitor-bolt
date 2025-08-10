@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, CaiyunAirQuality } from '../types/weather';
+import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, CaiyunAirQuality, HourlyForecast, DailyForecast } from '../types/weather';
 import { apiLogger } from './apiLogger';
 
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
@@ -89,6 +89,41 @@ class GeminiService {
     }
   }
 
+  private buildHourlyForecastSummary(forecast: HourlyForecast): string {
+    const date = new Date(forecast.dt * 1000);
+    const hours = date.getHours();
+    var result = '';
+    if (hours === 0)
+      result += `- ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 0:00\n`;
+    else
+      result += `- ${hours}:00\n`;
+    result += `  - Temperature: ${forecast.main.temp}°C, feels like: ${forecast.main.feels_like}°C,\n`;
+    result += `  - Condition: ${forecast.weather[0].description}\n`;
+    result += `  - Humidity: ${forecast.main.humidity}%\n`;
+    result += `  - Pressure: ${forecast.main.pressure} hPa\n`;
+    result += `  - Wind: ${forecast.wind.speed} m/s, direction: ${forecast.wind.deg}°\n`;
+    result += `  - Precipitation Probability: ${(forecast.pop * 100).toFixed(0)}%\n`;
+    result += `  - Rain: ${forecast.rain?.['1h'] ? forecast.rain['1h'].toFixed(2) : '0'} mm\n`;
+    result += `  - Snow: ${forecast.snow?.['1h'] ? forecast.snow['1h'].toFixed(2) : '0'} mm\n`;
+    return result;
+  }
+
+  private buildDailyForecastSummary(forecast: DailyForecast): string {
+    const date = new Date(forecast.dt * 1000);
+    const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
+    const monthDay = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    let result = `- ${dayOfWeek}, ${monthDay}\n`;
+    result += `  - Temperature: Low ${forecast.main.temp_min}°C High ${forecast.main.temp_max}°C\n`;
+    result += `  - Condition: ${forecast.weather[0].description}\n`;
+    result += `  - Humidity: ${forecast.main.humidity}%\n`;
+    result += `  - Pressure: ${forecast.main.pressure} hPa\n`;
+    result += `  - Wind: ${forecast.wind.speed} m/s, direction: ${forecast.wind.deg}°\n`;
+    result += `  - Precipitation Probability: ${(forecast.pop * 100).toFixed(0)}%\n`;
+    result += `  - Rain: ${forecast.rain ? forecast.rain.toFixed(2) : '0'} mm\n`;
+    result += `  - Snow: ${forecast.snow ? forecast.snow.toFixed(2) : '0'} mm\n`;
+    return result;
+  }
+
   private buildPrompt(input: WeatherSummaryInput): string {
     const { currentWeather, forecast, alerts, cityName } = input;
     
@@ -129,6 +164,7 @@ class GeminiService {
     }, 0);
 
     // Future bad weather detection
+    /*
     const badWeatherEvents = next5Days.filter(item => {
       const rain = item.rain || 0;
       const snow = item.snow || 0;
@@ -143,6 +179,7 @@ class GeminiService {
         condition.includes('storm')
       );
     });
+    */
 
     // Alert information
     const alertInfo = alerts.length > 0 
@@ -181,32 +218,21 @@ TODAY'S FORECAST:
 - Expected Precipitation: ${todayPrecip.toFixed(1)} mm
 
 FORECAST FOR NEXT 24 HOURS:
-- Raining hours:
-${next24Hours.filter(f => f.rain && f.rain['1h'] > 0).map(f => {
-  const date = new Date(f.dt * 1000);
-  const rainAmount = f.rain?.['1h'] || 0;
-  return `  - ${date.getHours()}:00, ${rainAmount.toFixed(1)} mm`;
-}).join('\n') || '  None'}
-- Snowing hours:
-${next24Hours.filter(f => f.snow && f.snow['1h'] > 0).map(f => {
-  const date = new Date(f.dt * 1000);
-  const snowAmount = f.snow?.['1h'] || 0;
-  return `  - ${date.getHours()}:00, ${snowAmount.toFixed(1)} mm`;
-}).join('\n') || '  None'}
+${next24Hours.map(f => this.buildHourlyForecastSummary(f)).join('') || '  None'}
+
+FUTURE 5-DAY FORECAST:
+${next5Days.map(f => this.buildDailyForecastSummary(f)).join('') || '  None'}
 
 WEATHER ALERTS:
 ${alertInfo}
 
-FUTURE BAD WEATHER (Following Days):
-${badWeatherEvents.length > 0 
-  ? badWeatherEvents.slice(0, 3).map(event => {
-      const date = new Date(event.dt * 1000).toLocaleDateString('en-US', localeOptions);
-      const rain = event.rain || 0;
-      const snow = event.snow || 0;
-      return `${date}: ${event.weather[0].description}, Rain: ${rain}mm, Snow: ${snow}mm, Wind: ${event.wind.speed}m/s`;
-    }).join('\n')
-  : 'No significant bad weather expected in the following days'
-}
+FUTURE BAD WEATHER STANDARDS:
+- Rain: > 5mm in a day
+- Snow: > 3mm in a day
+- Wind: > 10 m/s
+- Severe conditions: thunderstorms, storms
+- Temperature extremes: heatwaves, cold waves
+- Temperature changes: > 5°C compared to previous day
 
 Please provide a JSON response with the following structure:
 {

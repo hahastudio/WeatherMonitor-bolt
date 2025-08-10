@@ -273,7 +273,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
     const now = Date.now();
     const timeSinceGenerated = now - summaryGeneratedTime;
-    const summaryRefreshInterval = 60 * 60 * 1000; // 60 minutes
+    const summaryRefreshInterval = 4 * 60 * 60 * 1000; // 4 hours
 
     return timeSinceGenerated > summaryRefreshInterval;
   };
@@ -324,6 +324,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       });
 
       let alerts = weatherAlerts;
+      var hasNewAlerts = false;
       
       try {
         console.log('🌩️ Fetching weather alerts from Caiyun API...');
@@ -344,6 +345,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
           // Show notifications only for new alerts
           const newAlerts = alerts.filter(alert => newAlertIds.includes(alert.alertId));
+          if (newAlerts.length > 0) {
+            hasNewAlerts = true;
+          }
           
           for (const alert of newAlerts) {
             console.log('📢 Showing notification for new alert:', alert.title);
@@ -380,7 +384,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       setLastUpdated(now);
 
       // Auto-generate weather summary if needed (only on manual refresh or app start)
-      if ((trigger === 'manual') && shouldRegenerateSummary(summaryGeneratedAt)) {
+      if ((trigger === 'manual') ||
+          ((trigger === 'app_start' || trigger === 'auto') && (shouldRegenerateSummary(summaryGeneratedAt) || hasNewAlerts))) {
         try {
           console.log('🤖 Auto-generating weather summary...');
           const summary = await geminiService.generateWeatherSummary({
