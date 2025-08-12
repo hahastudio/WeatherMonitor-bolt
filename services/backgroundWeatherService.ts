@@ -4,17 +4,21 @@ import { caiyunService } from './caiyunService';
 import { locationService } from './locationService';
 import { notificationService } from './notificationService';
 import { alertTracker } from './alertTracker';
-import { LocationCoords } from '../types/weather';
+import { CaiyunWeatherAlert, LocationCoords } from '../types/weather';
 import { 
   saveCurrentWeather, 
   saveForecast, 
   saveWeatherAlerts,
   saveWeatherAirQuality,
+  saveWeatherSummary,
   saveLastUpdated, 
   loadRefreshRate, 
   loadLastUpdated,
-  loadLocation 
+  loadLocation,
+  loadCityName,
+  loadWeatherSummary,
 } from '../utils/weatherStorage';
+import { geminiService } from './geminiService';
 
 export async function weatherTask(taskId: string) {
   try {
@@ -27,7 +31,7 @@ export async function weatherTask(taskId: string) {
       refreshRate = storedRefreshRate;
     }
 
-    // Get last updated time
+    // Get last updated time and check weather data freshness
     let lastUpdated = await loadLastUpdated();
     if (!lastUpdated) {
       lastUpdated = 0;
@@ -65,10 +69,14 @@ export async function weatherTask(taskId: string) {
     console.log('✅ BackgroundFetch: Weather data updated successfully');
 
     // Fetch weather alerts
+    var alerts : CaiyunWeatherAlert[] = [];
+    var hasNewAlerts = false;
+    var airQuality = null;
+
     try {
       const caiyunResponse = await caiyunService.getWeatherData(coords, 'auto');
       if (caiyunResponse.result?.alert?.content && caiyunResponse.result.alert.content.length > 0) {
-        const alerts = caiyunResponse.result.alert.content;
+        alerts = caiyunResponse.result.alert.content;
         await saveWeatherAlerts(alerts);
         
         // Filter out alerts that have already been notified
@@ -76,6 +84,10 @@ export async function weatherTask(taskId: string) {
         const newAlertIds = await alertTracker.filterNewAlerts(alertIds);
         const newAlerts = alerts.filter(alert => newAlertIds.includes(alert.alertId));
         
+        if (newAlerts.length > 0) {
+          hasNewAlerts = true;
+        }
+
         // Show notifications only for new alerts
         for (const alert of newAlerts) {
           await notificationService.showWeatherAlert(alert);
@@ -89,13 +101,40 @@ export async function weatherTask(taskId: string) {
       }
 
       if (caiyunResponse.result?.realtime?.air_quality) {
-        await saveWeatherAirQuality(caiyunResponse.result.realtime.air_quality);
+        airQuality = caiyunResponse.result.realtime.air_quality;
+        await saveWeatherAirQuality(airQuality);
       }
       
       console.log('✅ BackgroundFetch: Weather alerts fetched successfully');
     } catch (e) {
       // Ignore alert errors in background
       console.log('⚠️ BackgroundFetch: Alert fetch failed, continuing without alerts');
+    }
+
+    // Check if we need to update the weather summary
+    try {
+      const storedSummary = await loadWeatherSummary();
+      const summaryAge = now - (storedSummary?.generatedAt || 0);
+      const summaryRefreshInterval = 4 * 60 * 60 * 1000; // 4 hours
+      
+      if ((summaryAge > summaryRefreshInterval) || hasNewAlerts) {
+        console.log('🤖 BackgroundFetch: Generating new weather summary...');
+        const cityName = await loadCityName();
+        const summary = await geminiService.generateWeatherSummary({
+          currentWeather: weatherData,
+          forecast: forecastData,
+          alerts: alerts,
+          airQuality: airQuality,
+          cityName: cityName || 'Unknown Location',
+        }, 'auto');
+        
+        await saveWeatherSummary(summary);
+        console.log('✅ BackgroundFetch: Weather summary updated successfully');
+      } else {
+        console.log('⏭️ BackgroundFetch: Summary is still fresh, skipping update');
+      }
+    } catch (e) {
+      console.log('⚠️ BackgroundFetch: Summary generation failed:', e);
     }
 
     console.log('✅ BackgroundFetch event completed');
