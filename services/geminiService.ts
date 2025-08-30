@@ -20,12 +20,13 @@ export interface WeatherSummary {
   mood: 'positive' | 'neutral' | 'warning' | 'severe';
 }
 
-class GeminiService {
-  private genAI: GoogleGenAI | null = null;
+export class GeminiService {
+  private genAI: GoogleGenAI | undefined;
 
-  constructor() {
+  constructor(apiKey?: string) {
+    const API_KEY = apiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY;
     if (API_KEY && API_KEY !== 'your_gemini_api_key_here') {
-      this.genAI = new GoogleGenAI({apiKey: API_KEY});
+      this.genAI = new GoogleGenAI({ apiKey: API_KEY });
     }
   }
 

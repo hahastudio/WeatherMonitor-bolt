@@ -2,17 +2,24 @@ import { fetch } from 'expo/fetch';
 import { CaiyunWeatherResponse, LocationCoords } from '../types/weather';
 import { apiLogger } from './apiLogger';
 
-const API_KEY = process.env.EXPO_PUBLIC_CAIYUN_API_KEY;
 const BASE_URL = 'https://api.caiyunapp.com/v2.5';
 
-class CaiyunService {
+export class CaiyunService {
+  private apiKey: string;
+
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey || process.env.EXPO_PUBLIC_CAIYUN_API_KEY || '';
+    if (!this.apiKey || this.apiKey === 'your_caiyun_api_key_here') {
+      console.warn('Caiyun API key not configured. Please add your API key to .env file.');
+    }
+  }
   
   async getWeatherData(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<CaiyunWeatherResponse> {
-    if (!API_KEY || API_KEY === 'your_caiyun_api_key_here') {
+    if (!this.apiKey || this.apiKey === 'your_caiyun_api_key_here') {
       throw new Error('Caiyun API key not configured. Please add your API key to .env file.');
     }
 
-    const url = `${BASE_URL}/${API_KEY}/${coords.longitude},${coords.latitude}/weather?alert=true&lang=zh_CN&unit=metric`;
+    const url = `${BASE_URL}/${this.apiKey}/${coords.longitude},${coords.latitude}/weather?alert=true&lang=zh_CN&unit=metric`;
     const startTime = Date.now();
     
     try {
