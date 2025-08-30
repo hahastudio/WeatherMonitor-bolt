@@ -2,10 +2,22 @@ import { fetch } from 'expo/fetch';
 import { CurrentWeather, ForecastResponse, LocationCoords, OneCallResponse, HourlyForecast, DailyForecast } from '../types/weather';
 import { apiLogger } from './apiLogger';
 
-const API_KEY = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/3.0/onecall';
 
 class WeatherService {
+  private apiKey: string;
+
+  constructor(apiKey?: string) {
+    this.apiKey = apiKey || process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || '';
+  }
+
+  setApiKey(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  getApiKey(): string {
+    return this.apiKey;
+  }
   private transformOneCallToCurrentWeather(data: OneCallResponse): CurrentWeather {
     return {
       coord: {
@@ -126,11 +138,11 @@ class WeatherService {
     currentWeather: CurrentWeather;
     forecast: ForecastResponse;
   }> {
-    if (!API_KEY || API_KEY === 'your_openweathermap_api_key_here') {
+    if (!this.apiKey || this.apiKey === 'your_openweathermap_api_key_here') {
       throw new Error('OpenWeatherMap API key not configured. Please add your API key to .env file.');
     }
 
-    const url = `${BASE_URL}?lat=${coords.latitude}&lon=${coords.longitude}&appid=${API_KEY}&units=metric&exclude=minutely,alerts`;
+    const url = `${BASE_URL}?lat=${coords.latitude}&lon=${coords.longitude}&appid=${this.apiKey}&units=metric&exclude=minutely,alerts`;
     const startTime = Date.now();
     
     try {
@@ -191,4 +203,4 @@ class WeatherService {
   }
 }
 
-export const weatherService = new WeatherService();
+export const weatherService = new WeatherService(process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY);
