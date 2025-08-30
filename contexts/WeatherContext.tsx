@@ -252,6 +252,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
   const shouldAutoRefresh = (lastUpdateTime: number | null, refreshRateMinutes: number): boolean => {
     if (!lastUpdateTime) {
+      console.log('🔄 No previous update time found, should refresh');
       return true; // No previous update, should refresh
     }
 
@@ -268,6 +269,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
   const shouldRegenerateSummary = (summaryGeneratedTime: number | null): boolean => {
     if (!summaryGeneratedTime) {
+      console.log('🔄 No previous summary generated time found, should regenerate');
       return true; // No previous summary, should generate
     }
 
@@ -313,9 +315,6 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
       // Use the new One Call API to get both current weather and forecast in a single call
       const { currentWeather: weatherData, forecast: forecastData } = await weatherService.getWeatherData(coords, trigger);
-
-      // Get city name
-      const city = cityName;
 
       // Save all data to storage and update UI
       await saveDataToStorage({
@@ -383,23 +382,22 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       await saveDataToStorage({ lastUpdated: now });
       setLastUpdated(now);
 
-      // Auto-generate weather summary if needed (only on manual refresh or app start)
-      if ((trigger === 'manual') ||
-          ((trigger === 'app_start' || trigger === 'auto') && (shouldRegenerateSummary(summaryGeneratedAt) || hasNewAlerts))) {
+      // Auto-generate weather summary if needed (only on manual refresh)
+      if (trigger === 'manual') {
         try {
-          console.log('🤖 Auto-generating weather summary...');
+          console.log('🤖 Generating weather summary...');
           const summary = await geminiService.generateWeatherSummary({
             currentWeather: weatherData,
             forecast: forecastData,
             alerts: alerts,
             airQuality: weatherAirQuality,
-            cityName: city,
+            cityName: cityName,
           }, trigger);
 
           await saveDataToStorage({ summary });
-          console.log('✅ Weather summary auto-generated and saved');
+          console.log('✅ Weather summary generated and saved');
         } catch (summaryError) {
-          console.log('⚠️ Failed to auto-generate weather summary:', summaryError);
+          console.log('⚠️ Failed to generate weather summary:', summaryError);
         }
       }
 

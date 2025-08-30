@@ -57,7 +57,8 @@ class GeminiService {
               mood: { type: 'string', enum: ['positive', 'neutral', 'warning', 'severe'] },
             },
             required: ['todayOverview', 'recommendations', 'mood'],
-          }
+          },
+          temperature: 0.55
         }
       });
       const responseTime = Date.now() - startTime;
