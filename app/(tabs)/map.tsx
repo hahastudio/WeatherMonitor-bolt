@@ -128,18 +128,22 @@ export default function MapScreen() {
       try {
         // Set a timeout to detect if the page loads
         setTimeout(function() {
-          if (document.readyState === 'complete') {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'loaded',
-              message: 'Map loaded'
-            }));
-          } else {
+          if (document.readyState !== 'complete') {
             window.ReactNativeWebView.postMessage(JSON.stringify({
               type: 'timeout',
               message: 'Loading timeout'
             }));
           }
-        }, 8000);
+        }, 60000);
+
+        document.addEventListener("readystatechange", (event) => {
+          if (event.target.readyState === "complete") {
+            window.ReactNativeWebView.postMessage(JSON.stringify({
+              type: 'loaded',
+              message: 'Map loaded'
+            }));
+          }
+        });
         
         // Disable context menu for better mobile experience
         document.addEventListener('contextmenu', function(e) {
@@ -256,6 +260,7 @@ export default function MapScreen() {
       backgroundColor: theme.surface + '60',
       borderRadius: 20,
       paddingHorizontal: 12,
+      marginHorizontal: 4,
       paddingVertical: 8,
       borderWidth: 1,
       borderColor: 'transparent',
@@ -423,7 +428,6 @@ export default function MapScreen() {
             <ScrollView 
               horizontal 
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingRight: 20 }}
             >
               {layerOptions.map((option) => (
                 <TouchableOpacity
