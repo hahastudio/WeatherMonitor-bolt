@@ -197,6 +197,13 @@ describe('WeatherService', () => {
             visibility: mockOneCallResponse.hourly[0].visibility,
             pop: mockOneCallResponse.hourly[0].pop,
             dt_txt: expect.any(String),
+            sys: {
+              sunrise: mockOneCallResponse.daily[0].sunrise,
+              sunset: mockOneCallResponse.daily[0].sunset,
+              country: '',
+            },
+            rain: undefined,
+            snow: undefined,
           },
         ],
         daily: [
@@ -221,6 +228,8 @@ describe('WeatherService', () => {
             },
             pop: mockOneCallResponse.daily[0].pop,
             dt_txt: expect.any(String),
+            rain: undefined,
+            snow: undefined,
           },
         ],
       });

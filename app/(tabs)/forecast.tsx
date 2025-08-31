@@ -282,6 +282,7 @@ export default function ForecastScreen() {
                       weatherMain={item.weather[0].main}
                       size={32}
                       color={theme.primary}
+                      isNight={item.dt < item.sys.sunrise || item.dt > item.sys.sunset}
                     />
                   </View>
                   
@@ -353,6 +354,7 @@ export default function ForecastScreen() {
                     weatherMain={day.weather.main}
                     size={32}
                     color={theme.primary}
+                    isNight={false} // Daily forecast icons should always show daytime weather
                   />
                   <Text style={styles.precipChance}>
                     {Math.round(day.precipChance)}% rain

@@ -247,6 +247,7 @@ export default function HomeScreen() {
                 weatherMain={currentWeather.weather[0].main}
                 size={120}
                 color={theme.primary}
+                isNight={new Date().getTime() / 1000 < currentWeather.sys.sunrise || new Date().getTime() / 1000 > currentWeather.sys.sunset}
               />
               <Text style={styles.temperature}>
                 {formatTemperature(currentWeather.main.temp)}

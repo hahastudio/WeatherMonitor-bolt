@@ -60,8 +60,20 @@ class WeatherService {
 
   private transformOneCallToForecast(data: OneCallResponse): ForecastResponse {
     // Convert hourly data to match the old API format
+    // First, create a map of dates to their sunrise/sunset times from daily data
+    const sunriseSunsetMap = new Map(data.daily.map(day => [
+      new Date(day.dt * 1000).setHours(0, 0, 0, 0) / 1000,
+      { sunrise: day.sunrise, sunset: day.sunset }
+    ]));
+
     const hourlyForecasts: HourlyForecast[] = data.hourly.map((hourly) => ({
         dt: hourly.dt,
+        sys: {
+          // Find the corresponding day's sunrise/sunset times
+          sunrise: sunriseSunsetMap.get(new Date(hourly.dt * 1000).setHours(0, 0, 0, 0) / 1000)?.sunrise || data.current.sunrise,
+          sunset: sunriseSunsetMap.get(new Date(hourly.dt * 1000).setHours(0, 0, 0, 0) / 1000)?.sunset || data.current.sunset,
+          country: '',
+        },
         main: {
           temp: hourly.temp,
           feels_like: hourly.feels_like,

@@ -74,6 +74,11 @@ export interface HourlyForecast {
   visibility: number;
   pop: number;
   dt_txt: string;
+  sys: {
+    sunrise: number;
+    sunset: number;
+    country: string;
+  };
   rain?: {
     '1h': number;
   };
