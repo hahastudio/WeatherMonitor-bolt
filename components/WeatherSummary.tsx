@@ -138,8 +138,13 @@ export const WeatherSummary: React.FC = () => {
     generatedTime: {
       color: theme.textSecondary,
       fontSize: 12,
-      marginLeft: 8,
       fontStyle: 'italic',
+    },
+    moodRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      marginBottom: 12,
     },
     headerActions: {
       flexDirection: 'row',
@@ -303,11 +308,6 @@ export const WeatherSummary: React.FC = () => {
             <View style={styles.headerLeft}>
               <Sparkles size={20} color={theme.primary} />
               <Text style={styles.title}>AI Weather Summary</Text>
-              {summaryGeneratedAt && (
-                <Text style={styles.generatedTime}>
-                  {formatGeneratedTime(summaryGeneratedAt)}
-                </Text>
-              )}
             </View>
             
             <View style={styles.headerActions}>
@@ -352,11 +352,18 @@ export const WeatherSummary: React.FC = () => {
           {weatherSummary && (
             <View style={styles.content}>
 
-              <View style={styles.moodIndicator}>
-                {getMoodIcon(weatherSummary.mood)}
-                <Text style={[styles.moodText, { color: getMoodColor(weatherSummary.mood) }]}>
-                  {weatherSummary.mood}
-                </Text>
+              <View style={styles.moodRow}>
+                <View style={styles.moodIndicator}>
+                  {getMoodIcon(weatherSummary.mood)}
+                  <Text style={[styles.moodText, { color: getMoodColor(weatherSummary.mood) }]}>
+                    {weatherSummary.mood}
+                  </Text>
+                </View>
+                {summaryGeneratedAt && (
+                  <Text style={styles.generatedTime}>
+                    {formatGeneratedTime(summaryGeneratedAt)}
+                  </Text>
+                )}
               </View>
 
               <Text style={styles.overviewText}>{weatherSummary.todayOverview}</Text>
