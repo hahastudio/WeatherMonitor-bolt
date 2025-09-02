@@ -26,36 +26,43 @@ It's mainly built with [Bolt](https://bolt.new/).
 ### Key Architectural Decisions
 
 #### 1. **Tab-Based Navigation**
+
 - Primary navigation uses Expo Router's tab system
 - Each major feature (Weather, Forecast, Charts, Map, Settings) has its own tab
 - Clean separation of concerns with dedicated screens
 
 #### 2. **Context-Based State Management**
+
 - `WeatherContext` provides global state for weather data
 - Centralized API calls and error handling
 - Automatic refresh intervals with user-configurable rates
 
 #### 3. **Service Layer Architecture**
+
 - Separate services for different APIs and functionalities
 - Comprehensive error handling and retry logic
 - API request logging for monitoring and debugging
 
 #### 4. **AI-Powered Weather Analysis**
+
 - Google Gemini AI integration for intelligent weather summaries
 - Contextual analysis of current conditions, alerts, and future forecasts
 - Personalized recommendations based on weather patterns
 
 #### 5. **Interactive Map Integration**
+
 - Windy map embedding for visual weather data
 - Multiple weather layer support (wind, rain, temperature, clouds)
 - Real-time meteorological visualization
 
 #### 6. **Adaptive Theming System**
+
 - Dynamic themes based on weather conditions and time of day
 - Consistent color schemes across all components
 - Accessibility-compliant contrast ratios
 
 #### 7. **Component-Based UI**
+
 - Reusable components with consistent styling
 - Platform-specific optimizations for iOS, Android, and Web
 - Responsive design with proper breakpoints
@@ -64,7 +71,7 @@ It's mainly built with [Bolt](https://bolt.new/).
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 - Expo CLI (`npm install -g @expo/cli`)
 - API keys (see Environment Setup below)
@@ -72,19 +79,22 @@ It's mainly built with [Bolt](https://bolt.new/).
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone <repository-url>
    cd WeatherMonitor
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Environment Setup**
-   
+
    Create a `.env` file in the root directory:
+
    ```env
    EXPO_PUBLIC_OPENWEATHER_API_KEY=your_openweathermap_api_key_here
    EXPO_PUBLIC_CAIYUN_API_KEY=your_caiyun_api_key_here
@@ -93,13 +103,11 @@ It's mainly built with [Bolt](https://bolt.new/).
    ```
 
    **Getting API Keys:**
-   
-   - **OpenWeatherMap API**: 
+   - **OpenWeatherMap API**:
      1. Visit [openweathermap.org](https://openweathermap.org/api)
      2. Sign up for a free account
      3. Generate an API key from your dashboard
      4. Free tier includes 1,000 calls/day
-   
    - **Caiyun API** (for weather alerts):
      1. Visit [caiyunapp.com](https://caiyunapp.com/api)
      2. Register for an account
@@ -111,11 +119,11 @@ It's mainly built with [Bolt](https://bolt.new/).
      2. Create a new project or use existing one
      3. Generate an API key for Gemini
      4. Used for intelligent weather analysis and recommendations
-   
    - **Firebase** (for `expo-notifications` build):
      1. Follow steps in [Obtain Google Service Account Keys using FCM V1](https://docs.expo.dev/push-notifications/fcm-credentials/)
 
 4. **Start the development server**
+
    ```bash
    npm run dev
    ```
@@ -128,20 +136,25 @@ It's mainly built with [Bolt](https://bolt.new/).
 ### Building for Production
 
 #### Web Deployment
+
 ```bash
 npm run build:web
 ```
+
 The built files will be in the `dist/` directory, ready for deployment to any static hosting service.
 
 #### Mobile App Builds
+
 For mobile app builds, you'll need to use EAS Build:
 
 1. **Install EAS CLI**
+
    ```bash
    npm install -g eas-cli
    ```
 
 2. **Configure EAS**
+
    ```bash
    eas build:configure
    ```
@@ -156,10 +169,12 @@ For mobile app builds, you'll need to use EAS Build:
 ### Primary Weather Data: OpenWeatherMap API
 
 **Endpoints Used:**
+
 - `GET /weather` - Current weather conditions
 - `GET /forecast` - 5-day weather forecast with 3-hour intervals
 
 **Data Includes:**
+
 - Temperature (current, feels-like, min/max)
 - Weather conditions and descriptions
 - Humidity, pressure, visibility
@@ -168,15 +183,18 @@ For mobile app builds, you'll need to use EAS Build:
 - Geographic coordinates
 
 **Rate Limits:**
+
 - Free tier: 1,000 calls/day, 60 calls/minute
 - Paid tiers available for higher usage
 
 ### Weather Alerts: Caiyun API
 
 **Endpoints Used:**
+
 - `GET /weather?alert=true` - Weather alerts and warnings
 
 **Alert Data Includes:**
+
 - Alert severity levels (red, orange, yellow, blue)
 - Alert types (thunderstorm, heavy rain, snow, etc.)
 - Geographic coverage areas
@@ -184,6 +202,7 @@ For mobile app builds, you'll need to use EAS Build:
 - Detailed descriptions in multiple languages
 
 **Coverage:**
+
 - Primarily covers China and surrounding regions
 - Real-time government weather warnings
 - Multiple severity classifications
@@ -191,9 +210,11 @@ For mobile app builds, you'll need to use EAS Build:
 ### AI Weather Analysis: Google Gemini
 
 **Model Used:**
+
 - `gemini-2.5-flash` - Fast, efficient model for text generation
 
 **AI Features:**
+
 - **Today's Overview**: Comprehensive analysis of current weather conditions
 - **Alert Analysis**: Intelligent interpretation of weather warnings
 - **Future Predictions**: Analysis of upcoming weather patterns in next 5 days
@@ -201,6 +222,7 @@ For mobile app builds, you'll need to use EAS Build:
 - **Mood Assessment**: Weather impact categorization (positive, neutral, warning, severe)
 
 **Analysis Includes:**
+
 - Temperature comfort assessment
 - Precipitation likelihood and timing
 - Wind and visibility conditions
@@ -211,11 +233,13 @@ For mobile app builds, you'll need to use EAS Build:
 ### Interactive Weather Maps: Windy
 
 **Integration:**
+
 - Embedded Windy maps with custom configuration
 - Real-time meteorological data visualization
 - Multiple weather layer support
 
 **Available Layers:**
+
 - **Wind**: Wind speed and direction patterns
 - **Rain**: Precipitation intensity and movement
 - **Temperature**: Temperature distribution and gradients
@@ -223,6 +247,7 @@ For mobile app builds, you'll need to use EAS Build:
 - **Pressure**: Atmospheric pressure systems
 
 **Features:**
+
 - Interactive zoom and pan
 - Location-specific forecasts
 - Time-based weather animation
@@ -231,11 +256,13 @@ For mobile app builds, you'll need to use EAS Build:
 ### Location Services
 
 **Data Sources:**
+
 - **Mobile**: Native GPS via Expo Location
 - **Web**: HTML5 Geolocation API
 - **Fallback**: Default to major cities if location unavailable
 
 **Reverse Geocoding:**
+
 - City name resolution from coordinates
 - Country and region information
 - Timezone detection
@@ -245,6 +272,7 @@ For mobile app builds, you'll need to use EAS Build:
 ### App Settings
 
 Users can configure:
+
 - **Auto-refresh rate**: 15 minutes to 2 hours
 - **Dark/Light mode**: Manual toggle or automatic based on time
 - **Notification preferences**: Enable/disable weather alerts
@@ -254,6 +282,7 @@ Users can configure:
 ### API Request Monitoring
 
 The app includes comprehensive API monitoring:
+
 - **Request logging**: All API calls are logged with timestamps
 - **Performance metrics**: Response times and success rates
 - **Usage analytics**: Requests by trigger type and provider
@@ -263,6 +292,7 @@ The app includes comprehensive API monitoring:
 ### AI Summary Configuration
 
 The AI weather summaries can be:
+
 - **Auto-generated**: Automatically created when weather data updates
 - **Manually refreshed**: User can request new summaries anytime
 - **Expandable**: Detailed view with recommendations and future warnings
@@ -271,6 +301,7 @@ The AI weather summaries can be:
 ### Theme Customization
 
 Themes automatically adapt based on:
+
 - **Weather conditions**: Different color schemes for sunny, rainy, cloudy, etc.
 - **Time of day**: Darker themes during nighttime hours
 - **User preference**: Manual dark/light mode override
@@ -288,6 +319,7 @@ Themes automatically adapt based on:
 ### AI Integration
 
 The Gemini AI service provides:
+
 - **Structured responses**: JSON format for consistent parsing
 - **Error handling**: Graceful fallbacks when AI is unavailable
 - **Rate limiting**: Efficient API usage with caching
@@ -296,6 +328,7 @@ The Gemini AI service provides:
 ### Map Integration
 
 The Windy map integration includes:
+
 - **Dynamic URL generation**: Based on user location and preferences
 - **Layer switching**: Real-time weather layer changes
 - **Error handling**: Fallback UI when map fails to load
@@ -316,6 +349,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 📞 Support
 
 For support and questions:
+
 - Create an issue in the GitHub repository
 - Check the documentation for common solutions
 - Review the API logs in the Settings tab for debugging

@@ -1,16 +1,13 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { 
-  Sun, 
-  Cloud,
+import {
+  Sun,
   CloudSun,
   CloudMoon,
-  CloudRain, 
+  CloudRain,
   CloudSnow,
   CloudFog,
-  Zap, 
   CloudDrizzle,
-  Cloudy,
   Moon,
   CloudLightning,
 } from 'lucide-react-native';
@@ -22,39 +19,48 @@ interface WeatherIconProps {
   isNight?: boolean;
 }
 
-export const WeatherIcon: React.FC<WeatherIconProps> = ({ 
-  weatherMain, 
-  size = 48, 
+export const WeatherIcon: React.FC<WeatherIconProps> = ({
+  weatherMain,
+  size = 48,
   color = '#333333',
-  isNight = false
+  isNight = false,
 }) => {
   const getWeatherIcon = () => {
     const main = weatherMain.toLowerCase();
-    
+
     if (main.includes('clear')) {
-      return isNight ? <Moon size={size} color={color} /> : <Sun size={size} color={color} />;
+      return isNight ? (
+        <Moon size={size} color={color} />
+      ) : (
+        <Sun size={size} color={color} />
+      );
     }
     if (main.includes('cloud')) {
-      return isNight ? <CloudMoon size={size} color={color} /> : <CloudSun size={size} color={color} />;
+      return isNight ? (
+        <CloudMoon size={size} color={color} />
+      ) : (
+        <CloudSun size={size} color={color} />
+      );
     }
     if (main.includes('rain')) return <CloudRain size={size} color={color} />;
     if (main.includes('snow')) return <CloudSnow size={size} color={color} />;
     if (main.includes('thunderstorm') || main.includes('storm')) {
       return <CloudLightning size={size} color={color} />;
     }
-    if (main.includes('drizzle')) return <CloudDrizzle size={size} color={color} />;
-    if (main.includes('mist') || main.includes('fog') || main.includes('haze')) {
+    if (main.includes('drizzle'))
+      return <CloudDrizzle size={size} color={color} />;
+    if (
+      main.includes('mist') ||
+      main.includes('fog') ||
+      main.includes('haze')
+    ) {
       return <CloudFog size={size} color={color} />;
     }
-    
+
     return <Sun size={size} color={color} />;
   };
 
-  return (
-    <View style={styles.container}>
-      {getWeatherIcon()}
-    </View>
-  );
+  return <View style={styles.container}>{getWeatherIcon()}</View>;
 };
 
 const styles = StyleSheet.create({

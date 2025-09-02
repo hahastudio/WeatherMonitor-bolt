@@ -61,11 +61,25 @@ describe('Weather Theme Utils', () => {
 
     it('should return appropriate theme for each weather condition', () => {
       jest.setSystemTime(new Date('2025-08-31T12:00:00')); // noon
-      const conditions: Array<'clear' | 'clouds' | 'rain' | 'snow' | 'thunderstorm' | 'drizzle' | 'mist'> = [
-        'clear', 'clouds', 'rain', 'snow', 'thunderstorm', 'drizzle', 'mist'
+      const conditions: Array<
+        | 'clear'
+        | 'clouds'
+        | 'rain'
+        | 'snow'
+        | 'thunderstorm'
+        | 'drizzle'
+        | 'mist'
+      > = [
+        'clear',
+        'clouds',
+        'rain',
+        'snow',
+        'thunderstorm',
+        'drizzle',
+        'mist',
       ];
 
-      conditions.forEach(condition => {
+      conditions.forEach((condition) => {
         const theme = getWeatherTheme(condition, false);
         expect(theme).toHaveProperty('primary');
         expect(theme).toHaveProperty('secondary');
@@ -146,11 +160,7 @@ describe('Weather Theme Utils', () => {
         new Date(2025, 6, 4), // Friday, Jul 4
       ];
 
-      const expected = [
-        'Wed, Jan 1',
-        'Thu, Dec 25',
-        'Fri, Jul 4'
-      ];
+      const expected = ['Wed, Jan 1', 'Thu, Dec 25', 'Fri, Jul 4'];
 
       dates.forEach((date, index) => {
         const timestamp = Math.floor(date.getTime() / 1000);

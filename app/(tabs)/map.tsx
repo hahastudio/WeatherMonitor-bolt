@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Platform, Linking, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Platform,
+  Linking,
+  ScrollView,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
-import { 
-  Map as MapIcon, 
-  Layers, 
+import {
+  Map as MapIcon,
   CloudSunRain,
-  Wind, 
-  CloudRain, 
-  Thermometer, 
+  Wind,
+  CloudRain,
+  Thermometer,
   Eye,
   RefreshCw,
   Maximize2,
-  ExternalLink
+  ExternalLink,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -25,28 +33,56 @@ interface MapSettings {
 }
 
 export default function MapScreen() {
-  const { 
-    location, 
-    theme,
-    loading: weatherLoading 
-  } = useWeather();
+  const { location, theme, loading: weatherLoading } = useWeather();
 
   const webViewRef = useRef<WebView>(null);
   const [mapSettings, setMapSettings] = useState<MapSettings>({
     layer: 'weather', // Weather is already the default
-    zoom: 8
+    zoom: 8,
   });
   const [webViewLoading, setWebViewLoading] = useState(true);
   const [webViewError, setWebViewError] = useState<string | null>(null);
   const [mapKey, setMapKey] = useState(0); // For forcing WebView reload
-  const [loadingTimeout, setLoadingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [loadingTimeout, setLoadingTimeout] = useState<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const layerOptions = [
-    { key: 'weather', label: 'Weather', icon: CloudSunRain, color: '#F5B120', overlay: 'radar' },
-    { key: 'wind', label: 'Wind', icon: Wind, color: '#50C878', overlay: 'wind' },
-    { key: 'rain', label: 'Rain', icon: CloudRain, color: '#4A90E2', overlay: 'rain' },
-    { key: 'temp', label: 'Temperature', icon: Thermometer, color: '#FF6B6B', overlay: 'temp' },
-    { key: 'clouds', label: 'Clouds', icon: Eye, color: '#9370DB', overlay: 'clouds' },
+    {
+      key: 'weather',
+      label: 'Weather',
+      icon: CloudSunRain,
+      color: '#F5B120',
+      overlay: 'radar',
+    },
+    {
+      key: 'wind',
+      label: 'Wind',
+      icon: Wind,
+      color: '#50C878',
+      overlay: 'wind',
+    },
+    {
+      key: 'rain',
+      label: 'Rain',
+      icon: CloudRain,
+      color: '#4A90E2',
+      overlay: 'rain',
+    },
+    {
+      key: 'temp',
+      label: 'Temperature',
+      icon: Thermometer,
+      color: '#FF6B6B',
+      overlay: 'temp',
+    },
+    {
+      key: 'clouds',
+      label: 'Clouds',
+      icon: Eye,
+      color: '#9370DB',
+      overlay: 'clouds',
+    },
   ] as const;
 
   // Generate Windy embed URL with correct parameters
@@ -55,11 +91,11 @@ export default function MapScreen() {
 
     const { latitude, longitude } = location;
     const { layer, zoom } = mapSettings;
-    
+
     // Get the correct overlay name
-    const selectedLayer = layerOptions.find(l => l.key === layer);
+    const selectedLayer = layerOptions.find((l) => l.key === layer);
     const overlay = selectedLayer?.overlay || 'weather';
-    
+
     // Use the exact Windy embed URL format you specified
     const params = new URLSearchParams({
       type: 'map',
@@ -73,30 +109,30 @@ export default function MapScreen() {
       level: 'surface',
       lat: latitude.toFixed(2),
       lon: longitude.toFixed(2),
-      marker: 'true'
+      marker: 'true',
     });
 
     return `https://embed.windy.com/embed.html?${params.toString()}`;
   };
 
   const handleLayerChange = (newLayer: WeatherLayer) => {
-    setMapSettings(prev => ({ ...prev, layer: newLayer }));
+    setMapSettings((prev) => ({ ...prev, layer: newLayer }));
     setWebViewError(null);
-    
+
     // Force WebView reload with new layer
-    setMapKey(prev => prev + 1);
+    setMapKey((prev) => prev + 1);
   };
 
   const handleRefresh = () => {
     setWebViewError(null);
     setWebViewLoading(true);
-    setMapKey(prev => prev + 1);
-    
+    setMapKey((prev) => prev + 1);
+
     // Clear any existing timeout
     if (loadingTimeout) {
       clearTimeout(loadingTimeout);
     }
-    
+
     // Also try to reload the WebView directly
     if (webViewRef.current) {
       webViewRef.current.reload();
@@ -105,7 +141,7 @@ export default function MapScreen() {
 
   const handleFullscreen = async () => {
     const url = generateWindyUrl();
-    
+
     if (Platform.OS === 'web') {
       window.open(url, '_blank', 'noopener,noreferrer');
     } else {
@@ -117,6 +153,7 @@ export default function MapScreen() {
           Alert.alert('Error', 'Cannot open the map in browser');
         }
       } catch (error) {
+        console.log(error);
         Alert.alert('Error', 'Failed to open the map');
       }
     }
@@ -170,7 +207,7 @@ export default function MapScreen() {
   const handleWebViewMessage = (event: WebViewMessageEvent) => {
     try {
       const data = JSON.parse(event.nativeEvent.data);
-      
+
       switch (data.type) {
         case 'ready':
           console.log('📱 WebView JavaScript ready');
@@ -190,7 +227,9 @@ export default function MapScreen() {
           break;
         case 'timeout':
           console.warn('⏰ Windy map loading timeout');
-          setWebViewError('Map is taking longer than expected to load. This may be due to network conditions.');
+          setWebViewError(
+            'Map is taking longer than expected to load. This may be due to network conditions.',
+          );
           setWebViewLoading(false);
           break;
       }
@@ -204,13 +243,15 @@ export default function MapScreen() {
     if (webViewLoading) {
       const timeout = setTimeout(() => {
         if (webViewLoading) {
-          setWebViewError('Map loading timeout. Please check your internet connection and try again.');
+          setWebViewError(
+            'Map loading timeout. Please check your internet connection and try again.',
+          );
           setWebViewLoading(false);
         }
       }, 15000); // 15 second timeout
-      
+
       setLoadingTimeout(timeout);
-      
+
       return () => {
         clearTimeout(timeout);
       };
@@ -403,7 +444,9 @@ export default function MapScreen() {
   }
 
   const windyUrl = generateWindyUrl();
-  const selectedLayerOption = layerOptions.find(l => l.key === mapSettings.layer);
+  const selectedLayerOption = layerOptions.find(
+    (l) => l.key === mapSettings.layer,
+  );
 
   return (
     <View style={styles.container}>
@@ -415,39 +458,48 @@ export default function MapScreen() {
           <View style={styles.headerTop}>
             <Text style={styles.title}>Weather Map</Text>
             <View style={styles.headerActions}>
-              <TouchableOpacity style={styles.actionButton} onPress={handleRefresh}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleRefresh}
+              >
                 <RefreshCw size={20} color={theme.text} />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton} onPress={handleFullscreen}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleFullscreen}
+              >
                 <Maximize2 size={20} color={theme.text} />
               </TouchableOpacity>
             </View>
           </View>
-          
+
           <View style={styles.layerSelector}>
-            <ScrollView 
-              horizontal 
-              showsHorizontalScrollIndicator={false}
-            >
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               {layerOptions.map((option) => (
                 <TouchableOpacity
                   key={option.key}
                   style={[
                     styles.layerButton,
-                    mapSettings.layer === option.key && styles.layerButtonActive,
+                    mapSettings.layer === option.key &&
+                      styles.layerButtonActive,
                   ]}
                   onPress={() => handleLayerChange(option.key)}
                 >
                   <View style={styles.layerIcon}>
-                    <option.icon 
-                      size={16} 
-                      color={mapSettings.layer === option.key ? theme.primary : option.color} 
+                    <option.icon
+                      size={16}
+                      color={
+                        mapSettings.layer === option.key
+                          ? theme.primary
+                          : option.color
+                      }
                     />
                   </View>
-                  <Text 
+                  <Text
                     style={[
                       styles.layerText,
-                      mapSettings.layer === option.key && styles.layerTextActive,
+                      mapSettings.layer === option.key &&
+                        styles.layerTextActive,
                     ]}
                   >
                     {option.label}
@@ -467,16 +519,25 @@ export default function MapScreen() {
               <Text style={styles.errorText}>
                 {webViewError}
                 {'\n\n'}
-                The interactive map may not be available due to network conditions or browser restrictions.
+                The interactive map may not be available due to network
+                conditions or browser restrictions.
               </Text>
               <View style={styles.errorActions}>
-                <TouchableOpacity style={styles.retryButton} onPress={handleRefresh}>
+                <TouchableOpacity
+                  style={styles.retryButton}
+                  onPress={handleRefresh}
+                >
                   <RefreshCw size={16} color="#FFFFFF" />
                   <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.openBrowserButton} onPress={handleFullscreen}>
+                <TouchableOpacity
+                  style={styles.openBrowserButton}
+                  onPress={handleFullscreen}
+                >
                   <ExternalLink size={16} color={theme.primary} />
-                  <Text style={styles.openBrowserButtonText}>Open in Browser</Text>
+                  <Text style={styles.openBrowserButtonText}>
+                    Open in Browser
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -504,13 +565,17 @@ export default function MapScreen() {
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
                   console.error('❌ WebView error:', nativeEvent);
-                  setWebViewError(nativeEvent.description || 'Failed to load weather map');
+                  setWebViewError(
+                    nativeEvent.description || 'Failed to load weather map',
+                  );
                   setWebViewLoading(false);
                 }}
                 onHttpError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
                   console.error('🌐 HTTP error:', nativeEvent.statusCode);
-                  setWebViewError(`HTTP Error: ${nativeEvent.statusCode}. Please check your internet connection.`);
+                  setWebViewError(
+                    `HTTP Error: ${nativeEvent.statusCode}. Please check your internet connection.`,
+                  );
                   setWebViewLoading(false);
                 }}
                 onMessage={handleWebViewMessage}
@@ -538,7 +603,7 @@ export default function MapScreen() {
                 cacheEnabled={true}
                 incognito={false}
               />
-              
+
               {webViewLoading && (
                 <View style={styles.loadingContainer}>
                   <LoadingSpinner message="Loading interactive weather map..." />

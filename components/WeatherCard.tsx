@@ -121,7 +121,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
         <Text style={styles.title}>{title}</Text>
         {time && <Text style={styles.time}>{time}</Text>}
       </View>
-      
+
       <View style={styles.content}>
         <View style={styles.leftContent}>
           <View style={styles.temperatureRow}>
@@ -129,34 +129,33 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
               {formatTemperature(temperature)}
             </Text>
             <View style={styles.iconContainer}>
-              <WeatherIcon 
+              <WeatherIcon
                 weatherMain={weatherMain}
                 size={64}
                 color={theme.primary}
               />
             </View>
           </View>
-          
-          <Text style={styles.description}>
-            {capitalizeWords(description)}
-          </Text>
-          
-          {showDetails && (humidity !== undefined || windSpeed !== undefined) && (
-            <View style={styles.details}>
-              {humidity !== undefined && (
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Humidity</Text>
-                  <Text style={styles.detailValue}>{humidity}%</Text>
-                </View>
-              )}
-              {windSpeed !== undefined && (
-                <View style={styles.detailItem}>
-                  <Text style={styles.detailLabel}>Wind</Text>
-                  <Text style={styles.detailValue}>{windSpeed} m/s</Text>
-                </View>
-              )}
-            </View>
-          )}
+
+          <Text style={styles.description}>{capitalizeWords(description)}</Text>
+
+          {showDetails &&
+            (humidity !== undefined || windSpeed !== undefined) && (
+              <View style={styles.details}>
+                {humidity !== undefined && (
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Humidity</Text>
+                    <Text style={styles.detailValue}>{humidity}%</Text>
+                  </View>
+                )}
+                {windSpeed !== undefined && (
+                  <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>Wind</Text>
+                    <Text style={styles.detailValue}>{windSpeed} m/s</Text>
+                  </View>
+                )}
+              </View>
+            )}
         </View>
       </View>
     </View>

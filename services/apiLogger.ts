@@ -1,4 +1,8 @@
-import { saveApiLogs, loadApiLogs, clearApiLogs } from '../utils/weatherStorage';
+import {
+  saveApiLogs,
+  loadApiLogs,
+  clearApiLogs,
+} from '../utils/weatherStorage';
 
 export interface ApiLogEntry {
   id: string;
@@ -32,7 +36,7 @@ class ApiLogger {
     trigger: ApiLogEntry['trigger'] = 'manual',
     responseTime?: number,
     error?: string,
-    provider: ApiLogEntry['provider'] = 'openweather'
+    provider: ApiLogEntry['provider'] = 'openweather',
   ): Promise<void> {
     try {
       const entry: ApiLogEntry = {
@@ -49,10 +53,12 @@ class ApiLogger {
 
       const existingLogs = await this.getLogs();
       const updatedLogs = [entry, ...existingLogs];
-      
+
       // Keep only logs from the last 48 hours
       const cutoffTime = Date.now() - ApiLogger.MAX_LOG_AGE;
-      const filteredLogs = updatedLogs.filter(log => log.timestamp > cutoffTime);
+      const filteredLogs = updatedLogs.filter(
+        (log) => log.timestamp > cutoffTime,
+      );
 
       await saveApiLogs(filteredLogs);
     } catch (error) {
@@ -67,7 +73,7 @@ class ApiLogger {
 
       // Filter out logs older than 48 hours
       const cutoffTime = Date.now() - ApiLogger.MAX_LOG_AGE;
-      return logs.filter(log => log.timestamp > cutoffTime);
+      return logs.filter((log) => log.timestamp > cutoffTime);
     } catch (error) {
       console.error('Failed to retrieve API logs:', error);
       return [];
@@ -76,11 +82,11 @@ class ApiLogger {
 
   async getLogsSummary(): Promise<ApiLogSummary> {
     const logs = await this.getLogs();
-    
+
     const summary = {
       totalRequests: logs.length,
-      successfulRequests: logs.filter(log => log.status === 'success').length,
-      failedRequests: logs.filter(log => log.status === 'error').length,
+      successfulRequests: logs.filter((log) => log.status === 'success').length,
+      failedRequests: logs.filter((log) => log.status === 'error').length,
       requestsByTrigger: {
         manual: 0,
         auto: 0,
@@ -97,22 +103,28 @@ class ApiLogger {
     };
 
     // Count requests by trigger and provider
-    logs.forEach(log => {
+    logs.forEach((log) => {
       summary.requestsByTrigger[log.trigger]++;
       summary.requestsByProvider[log.provider]++;
     });
 
     // Calculate average response time
-    const logsWithResponseTime = logs.filter(log => log.responseTime !== undefined);
+    const logsWithResponseTime = logs.filter(
+      (log) => log.responseTime !== undefined,
+    );
     if (logsWithResponseTime.length > 0) {
-      const totalResponseTime = logsWithResponseTime.reduce((sum, log) => sum + (log.responseTime || 0), 0);
-      summary.averageResponseTime = totalResponseTime / logsWithResponseTime.length;
+      const totalResponseTime = logsWithResponseTime.reduce(
+        (sum, log) => sum + (log.responseTime || 0),
+        0,
+      );
+      summary.averageResponseTime =
+        totalResponseTime / logsWithResponseTime.length;
     }
 
     // Group requests by hour for the last 48 hours
     const hourlyRequests = new Map<string, number>();
     const now = new Date();
-    
+
     // Initialize all hours in the last 48 hours
     for (let i = 47; i >= 0; i--) {
       const hour = new Date(now.getTime() - i * 60 * 60 * 1000);
@@ -121,7 +133,7 @@ class ApiLogger {
     }
 
     // Count actual requests
-    logs.forEach(log => {
+    logs.forEach((log) => {
       const logDate = new Date(log.timestamp);
       const hourKey = logDate.toISOString().slice(0, 13);
       const currentCount = hourlyRequests.get(hourKey) || 0;
@@ -129,15 +141,17 @@ class ApiLogger {
     });
 
     // Convert to array format
-    summary.requestsByHour = Array.from(hourlyRequests.entries()).map(([hour, count]) => ({
-      hour: new Date(hour + ':00:00.000Z').toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        hour12: true,
+    summary.requestsByHour = Array.from(hourlyRequests.entries()).map(
+      ([hour, count]) => ({
+        hour: new Date(hour + ':00:00.000Z').toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          hour12: true,
+        }),
+        count,
       }),
-      count,
-    }));
+    );
 
     return summary;
   }

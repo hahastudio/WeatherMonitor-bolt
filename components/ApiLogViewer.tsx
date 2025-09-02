@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Activity, CircleCheck as CheckCircle, Circle as XCircle, Clock, Trash2, RefreshCw, TrendingUp, Zap, MousePointer, Smartphone, Cloud, Globe, Sparkles } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
+import {
+  Activity,
+  CircleCheck as CheckCircle,
+  Circle as XCircle,
+  Clock,
+  Trash2,
+  RefreshCw,
+  MousePointer,
+  Smartphone,
+  Cloud,
+  Globe,
+  Sparkles,
+} from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { apiLogger, ApiLogEntry, ApiLogSummary } from '../services/apiLogger';
 
@@ -40,7 +59,7 @@ export const ApiLogViewer: React.FC = () => {
             await loadLogs();
           },
         },
-      ]
+      ],
     );
   };
 
@@ -304,7 +323,9 @@ export const ApiLogViewer: React.FC = () => {
 
   const formatResponseTime = (responseTime?: number) => {
     if (!responseTime || isNaN(responseTime)) return '';
-    return responseTime < 1000 ? `${responseTime}ms` : `${(responseTime / 1000).toFixed(1)}s`;
+    return responseTime < 1000
+      ? `${responseTime}ms`
+      : `${(responseTime / 1000).toFixed(1)}s`;
   };
 
   if (loading) {
@@ -326,7 +347,10 @@ export const ApiLogViewer: React.FC = () => {
           <TouchableOpacity style={styles.actionButton} onPress={loadLogs}>
             <RefreshCw size={20} color={theme.primary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton} onPress={handleClearLogs}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleClearLogs}
+          >
             <Trash2 size={20} color={theme.accent} />
           </TouchableOpacity>
         </View>
@@ -336,27 +360,33 @@ export const ApiLogViewer: React.FC = () => {
         {summary && (
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>Last 48 Hours Summary</Text>
-            
+
             <View style={styles.summaryGrid}>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Total Requests</Text>
                 <Text style={styles.summaryValue}>{summary.totalRequests}</Text>
               </View>
-              
+
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Success Rate</Text>
                 <Text style={styles.summaryValue}>
-                  {summary.totalRequests > 0 
-                    ? Math.round((summary.successfulRequests / summary.totalRequests) * 100)
-                    : 0}%
+                  {summary.totalRequests > 0
+                    ? Math.round(
+                        (summary.successfulRequests / summary.totalRequests) *
+                          100,
+                      )
+                    : 0}
+                  %
                 </Text>
               </View>
-              
+
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Failed Requests</Text>
-                <Text style={styles.summaryValue}>{summary.failedRequests}</Text>
+                <Text style={styles.summaryValue}>
+                  {summary.failedRequests}
+                </Text>
               </View>
-              
+
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Avg Response</Text>
                 <Text style={styles.summaryValue}>
@@ -366,35 +396,45 @@ export const ApiLogViewer: React.FC = () => {
             </View>
 
             <View style={styles.triggerSection}>
-              <Text style={[styles.summaryLabel, { marginBottom: 8 }]}>Requests by Trigger</Text>
-              
-              {Object.entries(summary.requestsByTrigger).map(([trigger, count]) => (
-                <View key={trigger} style={styles.triggerItem}>
-                  <View style={styles.triggerLabel}>
-                    {getTriggerIcon(trigger as ApiLogEntry['trigger'])}
-                    <Text style={[styles.triggerLabel, { marginLeft: 6 }]}>
-                      {formatTriggerLabel(trigger as ApiLogEntry['trigger'])}
-                    </Text>
+              <Text style={[styles.summaryLabel, { marginBottom: 8 }]}>
+                Requests by Trigger
+              </Text>
+
+              {Object.entries(summary.requestsByTrigger).map(
+                ([trigger, count]) => (
+                  <View key={trigger} style={styles.triggerItem}>
+                    <View style={styles.triggerLabel}>
+                      {getTriggerIcon(trigger as ApiLogEntry['trigger'])}
+                      <Text style={[styles.triggerLabel, { marginLeft: 6 }]}>
+                        {formatTriggerLabel(trigger as ApiLogEntry['trigger'])}
+                      </Text>
+                    </View>
+                    <Text style={styles.triggerValue}>{count}</Text>
                   </View>
-                  <Text style={styles.triggerValue}>{count}</Text>
-                </View>
-              ))}
+                ),
+              )}
             </View>
 
             <View style={styles.providerSection}>
-              <Text style={[styles.summaryLabel, { marginBottom: 8 }]}>Requests by Provider</Text>
-              
-              {Object.entries(summary.requestsByProvider).map(([provider, count]) => (
-                <View key={provider} style={styles.triggerItem}>
-                  <View style={styles.triggerLabel}>
-                    {getProviderIcon(provider as ApiLogEntry['provider'])}
-                    <Text style={[styles.triggerLabel, { marginLeft: 6 }]}>
-                      {formatProviderLabel(provider as ApiLogEntry['provider'])}
-                    </Text>
+              <Text style={[styles.summaryLabel, { marginBottom: 8 }]}>
+                Requests by Provider
+              </Text>
+
+              {Object.entries(summary.requestsByProvider).map(
+                ([provider, count]) => (
+                  <View key={provider} style={styles.triggerItem}>
+                    <View style={styles.triggerLabel}>
+                      {getProviderIcon(provider as ApiLogEntry['provider'])}
+                      <Text style={[styles.triggerLabel, { marginLeft: 6 }]}>
+                        {formatProviderLabel(
+                          provider as ApiLogEntry['provider'],
+                        )}
+                      </Text>
+                    </View>
+                    <Text style={styles.triggerValue}>{count}</Text>
                   </View>
-                  <Text style={styles.triggerValue}>{count}</Text>
-                </View>
-              ))}
+                ),
+              )}
             </View>
           </View>
         )}
@@ -415,14 +455,16 @@ export const ApiLogViewer: React.FC = () => {
               key={log.id}
               style={[
                 styles.logItem,
-                log.status === 'success' ? styles.logItemSuccess : styles.logItemError,
+                log.status === 'success'
+                  ? styles.logItemSuccess
+                  : styles.logItemError,
               ]}
             >
               <View style={styles.logHeader}>
                 <Text style={styles.logEndpoint}>{log.endpoint}</Text>
                 <Text style={styles.logTime}>{formatTime(log.timestamp)}</Text>
               </View>
-              
+
               <View style={styles.logDetails}>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <View style={styles.logTrigger}>
@@ -431,7 +473,7 @@ export const ApiLogViewer: React.FC = () => {
                       {formatTriggerLabel(log.trigger)}
                     </Text>
                   </View>
-                  
+
                   <View style={styles.logProvider}>
                     {getProviderIcon(log.provider)}
                     <Text style={styles.logProviderText}>
@@ -439,7 +481,7 @@ export const ApiLogViewer: React.FC = () => {
                     </Text>
                   </View>
                 </View>
-                
+
                 <View style={styles.logStatus}>
                   {log.status === 'success' ? (
                     <CheckCircle size={12} color="#4CAF50" />
@@ -449,18 +491,25 @@ export const ApiLogViewer: React.FC = () => {
                   <Text
                     style={[
                       styles.logStatusText,
-                      log.status === 'success' ? styles.logStatusSuccess : styles.logStatusError,
+                      log.status === 'success'
+                        ? styles.logStatusSuccess
+                        : styles.logStatusError,
                     ]}
                   >
-                    {log.status === 'success' 
-                      ? formatResponseTime(log.responseTime) 
+                    {log.status === 'success'
+                      ? formatResponseTime(log.responseTime)
                       : 'Error'}
                   </Text>
                 </View>
               </View>
-              
+
               {log.error && (
-                <Text style={[styles.logTriggerText, { marginTop: 4, color: theme.accent }]}>
+                <Text
+                  style={[
+                    styles.logTriggerText,
+                    { marginTop: 4, color: theme.accent },
+                  ]}
+                >
                   {log.error}
                 </Text>
               )}

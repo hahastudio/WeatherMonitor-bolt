@@ -1,5 +1,12 @@
 import { GoogleGenAI } from '@google/genai';
-import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, CaiyunAirQuality, HourlyForecast, DailyForecast } from '../types/weather';
+import {
+  CurrentWeather,
+  ForecastResponse,
+  CaiyunWeatherAlert,
+  CaiyunAirQuality,
+  HourlyForecast,
+  DailyForecast,
+} from '../types/weather';
 import { apiLogger } from './apiLogger';
 
 const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
@@ -32,17 +39,19 @@ export class GeminiService {
 
   async generateWeatherSummary(
     input: WeatherSummaryInput,
-    trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'
+    trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual',
   ): Promise<WeatherSummary> {
     if (!this.genAI) {
-      throw new Error('Gemini API key not configured. Please add your API key to .env file.');
+      throw new Error(
+        'Gemini API key not configured. Please add your API key to .env file.',
+      );
     }
 
     const startTime = Date.now();
 
     try {
       const prompt = this.buildPrompt(input);
-      
+
       const result = await this.genAI.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: prompt,
@@ -55,12 +64,15 @@ export class GeminiService {
               alertSummary: { type: 'string', nullable: true },
               futureWarnings: { type: 'string', nullable: true },
               recommendations: { type: 'array', items: { type: 'string' } },
-              mood: { type: 'string', enum: ['positive', 'neutral', 'warning', 'severe'] },
+              mood: {
+                type: 'string',
+                enum: ['positive', 'neutral', 'warning', 'severe'],
+              },
             },
             required: ['todayOverview', 'recommendations', 'mood'],
           },
-          temperature: 0.55
-        }
+          temperature: 0.55,
+        },
       });
       const responseTime = Date.now() - startTime;
       const text = result.text || '';
@@ -72,7 +84,7 @@ export class GeminiService {
         trigger,
         responseTime,
         undefined,
-        'gemini'
+        'gemini',
       );
 
       return this.parseResponse(text);
@@ -85,7 +97,7 @@ export class GeminiService {
         trigger,
         responseTime,
         error instanceof Error ? error.message : 'Unknown error',
-        'gemini'
+        'gemini',
       );
       throw error;
     }
@@ -97,8 +109,7 @@ export class GeminiService {
     var result = '';
     if (hours === 0)
       result += `- ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 0:00\n`;
-    else
-      result += `- ${hours}:00\n`;
+    else result += `- ${hours}:00\n`;
     result += `  - Temperature: ${forecast.main.temp}°C, feels like: ${forecast.main.feels_like}°C,\n`;
     result += `  - Condition: ${forecast.weather[0].description}\n`;
     result += `  - Humidity: ${forecast.main.humidity}%\n`;
@@ -113,7 +124,10 @@ export class GeminiService {
   private buildDailyForecastSummary(forecast: DailyForecast): string {
     const date = new Date(forecast.dt * 1000);
     const dayOfWeek = date.toLocaleDateString('en-US', { weekday: 'long' });
-    const monthDay = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    const monthDay = date.toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+    });
     let result = `- ${dayOfWeek}, ${monthDay}\n`;
     result += `  - Temperature: Low ${forecast.main.temp_min}°C High ${forecast.main.temp_max}°C\n`;
     result += `  - Condition: ${forecast.weather[0].description}\n`;
@@ -128,10 +142,10 @@ export class GeminiService {
 
   private buildPrompt(input: WeatherSummaryInput): string {
     const { currentWeather, forecast, alerts, cityName } = input;
-    
+
     // Get today's forecast data
     const today = new Date();
-    const todayForecasts = forecast.hourly.filter(item => {
+    const todayForecasts = forecast.hourly.filter((item) => {
       const itemDate = new Date(item.dt * 1000);
       return itemDate.toDateString() === today.toDateString();
     });
@@ -140,10 +154,12 @@ export class GeminiService {
     const next24Hours = forecast.hourly.slice(0, 24);
 
     // Get next 5 days forecast for bad weather detection
-    const next5Days = forecast.daily.filter(item => {
-      const itemDate = new Date(item.dt * 1000);
-      return itemDate.toDateString() !== today.toDateString();
-    }).slice(0, 5);
+    const next5Days = forecast.daily
+      .filter((item) => {
+        const itemDate = new Date(item.dt * 1000);
+        return itemDate.toDateString() !== today.toDateString();
+      })
+      .slice(0, 5);
 
     // Build weather data summary
     const currentTemp = Math.round(currentWeather.main.temp);
@@ -154,9 +170,11 @@ export class GeminiService {
     const visibility = currentWeather.visibility / 1000;
 
     // Today's temperature range
-    const todayTemps = todayForecasts.map(f => f.main.temp);
-    const todayMin = todayTemps.length > 0 ? Math.round(Math.min(...todayTemps)) : currentTemp;
-    const todayMax = todayTemps.length > 0 ? Math.round(Math.max(...todayTemps)) : currentTemp;
+    const todayTemps = todayForecasts.map((f) => f.main.temp);
+    const todayMin =
+      todayTemps.length > 0 ? Math.round(Math.min(...todayTemps)) : currentTemp;
+    const todayMax =
+      todayTemps.length > 0 ? Math.round(Math.max(...todayTemps)) : currentTemp;
 
     // Precipitation data
     const todayPrecip = todayForecasts.reduce((sum, f) => {
@@ -184,21 +202,24 @@ export class GeminiService {
     */
 
     // Alert information
-    const alertInfo = alerts.length > 0 
-      ? alerts.map(alert => `${alert.title}: ${alert.description}`).join('\n')
-      : 'No active weather alerts';
-    
+    const alertInfo =
+      alerts.length > 0
+        ? alerts
+            .map((alert) => `${alert.title}: ${alert.description}`)
+            .join('\n')
+        : 'No active weather alerts';
+
     // Air quality information
     const airQuality = input.airQuality?.aqi?.usa || 'N/A';
 
     const localeOptions: Intl.DateTimeFormatOptions = {
-      weekday: "long",
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "numeric",
-      minute: "numeric",
-      hour12: false
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false,
     };
 
     const prompt = `
@@ -220,10 +241,10 @@ TODAY'S FORECAST:
 - Expected Precipitation: ${todayPrecip.toFixed(1)} mm
 
 FORECAST FOR NEXT 24 HOURS:
-${next24Hours.map(f => this.buildHourlyForecastSummary(f)).join('') || '  None'}
+${next24Hours.map((f) => this.buildHourlyForecastSummary(f)).join('') || '  None'}
 
 FUTURE 5-DAY FORECAST:
-${next5Days.map(f => this.buildDailyForecastSummary(f)).join('') || '  None'}
+${next5Days.map((f) => this.buildDailyForecastSummary(f)).join('') || '  None'}
 
 WEATHER ALERTS:
 ${alertInfo}
@@ -263,7 +284,7 @@ Guidelines:
   private parseResponse(text: string): WeatherSummary {
     try {
       const parsed = JSON.parse(text);
-      
+
       // Validate the response structure
       if (!parsed.todayOverview || !Array.isArray(parsed.recommendations)) {
         throw new Error('Invalid response structure');
@@ -278,13 +299,17 @@ Guidelines:
       };
     } catch (error) {
       console.error('Failed to parse Gemini response:', error);
-      
+
       // Fallback response
       return {
-        todayOverview: "Weather data is available. Check the details below for current conditions.",
+        todayOverview:
+          'Weather data is available. Check the details below for current conditions.',
         alertSummary: null,
         futureWarnings: null,
-        recommendations: ["Check the detailed weather information", "Stay updated with weather changes"],
+        recommendations: [
+          'Check the detailed weather information',
+          'Stay updated with weather changes',
+        ],
         mood: 'neutral',
       };
     }

@@ -1,5 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, CaiyunAirQuality, LocationCoords } from '../types/weather';
+import {
+  CurrentWeather,
+  ForecastResponse,
+  CaiyunWeatherAlert,
+  CaiyunAirQuality,
+  LocationCoords,
+} from '../types/weather';
 import type { AlertTracker } from '../services/alertTracker';
 import type { ApiLogEntry } from '../services/apiLogger';
 import type { WeatherSummary } from '../services/geminiService';
@@ -21,7 +27,10 @@ const STORAGE_KEYS = {
 // Weather data storage
 export async function saveCurrentWeather(weather: CurrentWeather | null) {
   if (weather) {
-    await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_WEATHER, JSON.stringify(weather));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.CURRENT_WEATHER,
+      JSON.stringify(weather),
+    );
   } else {
     await AsyncStorage.removeItem(STORAGE_KEYS.CURRENT_WEATHER);
   }
@@ -36,11 +45,19 @@ export async function saveForecast(forecast: ForecastResponse | null) {
 }
 
 export async function saveWeatherAlerts(alerts: CaiyunWeatherAlert[]) {
-  await AsyncStorage.setItem(STORAGE_KEYS.WEATHER_ALERTS, JSON.stringify(alerts));
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.WEATHER_ALERTS,
+    JSON.stringify(alerts),
+  );
 }
 
-export async function saveWeatherAirQuality(airQuality: CaiyunAirQuality | null) {
-  await AsyncStorage.setItem(STORAGE_KEYS.WEATHER_AIR_QUALITY, JSON.stringify(airQuality));
+export async function saveWeatherAirQuality(
+  airQuality: CaiyunAirQuality | null,
+) {
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.WEATHER_AIR_QUALITY,
+    JSON.stringify(airQuality),
+  );
 }
 
 export async function saveWeatherSummary(summary: WeatherSummary | null) {
@@ -49,7 +66,10 @@ export async function saveWeatherSummary(summary: WeatherSummary | null) {
       ...summary,
       generatedAt: Date.now(),
     };
-    await AsyncStorage.setItem(STORAGE_KEYS.WEATHER_SUMMARY, JSON.stringify(summaryWithTimestamp));
+    await AsyncStorage.setItem(
+      STORAGE_KEYS.WEATHER_SUMMARY,
+      JSON.stringify(summaryWithTimestamp),
+    );
   } else {
     await AsyncStorage.removeItem(STORAGE_KEYS.WEATHER_SUMMARY);
   }
@@ -87,7 +107,9 @@ export async function loadWeatherAirQuality(): Promise<CaiyunAirQuality | null> 
   return data ? JSON.parse(data) : null;
 }
 
-export async function loadWeatherSummary(): Promise<(WeatherSummary & { generatedAt: number }) | null> {
+export async function loadWeatherSummary(): Promise<
+  (WeatherSummary & { generatedAt: number }) | null
+> {
   const data = await AsyncStorage.getItem(STORAGE_KEYS.WEATHER_SUMMARY);
   return data ? JSON.parse(data) : null;
 }
@@ -103,7 +125,10 @@ export async function loadCityName(): Promise<string | null> {
 
 // App preferences storage
 export async function saveLastUpdated(timestamp: number) {
-  await AsyncStorage.setItem(STORAGE_KEYS.LAST_UPDATED, JSON.stringify(timestamp));
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.LAST_UPDATED,
+    JSON.stringify(timestamp),
+  );
 }
 
 export async function loadLastUpdated(): Promise<number | null> {
@@ -131,7 +156,10 @@ export async function loadRefreshRate(): Promise<number | null> {
 
 // AlertTracker storage helpers
 export async function saveAlertTracker(tracker: AlertTracker) {
-  await AsyncStorage.setItem('@weather_app_alert_tracker', JSON.stringify(tracker));
+  await AsyncStorage.setItem(
+    '@weather_app_alert_tracker',
+    JSON.stringify(tracker),
+  );
 }
 
 export async function loadAlertTracker(): Promise<AlertTracker | null> {

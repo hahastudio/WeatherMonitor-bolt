@@ -1,34 +1,52 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { CurrentWeather, ForecastResponse, LocationCoords, WeatherCondition, CaiyunWeatherAlert, CaiyunAirQuality } from '../types/weather';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+} from 'react';
+import {
+  CurrentWeather,
+  ForecastResponse,
+  LocationCoords,
+  WeatherCondition,
+  CaiyunWeatherAlert,
+  CaiyunAirQuality,
+} from '../types/weather';
 import { weatherService } from '../services/weatherService';
 import { caiyunService } from '../services/caiyunService';
 import { locationService } from '../services/locationService';
 import { notificationService } from '../services/notificationService';
 import { alertTracker } from '../services/alertTracker';
 import { geminiService, WeatherSummary } from '../services/geminiService';
-import { getWeatherCondition, getWeatherTheme, WeatherTheme } from '../utils/weatherTheme';
+import {
+  getWeatherCondition,
+  getWeatherTheme,
+  WeatherTheme,
+} from '../utils/weatherTheme';
 import { initBackgroundFetch } from '../services/backgroundWeatherService';
-import { 
-  saveCurrentWeather, 
-  saveForecast, 
+import {
+  saveCurrentWeather,
+  saveForecast,
   saveWeatherAlerts,
   saveWeatherAirQuality,
   saveWeatherSummary,
-  saveLastUpdated, 
-  loadLastUpdated, 
-  saveDarkMode, 
-  loadDarkMode, 
-  saveRefreshRate, 
-  loadRefreshRate, 
-  loadCurrentWeather, 
-  loadForecast, 
+  saveLastUpdated,
+  loadLastUpdated,
+  saveDarkMode,
+  loadDarkMode,
+  saveRefreshRate,
+  loadRefreshRate,
+  loadCurrentWeather,
+  loadForecast,
   loadWeatherAlerts,
   loadWeatherAirQuality,
   loadWeatherSummary,
   saveLocation,
   loadLocation,
   saveCityName,
-  loadCityName
+  loadCityName,
 } from '../utils/weatherStorage';
 import { AppState, AppStateStatus } from 'react-native';
 
@@ -63,24 +81,34 @@ interface WeatherProviderProps {
 
 const DEFAULT_REFRESH_RATE = 15; // 15 minutes
 
-export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) => {
-  const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
+export const WeatherProvider: React.FC<WeatherProviderProps> = ({
+  children,
+}) => {
+  const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(
+    null,
+  );
   const [forecast, setForecast] = useState<ForecastResponse | null>(null);
   const [weatherAlerts, setWeatherAlerts] = useState<CaiyunWeatherAlert[]>([]);
-  const [weatherAirQuality, setWeatherAirQuality] = useState<CaiyunAirQuality | null>(null);
-  const [weatherSummary, setWeatherSummary] = useState<WeatherSummary | null>(null);
-  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<number | null>(null);
+  const [weatherAirQuality, setWeatherAirQuality] =
+    useState<CaiyunAirQuality | null>(null);
+  const [weatherSummary, setWeatherSummary] = useState<WeatherSummary | null>(
+    null,
+  );
+  const [summaryGeneratedAt, setSummaryGeneratedAt] = useState<number | null>(
+    null,
+  );
   const [location, setLocation] = useState<LocationCoords | null>(null);
   const [cityName, setCityName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
-  const [refreshRate, setRefreshRateState] = useState<number>(DEFAULT_REFRESH_RATE);
+  const [refreshRate, setRefreshRateState] =
+    useState<number>(DEFAULT_REFRESH_RATE);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const appState = React.useRef(AppState.currentState);
   let isInitializing = false;
 
-  const weatherCondition: WeatherCondition = currentWeather 
+  const weatherCondition: WeatherCondition = currentWeather
     ? getWeatherCondition(currentWeather.weather[0].main)
     : 'clear';
 
@@ -90,7 +118,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const loadDataFromStorage = async () => {
     try {
       console.log('📱 Loading data from storage...');
-      
+
       // Load all data in parallel
       const [
         storedWeather,
@@ -102,7 +130,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         storedCityName,
         storedLastUpdated,
         storedDarkMode,
-        storedRefreshRate
+        storedRefreshRate,
       ] = await Promise.all([
         loadCurrentWeather(),
         loadForecast(),
@@ -113,7 +141,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         loadCityName(),
         loadLastUpdated(),
         loadDarkMode(),
-        loadRefreshRate()
+        loadRefreshRate(),
       ]);
 
       // Update state with stored data
@@ -121,12 +149,12 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         setCurrentWeather(storedWeather);
         console.log('✅ Loaded current weather from storage');
       }
-      
+
       if (storedForecast) {
         setForecast(storedForecast);
         console.log('✅ Loaded forecast from storage');
       }
-      
+
       if (storedAlerts) {
         setWeatherAlerts(storedAlerts);
         console.log('✅ Loaded weather alerts from storage');
@@ -142,27 +170,27 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         setSummaryGeneratedAt(storedSummary.generatedAt);
         console.log('✅ Loaded weather summary from storage');
       }
-      
+
       if (storedLocation) {
         setLocation(storedLocation);
         console.log('✅ Loaded location from storage');
       }
-      
+
       if (storedCityName) {
         setCityName(storedCityName);
         console.log('✅ Loaded city name from storage');
       }
-      
+
       if (storedLastUpdated) {
         setLastUpdated(storedLastUpdated);
         console.log('✅ Loaded last updated time from storage');
       }
-      
+
       if (storedDarkMode !== null && storedDarkMode !== undefined) {
         setIsDarkMode(storedDarkMode);
         console.log('✅ Loaded dark mode preference from storage');
       }
-      
+
       if (storedRefreshRate !== null && storedRefreshRate !== undefined) {
         setRefreshRateState(storedRefreshRate);
         console.log('✅ Loaded refresh rate from storage');
@@ -173,7 +201,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         hasWeatherData: !!(storedWeather && storedForecast),
         location: storedLocation,
         lastUpdated: storedLastUpdated,
-        refreshRate: storedRefreshRate || DEFAULT_REFRESH_RATE
+        refreshRate: storedRefreshRate || DEFAULT_REFRESH_RATE,
       };
     } catch (error) {
       console.error('❌ Failed to load data from storage:', error);
@@ -181,7 +209,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         hasWeatherData: false,
         location: null,
         lastUpdated: null,
-        refreshRate: DEFAULT_REFRESH_RATE
+        refreshRate: DEFAULT_REFRESH_RATE,
       };
     }
   };
@@ -199,19 +227,19 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   }) => {
     try {
       console.log('💾 Saving data to storage...');
-      
+
       const savePromises = [];
-      
+
       if (data.weather !== undefined) {
         savePromises.push(saveCurrentWeather(data.weather));
         setCurrentWeather(data.weather);
       }
-      
+
       if (data.forecast !== undefined) {
         savePromises.push(saveForecast(data.forecast));
         setForecast(data.forecast);
       }
-      
+
       if (data.alerts !== undefined) {
         savePromises.push(saveWeatherAlerts(data.alerts));
         setWeatherAlerts(data.alerts);
@@ -227,22 +255,22 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
         setWeatherSummary(data.summary);
         setSummaryGeneratedAt(data.summary ? Date.now() : null);
       }
-      
+
       if (data.location !== undefined) {
         savePromises.push(saveLocation(data.location));
         setLocation(data.location);
       }
-      
+
       if (data.cityName !== undefined) {
         savePromises.push(saveCityName(data.cityName));
         setCityName(data.cityName);
       }
-      
+
       if (data.lastUpdated !== undefined) {
         savePromises.push(saveLastUpdated(data.lastUpdated));
         setLastUpdated(data.lastUpdated);
       }
-      
+
       await Promise.all(savePromises);
       console.log('💾 Data saved to storage and UI updated');
     } catch (error) {
@@ -250,7 +278,10 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
-  const shouldAutoRefresh = (lastUpdateTime: number | null, refreshRateMinutes: number): boolean => {
+  const shouldAutoRefresh = (
+    lastUpdateTime: number | null,
+    refreshRateMinutes: number,
+  ): boolean => {
     if (!lastUpdateTime) {
       console.log('🔄 No previous update time found, should refresh');
       return true; // No previous update, should refresh
@@ -260,16 +291,24 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     const timeSinceLastUpdate = now - lastUpdateTime;
     const refreshIntervalMs = refreshRateMinutes * 60 * 1000; // Convert minutes to milliseconds
 
-    console.log(`⏰ Time since last update: ${Math.round(timeSinceLastUpdate / 1000 / 60)} minutes`);
+    console.log(
+      `⏰ Time since last update: ${Math.round(timeSinceLastUpdate / 1000 / 60)} minutes`,
+    );
     console.log(`⏰ Refresh interval: ${refreshRateMinutes} minutes`);
-    console.log(`⏰ Should auto refresh: ${timeSinceLastUpdate > refreshIntervalMs}`);
+    console.log(
+      `⏰ Should auto refresh: ${timeSinceLastUpdate > refreshIntervalMs}`,
+    );
 
     return timeSinceLastUpdate > refreshIntervalMs;
   };
 
-  const shouldRegenerateSummary = (summaryGeneratedTime: number | null): boolean => {
+  const shouldRegenerateSummary = (
+    summaryGeneratedTime: number | null,
+  ): boolean => {
     if (!summaryGeneratedTime) {
-      console.log('🔄 No previous summary generated time found, should regenerate');
+      console.log(
+        '🔄 No previous summary generated time found, should regenerate',
+      );
       return true; // No previous summary, should generate
     }
 
@@ -288,13 +327,16 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
     try {
       console.log('🤖 Generating AI weather summary...');
-      const summary = await geminiService.generateWeatherSummary({
-        currentWeather,
-        forecast,
-        alerts: weatherAlerts,
-        airQuality: weatherAirQuality,
-        cityName,
-      }, 'manual');
+      const summary = await geminiService.generateWeatherSummary(
+        {
+          currentWeather,
+          forecast,
+          alerts: weatherAlerts,
+          airQuality: weatherAirQuality,
+          cityName,
+        },
+        'manual',
+      );
 
       await saveDataToStorage({ summary });
       console.log('✅ Weather summary generated and saved');
@@ -303,7 +345,10 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
   };
 
-  const fetchWeatherData = async (coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual') => {
+  const fetchWeatherData = async (
+    coords: LocationCoords,
+    trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual',
+  ) => {
     try {
       if (loading) {
         console.log('🔄 Already fetching weather data, skipping...');
@@ -314,7 +359,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       setError(null);
 
       // Use the new One Call API to get both current weather and forecast in a single call
-      const { currentWeather: weatherData, forecast: forecastData } = await weatherService.getWeatherData(coords, trigger);
+      const { currentWeather: weatherData, forecast: forecastData } =
+        await weatherService.getWeatherData(coords, trigger);
 
       // Save all data to storage and update UI
       await saveDataToStorage({
@@ -324,30 +370,40 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
       let alerts = weatherAlerts;
       var hasNewAlerts = false;
-      
+
       try {
         console.log('🌩️ Fetching weather alerts from Caiyun API...');
-        
-        const caiyunResponse = await caiyunService.getWeatherData(coords, trigger);
-        
-        if (caiyunResponse.result?.alert?.content && caiyunResponse.result.alert.content.length > 0) {
-            alerts = caiyunResponse.result.alert.content;
-          
+
+        const caiyunResponse = await caiyunService.getWeatherData(
+          coords,
+          trigger,
+        );
+
+        if (
+          caiyunResponse.result?.alert?.content &&
+          caiyunResponse.result.alert.content.length > 0
+        ) {
+          alerts = caiyunResponse.result.alert.content;
+
           // Save alerts to storage and update UI
           await saveDataToStorage({ alerts });
 
           // Filter out alerts that have already been notified
-          const alertIds = alerts.map(alert => alert.alertId);
+          const alertIds = alerts.map((alert) => alert.alertId);
           const newAlertIds = await alertTracker.filterNewAlerts(alertIds);
-          
-          console.log(`📊 Total alerts: ${alerts.length}, New alerts: ${newAlertIds.length}`);
+
+          console.log(
+            `📊 Total alerts: ${alerts.length}, New alerts: ${newAlertIds.length}`,
+          );
 
           // Show notifications only for new alerts
-          const newAlerts = alerts.filter(alert => newAlertIds.includes(alert.alertId));
+          const newAlerts = alerts.filter((alert) =>
+            newAlertIds.includes(alert.alertId),
+          );
           if (newAlerts.length > 0) {
             hasNewAlerts = true;
           }
-          
+
           for (const alert of newAlerts) {
             console.log('📢 Showing notification for new alert:', alert.title);
             await notificationService.showWeatherAlert(alert);
@@ -356,24 +412,31 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
           // Track all alert IDs to prevent future duplicates
           if (alertIds.length > 0) {
             await alertTracker.addMultipleAlertIds(alertIds);
-            console.log(`✅ Tracked ${alertIds.length} alert IDs for duplicate prevention`);
+            console.log(
+              `✅ Tracked ${alertIds.length} alert IDs for duplicate prevention`,
+            );
           }
-          
-          console.log(`✅ Loaded ${alerts.length} weather alerts from Caiyun API (${newAlerts.length} new notifications sent)`);
+
+          console.log(
+            `✅ Loaded ${alerts.length} weather alerts from Caiyun API (${newAlerts.length} new notifications sent)`,
+          );
         } else {
           console.log('ℹ️ No weather alerts found for this location');
           await saveDataToStorage({ alerts: [] });
         }
 
         if (caiyunResponse?.result?.realtime?.air_quality?.aqi) {
-          const airQuality: CaiyunAirQuality = caiyunResponse.result.realtime.air_quality;
+          const airQuality: CaiyunAirQuality =
+            caiyunResponse.result.realtime.air_quality;
           await saveDataToStorage({ airQuality });
           setWeatherAirQuality(airQuality);
           console.log('✅ Loaded weather air quality data from Caiyun API');
         }
-
       } catch (alertError) {
-        console.log('⚠️ Weather alerts not available for this location:', alertError);
+        console.log(
+          '⚠️ Weather alerts not available for this location:',
+          alertError,
+        );
         await saveDataToStorage({ alerts: [] });
       }
 
@@ -386,13 +449,16 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       if (trigger === 'manual') {
         try {
           console.log('🤖 Generating weather summary...');
-          const summary = await geminiService.generateWeatherSummary({
-            currentWeather: weatherData,
-            forecast: forecastData,
-            alerts: alerts,
-            airQuality: weatherAirQuality,
-            cityName: cityName,
-          }, trigger);
+          const summary = await geminiService.generateWeatherSummary(
+            {
+              currentWeather: weatherData,
+              forecast: forecastData,
+              alerts: alerts,
+              airQuality: weatherAirQuality,
+              cityName: cityName,
+            },
+            trigger,
+          );
 
           await saveDataToStorage({ summary });
           console.log('✅ Weather summary generated and saved');
@@ -403,7 +469,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
       console.log('✅ Weather data fetch completed successfully');
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch weather data';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to fetch weather data';
       console.error('❌ Weather data fetch failed:', errorMessage);
       setError(errorMessage);
     } finally {
@@ -418,7 +485,8 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       console.log('📍 Location obtained:', coords);
       return coords;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to get location';
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to get location';
       console.error('❌ Location fetch failed:', errorMessage);
       setError(errorMessage);
       throw err;
@@ -448,12 +516,12 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
   const refreshWeather = async () => {
     try {
       let coords = location;
-      
+
       // If we don't have location, get it first
       if (!coords) {
         coords = await getCurrentLocation();
       }
-      
+
       if (coords) {
         await fetchWeatherData(coords, 'manual');
       }
@@ -477,16 +545,15 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     try {
       await saveRefreshRate(minutes);
       console.log(`✅ Refresh rate updated to ${minutes} minutes`);
-    }
-    catch (error) {
+    } catch (error) {
       console.error('❌ Failed to save refresh rate:', error);
     }
-  }
+  };
 
   const initWeatherData = async () => {
     // Step 1: Load all data from storage first
     const storageData = await loadDataFromStorage();
-    
+
     // Step 2: Get current location
     let coords = storageData.location;
     if (!coords) {
@@ -495,8 +562,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     }
 
     // Step 3: Check if we need to refresh data
-    const needsRefresh = !storageData.hasWeatherData || 
-                        shouldAutoRefresh(storageData.lastUpdated, storageData.refreshRate);
+    const needsRefresh =
+      !storageData.hasWeatherData ||
+      shouldAutoRefresh(storageData.lastUpdated, storageData.refreshRate);
 
     if (needsRefresh && coords) {
       console.log('🔄 Data needs refresh, fetching new data...');
@@ -505,19 +573,25 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       console.log('✅ Using cached data, no refresh needed');
       setLoading(false);
     }
-  }
+  };
 
   // Function to handle AppState changes
-  const handleAppStateChange = useCallback(async (nextAppState: AppStateStatus) => {
-    if (appState.current.match(/inactive|background/) && nextAppState === 'active') {
-      console.log('App has come to the foreground!');
-      if (!isInitializing) {
-        await initWeatherData();
+  const handleAppStateChange = useCallback(
+    async (nextAppState: AppStateStatus) => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        console.log('App has come to the foreground!');
+        if (!isInitializing) {
+          await initWeatherData();
+        }
       }
-    }
-    appState.current = nextAppState;
-    console.log('AppState', appState.current);
-  }, []);
+      appState.current = nextAppState;
+      console.log('AppState', appState.current);
+    },
+    [],
+  );
 
   // Initialize app on mount
   useEffect(() => {
@@ -525,7 +599,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
       try {
         isInitializing = true;
         console.log('🚀 Initializing WeatherMonitor NT...');
-        
+
         // Initialize notifications
         await notificationService.requestPermissions();
 
@@ -545,7 +619,10 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
 
     initializeApp();
     // Set up AppState listener
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
 
     // Cleanup interval on unmount
     return () => {
@@ -576,13 +653,11 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({ children }) =>
     refreshWeather,
     generateWeatherSummary,
     toggleDarkMode,
-    setRefreshRate
+    setRefreshRate,
   };
 
   return (
-    <WeatherContext.Provider value={value}>
-      {children}
-    </WeatherContext.Provider>
+    <WeatherContext.Provider value={value}>{children}</WeatherContext.Provider>
   );
 };
 

@@ -1,5 +1,12 @@
 import { fetch } from 'expo/fetch';
-import { CurrentWeather, ForecastResponse, LocationCoords, OneCallResponse, HourlyForecast, DailyForecast } from '../types/weather';
+import {
+  CurrentWeather,
+  ForecastResponse,
+  LocationCoords,
+  OneCallResponse,
+  HourlyForecast,
+  DailyForecast,
+} from '../types/weather';
 import { apiLogger } from './apiLogger';
 
 const BASE_URL = 'https://api.openweathermap.org/data/3.0/onecall';
@@ -18,7 +25,9 @@ class WeatherService {
   getApiKey(): string {
     return this.apiKey;
   }
-  private transformOneCallToCurrentWeather(data: OneCallResponse): CurrentWeather {
+  private transformOneCallToCurrentWeather(
+    data: OneCallResponse,
+  ): CurrentWeather {
     return {
       coord: {
         lon: data.lon,
@@ -61,42 +70,53 @@ class WeatherService {
   private transformOneCallToForecast(data: OneCallResponse): ForecastResponse {
     // Convert hourly data to match the old API format
     // First, create a map of dates to their sunrise/sunset times from daily data
-    const sunriseSunsetMap = new Map(data.daily.map(day => [
-      new Date(day.dt * 1000).setHours(0, 0, 0, 0) / 1000,
-      { sunrise: day.sunrise, sunset: day.sunset }
-    ]));
+    const sunriseSunsetMap = new Map(
+      data.daily.map((day) => [
+        new Date(day.dt * 1000).setHours(0, 0, 0, 0) / 1000,
+        { sunrise: day.sunrise, sunset: day.sunset },
+      ]),
+    );
 
     const hourlyForecasts: HourlyForecast[] = data.hourly.map((hourly) => ({
-        dt: hourly.dt,
-        sys: {
-          // Find the corresponding day's sunrise/sunset times
-          sunrise: sunriseSunsetMap.get(new Date(hourly.dt * 1000).setHours(0, 0, 0, 0) / 1000)?.sunrise || data.current.sunrise,
-          sunset: sunriseSunsetMap.get(new Date(hourly.dt * 1000).setHours(0, 0, 0, 0) / 1000)?.sunset || data.current.sunset,
-          country: '',
-        },
-        main: {
-          temp: hourly.temp,
-          feels_like: hourly.feels_like,
-          temp_min: hourly.temp,
-          temp_max: hourly.temp,
-          pressure: hourly.pressure,
-          humidity: hourly.humidity,
-        },
-        weather: hourly.weather,
-        clouds: {
-          all: hourly.clouds,
-        },
-        wind: {
-          speed: hourly.wind_speed,
-          deg: hourly.wind_deg,
-          gust: hourly.wind_gust,
-        },
-        visibility: hourly.visibility,
-        pop: hourly.pop,
-        dt_txt: new Date(hourly.dt * 1000).toISOString().replace('T', ' ').slice(0, 19),
-        rain: hourly.rain,
-        snow: hourly.snow,
-      }));
+      dt: hourly.dt,
+      sys: {
+        // Find the corresponding day's sunrise/sunset times
+        sunrise:
+          sunriseSunsetMap.get(
+            new Date(hourly.dt * 1000).setHours(0, 0, 0, 0) / 1000,
+          )?.sunrise || data.current.sunrise,
+        sunset:
+          sunriseSunsetMap.get(
+            new Date(hourly.dt * 1000).setHours(0, 0, 0, 0) / 1000,
+          )?.sunset || data.current.sunset,
+        country: '',
+      },
+      main: {
+        temp: hourly.temp,
+        feels_like: hourly.feels_like,
+        temp_min: hourly.temp,
+        temp_max: hourly.temp,
+        pressure: hourly.pressure,
+        humidity: hourly.humidity,
+      },
+      weather: hourly.weather,
+      clouds: {
+        all: hourly.clouds,
+      },
+      wind: {
+        speed: hourly.wind_speed,
+        deg: hourly.wind_deg,
+        gust: hourly.wind_gust,
+      },
+      visibility: hourly.visibility,
+      pop: hourly.pop,
+      dt_txt: new Date(hourly.dt * 1000)
+        .toISOString()
+        .replace('T', ' ')
+        .slice(0, 19),
+      rain: hourly.rain,
+      snow: hourly.snow,
+    }));
 
     // Convert daily data to match the old API format
     const dailyForecasts: DailyForecast[] = data.daily.map((daily) => ({
@@ -119,7 +139,10 @@ class WeatherService {
         gust: daily.wind_gust,
       },
       pop: daily.pop,
-      dt_txt: new Date(daily.dt * 1000).toISOString().replace('T', ' ').slice(0, 19),
+      dt_txt: new Date(daily.dt * 1000)
+        .toISOString()
+        .replace('T', ' ')
+        .slice(0, 19),
       rain: daily.rain,
       snow: daily.snow,
     }));
@@ -146,24 +169,31 @@ class WeatherService {
     };
   }
 
-  async getWeatherData(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<{
+  async getWeatherData(
+    coords: LocationCoords,
+    trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual',
+  ): Promise<{
     currentWeather: CurrentWeather;
     forecast: ForecastResponse;
   }> {
     if (!this.apiKey || this.apiKey === 'your_openweathermap_api_key_here') {
-      throw new Error('OpenWeatherMap API key not configured. Please add your API key to .env file.');
+      throw new Error(
+        'OpenWeatherMap API key not configured. Please add your API key to .env file.',
+      );
     }
 
     const url = `${BASE_URL}?lat=${coords.latitude}&lon=${coords.longitude}&appid=${this.apiKey}&units=metric&exclude=minutely,alerts`;
     const startTime = Date.now();
-    
+
     try {
       console.log('🌐 Loading weather data with One Call API 3.0...');
       const response = await fetch(url);
       const responseTime = Date.now() - startTime;
-      
+
       if (!response.ok) {
-        console.log(`❌ Error fetching weather data: ${response.status} ${response.statusText}`);
+        console.log(
+          `❌ Error fetching weather data: ${response.status} ${response.statusText}`,
+        );
         await apiLogger.logRequest(
           'getWeatherData (One Call 3.0)',
           'GET',
@@ -171,19 +201,29 @@ class WeatherService {
           trigger,
           responseTime,
           `${response.status} ${response.statusText}`,
-          'openweather'
+          'openweather',
         );
-        throw new Error(`Weather API error: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Weather API error: ${response.status} ${response.statusText}`,
+        );
       }
-      
+
       const data: OneCallResponse = await response.json();
       console.log('✅ Got weather data successfully with One Call API 3.0');
-      await apiLogger.logRequest('getWeatherData (One Call 3.0)', 'GET', 'success', trigger, responseTime, undefined, 'openweather');
-      
+      await apiLogger.logRequest(
+        'getWeatherData (One Call 3.0)',
+        'GET',
+        'success',
+        trigger,
+        responseTime,
+        undefined,
+        'openweather',
+      );
+
       // Transform the One Call API response to match our existing interfaces
       const currentWeather = this.transformOneCallToCurrentWeather(data);
       const forecast = this.transformOneCallToForecast(data);
-      
+
       return {
         currentWeather,
         forecast,
@@ -197,22 +237,30 @@ class WeatherService {
         trigger,
         responseTime,
         error instanceof Error ? error.message : 'Unknown error',
-        'openweather'
+        'openweather',
       );
       throw error;
     }
   }
 
   // Legacy methods for backward compatibility
-  async getCurrentWeather(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<CurrentWeather> {
+  async getCurrentWeather(
+    coords: LocationCoords,
+    trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual',
+  ): Promise<CurrentWeather> {
     const { currentWeather } = await this.getWeatherData(coords, trigger);
     return currentWeather;
   }
 
-  async getForecast(coords: LocationCoords, trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual'): Promise<ForecastResponse> {
+  async getForecast(
+    coords: LocationCoords,
+    trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual',
+  ): Promise<ForecastResponse> {
     const { forecast } = await this.getWeatherData(coords, trigger);
     return forecast;
   }
 }
 
-export const weatherService = new WeatherService(process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY);
+export const weatherService = new WeatherService(
+  process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY,
+);

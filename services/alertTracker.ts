@@ -1,4 +1,8 @@
-import { saveAlertTracker, loadAlertTracker, clearAlertTracker } from '../utils/weatherStorage';
+import {
+  saveAlertTracker,
+  loadAlertTracker,
+  clearAlertTracker,
+} from '../utils/weatherStorage';
 
 export interface AlertTracker {
   recentAlertIds: string[];
@@ -31,7 +35,7 @@ class AlertTrackerService {
   async addAlertId(alertId: string): Promise<void> {
     try {
       const recentAlertIds = await this.getRecentAlertIds();
-      
+
       // Check if alert ID already exists
       if (recentAlertIds.includes(alertId)) {
         return;
@@ -39,9 +43,12 @@ class AlertTrackerService {
 
       // Add new alert ID to the beginning of the array
       const updatedAlertIds = [alertId, ...recentAlertIds];
-      
+
       // Keep only the most recent MAX_RECENT_ALERTS
-      const trimmedAlertIds = updatedAlertIds.slice(0, AlertTrackerService.MAX_RECENT_ALERTS);
+      const trimmedAlertIds = updatedAlertIds.slice(
+        0,
+        AlertTrackerService.MAX_RECENT_ALERTS,
+      );
 
       const tracker: AlertTracker = {
         recentAlertIds: trimmedAlertIds,
@@ -57,19 +64,22 @@ class AlertTrackerService {
   async addMultipleAlertIds(alertIds: string[]): Promise<void> {
     try {
       const recentAlertIds = await this.getRecentAlertIds();
-      
+
       // Filter out alert IDs that already exist
-      const newAlertIds = alertIds.filter(id => !recentAlertIds.includes(id));
-      
+      const newAlertIds = alertIds.filter((id) => !recentAlertIds.includes(id));
+
       if (newAlertIds.length === 0) {
         return;
       }
 
       // Add new alert IDs to the beginning of the array
       const updatedAlertIds = [...newAlertIds, ...recentAlertIds];
-      
+
       // Keep only the most recent MAX_RECENT_ALERTS
-      const trimmedAlertIds = updatedAlertIds.slice(0, AlertTrackerService.MAX_RECENT_ALERTS);
+      const trimmedAlertIds = updatedAlertIds.slice(
+        0,
+        AlertTrackerService.MAX_RECENT_ALERTS,
+      );
 
       const tracker: AlertTracker = {
         recentAlertIds: trimmedAlertIds,
@@ -95,7 +105,7 @@ class AlertTrackerService {
   async filterNewAlerts(alertIds: string[]): Promise<string[]> {
     try {
       const recentAlertIds = await this.getRecentAlertIds();
-      return alertIds.filter(id => !recentAlertIds.includes(id));
+      return alertIds.filter((id) => !recentAlertIds.includes(id));
     } catch (error) {
       console.error('Failed to filter new alerts:', error);
       return alertIds; // Return all if error occurs

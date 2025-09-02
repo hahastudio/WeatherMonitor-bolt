@@ -1,6 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import Svg, { Path, Line, Text as SvgText, Circle, Rect, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, {
+  Path,
+  Line,
+  Text as SvgText,
+  Circle,
+  Rect,
+  Defs,
+  LinearGradient,
+  Stop,
+} from 'react-native-svg';
 import { useWeather } from '../contexts/WeatherContext';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -48,40 +57,37 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   if (!data || data.length === 0) {
     return (
       <View style={[styles.container, { height: chartHeight }]}>
-        <Text style={styles.noDataText}>
-          No data available
-        </Text>
+        <Text style={styles.noDataText}>No data available</Text>
       </View>
     );
   }
 
   // Filter valid data points
-  const validData = data.filter(d => 
-    typeof d.x === 'number' && 
-    typeof d.y === 'number' && 
-    !isNaN(d.y) && 
-    isFinite(d.y)
+  const validData = data.filter(
+    (d) =>
+      typeof d.x === 'number' &&
+      typeof d.y === 'number' &&
+      !isNaN(d.y) &&
+      isFinite(d.y),
   );
 
   if (validData.length === 0) {
     return (
       <View style={[styles.container, { height: chartHeight }]}>
-        <Text style={styles.noDataText}>
-          No valid data points
-        </Text>
+        <Text style={styles.noDataText}>No valid data points</Text>
       </View>
     );
   }
 
   // Calculate scales with special handling for precipitation and pressure
-  const yValues = validData.map(d => d.y);
+  const yValues = validData.map((d) => d.y);
   let minY = Math.min(...yValues);
   let maxY = Math.max(...yValues);
-  
+
   // Special handling for precipitation charts - always start from 0
   const isPrecipitationChart = unit.includes('mm');
   const isPressureChart = unit.includes('hPa');
-  
+
   if (isPrecipitationChart) {
     minY = 0; // Force precipitation charts to start from 0
     // Ensure we have some range even if all values are 0
@@ -89,30 +95,37 @@ export const CustomChart: React.FC<CustomChartProps> = ({
       maxY = 1; // Show a small range for better visualization
     }
   }
-  
+
   // For pressure charts, ensure standard pressure (1013 hPa) is visible
   if (isPressureChart) {
     const standardPressure = 1013;
     minY = Math.min(minY, standardPressure - 10); // Ensure some space below standard pressure
     maxY = Math.max(maxY, standardPressure + 10); // Ensure some space above standard pressure
   }
-  
+
   const yRange = maxY - minY || 1;
   const yPadding = isPrecipitationChart ? 0 : yRange * 0.1; // No padding for precipitation
 
-  const xScale = (x: number) => padding.left + (x / (validData.length - 1 || 1)) * (chartWidth - padding.left - padding.right);
-  const yScale = (y: number) => chartHeight - padding.bottom - ((y - minY + yPadding) / (yRange + 2 * yPadding)) * (chartHeight - padding.top - padding.bottom);
+  const xScale = (x: number) =>
+    padding.left +
+    (x / (validData.length - 1 || 1)) *
+      (chartWidth - padding.left - padding.right);
+  const yScale = (y: number) =>
+    chartHeight -
+    padding.bottom -
+    ((y - minY + yPadding) / (yRange + 2 * yPadding)) *
+      (chartHeight - padding.top - padding.bottom);
 
   // Generate path for line/area chart
   const generatePath = () => {
     if (validData.length === 0) return '';
-    
+
     let path = `M ${xScale(0)} ${yScale(validData[0].y)}`;
-    
+
     for (let i = 1; i < validData.length; i++) {
       const x = xScale(i);
       const y = yScale(validData[i].y);
-      
+
       // Use smooth curves for better visual appeal
       if (i === 1) {
         path += ` L ${x} ${y}`;
@@ -126,25 +139,27 @@ export const CustomChart: React.FC<CustomChartProps> = ({
         path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${x} ${y}`;
       }
     }
-    
+
     if (type === 'area') {
       path += ` L ${xScale(validData.length - 1)} ${chartHeight - padding.bottom}`;
       path += ` L ${xScale(0)} ${chartHeight - padding.bottom}`;
       path += ' Z';
     }
-    
+
     return path;
   };
 
   // Generate grid lines
   const generateGridLines = () => {
     if (!showGrid) return null;
-    
+
     const gridLines = [];
     const numYLines = 4;
-    
+
     for (let i = 1; i < numYLines; i++) {
-      const y = padding.top + (i / numYLines) * (chartHeight - padding.top - padding.bottom);
+      const y =
+        padding.top +
+        (i / numYLines) * (chartHeight - padding.top - padding.bottom);
       gridLines.push(
         <Line
           key={`grid-y-${i}`}
@@ -156,23 +171,23 @@ export const CustomChart: React.FC<CustomChartProps> = ({
           strokeWidth={0.5}
           strokeOpacity={0.15}
           strokeDasharray="3,3"
-        />
+        />,
       );
     }
-    
+
     return gridLines;
   };
 
   // Generate standard pressure reference line for pressure charts
   const generateStandardPressureLine = () => {
     if (!isPressureChart) return null;
-    
+
     const standardPressure = 1013;
     const y = yScale(standardPressure);
-    
+
     // Only show the line if it's within the visible chart area
     if (y < padding.top || y > chartHeight - padding.bottom) return null;
-    
+
     return (
       <>
         <Line
@@ -203,11 +218,14 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   const generateYLabels = () => {
     const labels = [];
     const numLabels = 4;
-    
+
     for (let i = 0; i <= numLabels; i++) {
       const value = minY - yPadding + (i / numLabels) * (yRange + 2 * yPadding);
-      const y = chartHeight - padding.bottom - (i / numLabels) * (chartHeight - padding.top - padding.bottom);
-      
+      const y =
+        chartHeight -
+        padding.bottom -
+        (i / numLabels) * (chartHeight - padding.top - padding.bottom);
+
       // Format the value based on the unit
       let formattedValue;
       if (unit.includes('°C')) {
@@ -225,7 +243,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
       } else {
         formattedValue = `${Math.round(value)}${unit}`;
       }
-      
+
       labels.push(
         <SvgText
           key={`y-label-${i}`}
@@ -237,17 +255,17 @@ export const CustomChart: React.FC<CustomChartProps> = ({
           fontWeight="500"
         >
           {formattedValue}
-        </SvgText>
+        </SvgText>,
       );
     }
-    
+
     return labels;
   };
 
   // Generate X-axis labels
   const generateXLabels = () => {
     const labels = [];
-    
+
     for (let i = 0; i < validData.length; i += 1) {
       const dataPoint = validData[i];
       if (dataPoint.label) {
@@ -262,11 +280,11 @@ export const CustomChart: React.FC<CustomChartProps> = ({
             fontWeight="500"
           >
             {dataPoint.label}
-          </SvgText>
+          </SvgText>,
         );
       }
     }
-    
+
     return labels;
   };
 
@@ -274,32 +292,48 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     <View style={styles.container}>
       <Svg width={chartWidth} height={chartHeight}>
         <Defs>
-          <LinearGradient id={`gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <LinearGradient
+            id={`gradient-${color.replace('#', '')}`}
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
             <Stop offset="0%" stopColor={color} stopOpacity="0.4" />
             <Stop offset="100%" stopColor={color} stopOpacity="0.05" />
           </LinearGradient>
-          <LinearGradient id={`bar-gradient-${color.replace('#', '')}`} x1="0%" y1="0%" x2="0%" y2="100%">
+          <LinearGradient
+            id={`bar-gradient-${color.replace('#', '')}`}
+            x1="0%"
+            y1="0%"
+            x2="0%"
+            y2="100%"
+          >
             <Stop offset="0%" stopColor={color} stopOpacity="0.8" />
             <Stop offset="100%" stopColor={color} stopOpacity="0.3" />
           </LinearGradient>
         </Defs>
-        
+
         {/* Grid lines */}
         {generateGridLines()}
-        
+
         {/* Standard pressure reference line (only for pressure charts) */}
         {generateStandardPressureLine()}
-        
+
         {/* Chart content */}
         {type === 'bar' ? (
           // Bar chart
           validData.map((point, index) => {
-            const barWidth = Math.max(4, (chartWidth - padding.left - padding.right) / validData.length * 0.6);
+            const barWidth = Math.max(
+              4,
+              ((chartWidth - padding.left - padding.right) / validData.length) *
+                0.6,
+            );
             const x = xScale(index) - barWidth / 2;
             const y = yScale(point.y);
             const height = Math.max(2, chartHeight - padding.bottom - y);
             const barColor = point.label ? theme.secondary : color; // Alternate color every 12 bars
-            
+
             return (
               <Rect
                 key={`bar-${index}`}
@@ -325,7 +359,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
                 stroke="none"
               />
             )}
-            
+
             <Path
               d={generatePath()}
               fill="none"
@@ -334,26 +368,27 @@ export const CustomChart: React.FC<CustomChartProps> = ({
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            
+
             {/* Data points for line charts */}
-            {type === 'line' && validData.map((point, index) => {
-              if (point.label)
-                return (
-                  <Circle
-                    key={`point-${index}`}
-                    cx={xScale(index)}
-                    cy={yScale(point.y)}
-                    r={3}
-                    fill={color}
-                    stroke="rgba(255,255,255,0.9)"
-                    strokeWidth={2}
-                  />
-                );
-              return <></>;
-            })}
+            {type === 'line' &&
+              validData.map((point, index) => {
+                if (point.label)
+                  return (
+                    <Circle
+                      key={`point-${index}`}
+                      cx={xScale(index)}
+                      cy={yScale(point.y)}
+                      r={3}
+                      fill={color}
+                      stroke="rgba(255,255,255,0.9)"
+                      strokeWidth={2}
+                    />
+                  );
+                return <></>;
+              })}
           </>
         )}
-        
+
         {/* Labels */}
         {generateYLabels()}
         {generateXLabels()}

@@ -1,7 +1,13 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 import * as weatherStorage from '../../utils/weatherStorage';
-import type { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, CaiyunAirQuality, LocationCoords } from '../../types/weather';
+import type {
+  CurrentWeather,
+  ForecastResponse,
+  CaiyunWeatherAlert,
+  CaiyunAirQuality,
+  LocationCoords,
+} from '../../types/weather';
 import type { WeatherSummary } from '../../services/geminiService';
 import type { AlertTracker } from '../../services/alertTracker';
 import type { ApiLogEntry } from '../../services/apiLogger';
@@ -49,26 +55,35 @@ describe('Weather Storage', () => {
       cod: '200',
       message: 0,
       cnt: 1,
-      hourly: [{
-        dt: 1630000000,
-        main: {
-          temp: 25,
-          feels_like: 26,
-          temp_min: 25,
-          temp_max: 25,
-          pressure: 1015,
-          humidity: 60,
+      hourly: [
+        {
+          dt: 1630000000,
+          main: {
+            temp: 25,
+            feels_like: 26,
+            temp_min: 25,
+            temp_max: 25,
+            pressure: 1015,
+            humidity: 60,
+          },
+          weather: [
+            { id: 800, main: 'Clear', description: '晴天', icon: '01d' },
+          ],
+          clouds: { all: 0 },
+          wind: {
+            speed: 5,
+            deg: 180,
+          },
+          visibility: 10000,
+          pop: 0,
+          dt_txt: '2021-08-26 17:46:40',
+          sys: {
+            sunrise: 1629979200,
+            sunset: 1630027800,
+            country: 'CN',
+          },
         },
-        weather: [{ id: 800, main: 'Clear', description: '晴天', icon: '01d' }],
-        clouds: { all: 0 },
-        wind: {
-          speed: 5,
-          deg: 180,
-        },
-        visibility: 10000,
-        pop: 0,
-        dt_txt: '2021-08-26 17:46:40',
-      }],
+      ],
       daily: [],
       city: {
         id: 1816670,
@@ -79,31 +94,33 @@ describe('Weather Storage', () => {
         timezone: 28800,
         sunrise: 1629979200,
         sunset: 1630027800,
-      }
+      },
     };
 
-    const mockWeatherAlerts: CaiyunWeatherAlert[] = [{
-      alertId: 'BJ20250830001',
-      title: '北京市气象台发布大风蓝色预警',
-      description: '大风蓝色预警',
-      status: 'active',
-      code: '0301',
-      province: '北京市',
-      city: '北京市',
-      county: '海淀区',
-      location: '海淀区',
-      source: '北京市气象台',
-      pubtimestamp: 1630000000,
-      latlon: [116.4074, 39.9042],
-      adcode: '110108',
-      regionId: 'BJ110108',
-      request_status: 'ok',
-      level: '蓝色',
-      type: '大风',
-      publishTime: '2025-08-30 12:00:00',
-      startTime: '2025-08-30 12:00:00',
-      endTime: '2025-08-31 12:00:00',
-    }];
+    const mockWeatherAlerts: CaiyunWeatherAlert[] = [
+      {
+        alertId: 'BJ20250830001',
+        title: '北京市气象台发布大风蓝色预警',
+        description: '大风蓝色预警',
+        status: 'active',
+        code: '0301',
+        province: '北京市',
+        city: '北京市',
+        county: '海淀区',
+        location: '海淀区',
+        source: '北京市气象台',
+        pubtimestamp: 1630000000,
+        latlon: [116.4074, 39.9042],
+        adcode: '110108',
+        regionId: 'BJ110108',
+        request_status: 'ok',
+        level: '蓝色',
+        type: '大风',
+        publishTime: '2025-08-30 12:00:00',
+        startTime: '2025-08-30 12:00:00',
+        endTime: '2025-08-31 12:00:00',
+      },
+    ];
 
     const mockAirQuality: CaiyunAirQuality = {
       aqi: { chn: 50, usa: 50 },
@@ -114,7 +131,7 @@ describe('Weather Storage', () => {
       alertSummary: null,
       futureWarnings: null,
       recommendations: ['适合户外活动', '注意防晒'],
-      mood: 'positive'
+      mood: 'positive',
     };
 
     const mockLocation: LocationCoords = {
@@ -179,10 +196,13 @@ describe('Weather Storage', () => {
     describe('weatherSummary', () => {
       it('should save and load weather summary with timestamp', async () => {
         jest.useFakeTimers().setSystemTime(new Date('2025-08-30'));
-        
+
         await weatherStorage.saveWeatherSummary(mockWeatherSummary);
         const loadedSummary = await weatherStorage.loadWeatherSummary();
-        expect(loadedSummary).toEqual({ ...mockWeatherSummary, generatedAt: Date.now() });
+        expect(loadedSummary).toEqual({
+          ...mockWeatherSummary,
+          generatedAt: Date.now(),
+        });
 
         jest.useRealTimers();
       });
@@ -271,16 +291,18 @@ describe('Weather Storage', () => {
   });
 
   describe('ApiLogger Storage', () => {
-    const mockApiLogs: ApiLogEntry[] = [{
-      id: `${Date.now()}-test`,
-      timestamp: Date.now(),
-      endpoint: 'test-endpoint',
-      method: 'GET',
-      status: 'success',
-      trigger: 'manual',
-      responseTime: 100,
-      provider: 'caiyun',
-    }];
+    const mockApiLogs: ApiLogEntry[] = [
+      {
+        id: `${Date.now()}-test`,
+        timestamp: Date.now(),
+        endpoint: 'test-endpoint',
+        method: 'GET',
+        status: 'success',
+        trigger: 'manual',
+        responseTime: 100,
+        provider: 'caiyun',
+      },
+    ];
 
     it('should save and load API logs', async () => {
       await weatherStorage.saveApiLogs(mockApiLogs);
@@ -302,6 +324,5 @@ describe('Weather Storage', () => {
       const loadedLogs = await weatherStorage.loadApiLogs();
       expect(loadedLogs).toBeNull();
     });
-
   });
 });

@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch, Alert, Modal } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  Switch,
+  Alert,
+  Modal,
+} from 'react-native';
 import * as Application from 'expo-application';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  Moon, 
-  Sun, 
-  MapPin, 
-  Bell, 
-  RefreshCw, 
+import {
+  Moon,
+  Sun,
+  MapPin,
+  Bell,
+  RefreshCw,
   Info,
   ChevronRight,
   Thermometer,
@@ -22,7 +31,6 @@ import { useWeather } from '../../contexts/WeatherContext';
 import { notificationService } from '../../services/notificationService';
 import { alertTracker } from '../../services/alertTracker';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
-import { locationService } from '@/services/locationService';
 
 const REFRESH_RATE_OPTIONS = [
   { label: '15 minutes', value: 15 },
@@ -32,10 +40,10 @@ const REFRESH_RATE_OPTIONS = [
 ];
 
 export default function SettingsScreen() {
-  const { 
-    theme, 
-    isDarkMode, 
-    toggleDarkMode, 
+  const {
+    theme,
+    isDarkMode,
+    toggleDarkMode,
     currentWeather,
     refreshLocation,
     cityName,
@@ -57,9 +65,10 @@ export default function SettingsScreen() {
     try {
       await notificationService.showGeneralNotification(
         'Weather App Test',
-        'Notifications are working correctly!'
+        'Notifications are working correctly!',
       );
     } catch (error) {
+      console.log(error);
       Alert.alert('Error', 'Failed to send test notification');
     }
   };
@@ -70,17 +79,23 @@ export default function SettingsScreen() {
       'This will get your current location and update the weather data.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Refresh', onPress: async () => {
+        {
+          text: 'Refresh',
+          onPress: async () => {
             try {
               await refreshLocation();
               await refreshWeather();
-              Alert.alert('Success', 'Location and weather data updated successfully');
+              Alert.alert(
+                'Success',
+                'Location and weather data updated successfully',
+              );
             } catch (error) {
+              console.log(error);
               Alert.alert('Error', 'Failed to refresh location');
             }
-          }
+          },
         },
-      ]
+      ],
     );
   };
 
@@ -108,11 +123,12 @@ export default function SettingsScreen() {
               });
               Alert.alert('Success', 'Alert history cleared successfully');
             } catch (error) {
+              console.log(error);
               Alert.alert('Error', 'Failed to clear alert history');
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -131,23 +147,23 @@ export default function SettingsScreen() {
     Alert.alert(
       'Weather Monitor NT',
       `A beautiful weather app built with React Native and Expo. Weather data provided by OpenWeatherMap and ColorfulCloud.\n\nVersion ${version}`,
-      [{ text: 'OK' }]
+      [{ text: 'OK' }],
     );
   };
 
   const getRefreshRateLabel = (rate: number): string => {
-    const option = REFRESH_RATE_OPTIONS.find(opt => opt.value === rate);
+    const option = REFRESH_RATE_OPTIONS.find((opt) => opt.value === rate);
     return option ? option.label : `${rate} minutes`;
   };
 
   const formatLastUpdated = (timestamp: number | null): string => {
     if (!timestamp) return 'Never';
-    
+
     const now = Date.now();
     const diffMs = now - timestamp;
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMinutes / 60);
-    
+
     if (diffMinutes < 1) {
       return 'Just now';
     } else if (diffMinutes < 60) {
@@ -167,10 +183,10 @@ export default function SettingsScreen() {
 
   const formatAlertAge = (ageMs: number | null): string => {
     if (!ageMs) return 'N/A';
-    
+
     const hours = Math.floor(ageMs / (1000 * 60 * 60));
     const minutes = Math.floor((ageMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m ago`;
     }
@@ -476,7 +492,7 @@ export default function SettingsScreen() {
           {/* Appearance Settings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Appearance</Text>
-            
+
             <TouchableOpacity style={styles.settingItem}>
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
@@ -496,7 +512,10 @@ export default function SettingsScreen() {
               <Switch
                 value={isDarkMode}
                 onValueChange={toggleDarkMode}
-                trackColor={{ false: theme.textSecondary + '40', true: theme.primary + '40' }}
+                trackColor={{
+                  false: theme.textSecondary + '40',
+                  true: theme.primary + '40',
+                }}
                 thumbColor={isDarkMode ? theme.primary : theme.textSecondary}
               />
             </TouchableOpacity>
@@ -505,8 +524,11 @@ export default function SettingsScreen() {
           {/* Data Settings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Data</Text>
-            
-            <TouchableOpacity style={styles.settingItem} onPress={() => setShowRefreshRateModal(true)}>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => setShowRefreshRateModal(true)}
+            >
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
                   <Clock size={24} color={theme.primary} />
@@ -525,8 +547,11 @@ export default function SettingsScreen() {
                 <ChevronRight size={20} color={theme.textSecondary} />
               </View>
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.settingItem} onPress={refreshWeather}>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={refreshWeather}
+            >
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
                   <RefreshCw size={24} color={theme.primary} />
@@ -541,7 +566,10 @@ export default function SettingsScreen() {
               <ChevronRight size={20} color={theme.textSecondary} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingItem} onPress={() => setShowApiLogModal(true)}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => setShowApiLogModal(true)}
+            >
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
                   <Activity size={24} color={theme.primary} />
@@ -560,8 +588,11 @@ export default function SettingsScreen() {
           {/* Location Settings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Location</Text>
-            
-            <TouchableOpacity style={styles.settingItem} onPress={handleLocationRefresh}>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleLocationRefresh}
+            >
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
                   <MapPin size={24} color={theme.primary} />
@@ -580,8 +611,11 @@ export default function SettingsScreen() {
           {/* Notification Settings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Notifications</Text>
-            
-            <TouchableOpacity style={styles.settingItem} onPress={handleNotificationTest}>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleNotificationTest}
+            >
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
                   <Bell size={24} color={theme.primary} />
@@ -600,19 +634,21 @@ export default function SettingsScreen() {
           {/* Alert Management */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Alert Management</Text>
-            
+
             <View style={styles.infoCard}>
               <Text style={styles.infoTitle}>Alert Duplicate Prevention</Text>
               <Text style={styles.infoText}>
-                The app tracks recent weather alerts to prevent duplicate notifications. 
-                Up to 100 recent alert IDs are stored locally.
+                The app tracks recent weather alerts to prevent duplicate
+                notifications. Up to 100 recent alert IDs are stored locally.
               </Text>
-              
+
               {alertTrackerStats && (
                 <View style={styles.alertStatsContainer}>
                   <View style={styles.alertStatRow}>
                     <Text style={styles.alertStatLabel}>Tracked Alerts:</Text>
-                    <Text style={styles.alertStatValue}>{alertTrackerStats.totalTrackedAlerts}</Text>
+                    <Text style={styles.alertStatValue}>
+                      {alertTrackerStats.totalTrackedAlerts}
+                    </Text>
                   </View>
                   <View style={styles.alertStatRow}>
                     <Text style={styles.alertStatLabel}>Last Updated:</Text>
@@ -624,7 +660,10 @@ export default function SettingsScreen() {
               )}
             </View>
 
-            <TouchableOpacity style={styles.settingItem} onPress={handleClearAlertHistory}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleClearAlertHistory}
+            >
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
                   <Shield size={24} color={theme.accent} />
@@ -639,7 +678,10 @@ export default function SettingsScreen() {
               <ChevronRight size={20} color={theme.textSecondary} />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingItem} onPress={loadAlertTrackerStats}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={loadAlertTrackerStats}
+            >
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
                   <Database size={24} color={theme.primary} />
@@ -658,7 +700,7 @@ export default function SettingsScreen() {
           {/* About */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About</Text>
-            
+
             <TouchableOpacity style={styles.settingItem} onPress={showAbout}>
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>

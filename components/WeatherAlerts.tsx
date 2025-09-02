@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
-import { TriangleAlert as AlertTriangle, Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
+import {
+  TriangleAlert as AlertTriangle,
+  MapPin,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { CaiyunWeatherAlert } from '../types/weather';
 
@@ -9,7 +20,10 @@ interface WeatherAlertsProps {
   onDismiss?: (alertId: string) => void;
 }
 
-export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss }) => {
+export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
+  alerts,
+  onDismiss,
+}) => {
   const { theme } = useWeather();
   const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
 
@@ -35,7 +49,7 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
 
     // Extract level from title (e.g., "黄色预警" -> "yellow", "红色预警" -> "red")
     const title = alert.title?.toLowerCase() || '';
-    
+
     if (title.includes('红色') || title.includes('red')) {
       return 'red';
     } else if (title.includes('橙色') || title.includes('orange')) {
@@ -53,14 +67,14 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
     } else if (title.includes('advisory')) {
       return 'advisory';
     }
-    
+
     // Default fallback
     return 'warning';
   };
 
   const getAlertColor = (alert: CaiyunWeatherAlert) => {
     const level = extractAlertLevel(alert);
-    
+
     switch (level.toLowerCase()) {
       case 'red':
       case 'severe':
@@ -82,10 +96,11 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
   const formatTime = (timestamp: number | string) => {
     try {
       // Handle both timestamp (number) and ISO string
-      const date = typeof timestamp === 'number' 
-        ? new Date(timestamp * 1000) // Convert Unix timestamp to milliseconds
-        : new Date(timestamp);
-        
+      const date =
+        typeof timestamp === 'number'
+          ? new Date(timestamp * 1000) // Convert Unix timestamp to milliseconds
+          : new Date(timestamp);
+
       return date.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -218,13 +233,13 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Weather Alerts</Text>
-      
+
       <View style={styles.alertsContainer}>
         {alerts.map((alert) => {
           const alertColor = getAlertColor(alert);
           const alertLevel = extractAlertLevel(alert);
           const isExpanded = expandedAlerts.has(alert.alertId);
-          
+
           return (
             <View
               key={alert.alertId}
@@ -245,11 +260,14 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
                   <View style={styles.alertIcon}>
                     <AlertTriangle size={20} color={alertColor} />
                   </View>
-                  <Text style={[styles.alertTitle, { color: theme.text }]} numberOfLines={isExpanded ? undefined : 2}>
+                  <Text
+                    style={[styles.alertTitle, { color: theme.text }]}
+                    numberOfLines={isExpanded ? undefined : 2}
+                  >
                     {alert.title}
                   </Text>
                 </View>
-                
+
                 <View style={styles.alertBadges}>
                   <Text
                     style={[
@@ -262,9 +280,8 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
                   >
                     {alertLevel}
                   </Text>
-                  
                 </View>
-                
+
                 <TouchableOpacity
                   style={styles.collapseButton}
                   onPress={() => toggleAlert(alert.alertId)}
@@ -279,7 +296,9 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
 
               {isExpanded && (
                 <View style={styles.alertContent}>
-                  <Text style={[styles.alertDescription, { color: theme.text }]}>
+                  <Text
+                    style={[styles.alertDescription, { color: theme.text }]}
+                  >
                     {alert.description}
                   </Text>
 
@@ -288,17 +307,26 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts, onDismiss 
                       <View style={styles.metaIcon}>
                         <MapPin size={12} color={theme.textSecondary} />
                       </View>
-                      <Text style={[styles.metaText, { color: theme.textSecondary }]}>
+                      <Text
+                        style={[
+                          styles.metaText,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
                         {alert.location || `${alert.city}, ${alert.county}`}
                       </Text>
                     </View>
                   </View>
 
-                  <Text style={[styles.alertTime, { color: theme.textSecondary }]}>
+                  <Text
+                    style={[styles.alertTime, { color: theme.textSecondary }]}
+                  >
                     Published: {formatTime(alert.pubtimestamp)}
                   </Text>
-                  
-                  <Text style={[styles.alertTime, { color: theme.textSecondary }]}>
+
+                  <Text
+                    style={[styles.alertTime, { color: theme.textSecondary }]}
+                  >
                     Source: {alert.source}
                   </Text>
                 </View>

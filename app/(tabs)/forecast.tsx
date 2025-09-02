@@ -1,21 +1,22 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, Platform, FlexStyle } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  FlexStyle,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MousePointer2 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { WeatherIcon } from '../../components/WeatherIcon';
-import { formatDate, formatTime } from '../../utils/weatherTheme';
+import { formatTime } from '../../utils/weatherTheme';
 
 export default function ForecastScreen() {
-  const { 
-    forecast, 
-    loading, 
-    error, 
-    theme, 
-    refreshWeather 
-  } = useWeather();
+  const { forecast, loading, error, theme, refreshWeather } = useWeather();
 
   if (loading && !forecast) {
     return <LoadingSpinner message="Loading forecast data..." />;
@@ -111,7 +112,7 @@ export default function ForecastScreen() {
     // 5-day forecast styles
     dailyContainer: {
       gap: 12,
-      paddingBottom: 40
+      paddingBottom: 40,
     },
     dailyItem: {
       backgroundColor: theme.surface + '90',
@@ -192,7 +193,6 @@ export default function ForecastScreen() {
 
   // Get 5-day forecast data
   const dailyForecast = forecast.daily.map((dayItem) => {
-    
     return {
       date: dayItem.dt,
       weather: dayItem.weather[0],
@@ -204,18 +204,18 @@ export default function ForecastScreen() {
   });
 
   // Calculate temperature range for the bar visualization
-  const allTemps = dailyForecast.flatMap(day => [day.maxTemp, day.minTemp]);
+  const allTemps = dailyForecast.flatMap((day) => [day.maxTemp, day.minTemp]);
   const globalMin = Math.min(...allTemps);
   const globalMax = Math.max(...allTemps);
   const globalMiddle = (globalMin + globalMax) / 2.0;
   const tempRange = Math.max(globalMax - globalMin, 10.0);
   const fixedGlobalMin = globalMiddle - tempRange / 2.0;
-  const fixedGlobalMax = globalMiddle + tempRange / 2.0;
+  // const fixedGlobalMax = globalMiddle + tempRange / 2.0;
 
   const getTempBarGradient = (minTemp: number, maxTemp: number): FlexStyle => {
     const minPosition = ((minTemp - fixedGlobalMin) / tempRange) * 100;
     const maxPosition = ((maxTemp - fixedGlobalMin) / tempRange) * 100;
-    
+
     return {
       marginLeft: `${minPosition}%`,
       width: `${maxPosition - minPosition}%`,
@@ -227,7 +227,7 @@ export default function ForecastScreen() {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    
+
     if (date.toDateString() === today.toDateString()) {
       return 'Today';
     } else {
@@ -250,7 +250,7 @@ export default function ForecastScreen() {
           <Text style={styles.title}>Weather Forecast</Text>
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.content}
           refreshControl={
             <RefreshControl
@@ -264,9 +264,9 @@ export default function ForecastScreen() {
           {/* 48-Hour Forecast */}
           <View style={styles.hourlyContainer}>
             <Text style={styles.sectionTitle}>Next 48 Hours</Text>
-            
-            <ScrollView 
-              horizontal 
+
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               style={styles.hourlyScrollView}
               contentContainerStyle={{ paddingRight: 20 }}
@@ -276,16 +276,18 @@ export default function ForecastScreen() {
                   <Text style={styles.hourlyTime}>
                     {index === 0 ? 'Now' : formatTime(item.dt)}
                   </Text>
-                  
+
                   <View style={styles.hourlyIcon}>
-                    <WeatherIcon 
+                    <WeatherIcon
                       weatherMain={item.weather[0].main}
                       size={32}
                       color={theme.primary}
-                      isNight={item.dt < item.sys.sunrise || item.dt > item.sys.sunset}
+                      isNight={
+                        item.dt < item.sys.sunrise || item.dt > item.sys.sunset
+                      }
                     />
                   </View>
-                  
+
                   <Text style={styles.hourlyTemp}>
                     {Math.round(item.main.temp)}°
                   </Text>
@@ -295,11 +297,21 @@ export default function ForecastScreen() {
                   </Text>
 
                   <Text style={styles.hourlyPrecip}>
-                    {((item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0)).toFixed(1)}mm
+                    {(
+                      (item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0)
+                    ).toFixed(1)}
+                    mm
                   </Text>
 
                   <View style={styles.windContainer}>
-                    <View style={[styles.windIcon, { transform: [{ rotate: `${item.wind.deg + 225}deg` }] }]}>
+                    <View
+                      style={[
+                        styles.windIcon,
+                        {
+                          transform: [{ rotate: `${item.wind.deg + 225}deg` }],
+                        },
+                      ]}
+                    >
                       <MousePointer2 size={16} color={theme.textSecondary} />
                     </View>
                     <Text style={styles.windSpeed}>
@@ -321,11 +333,9 @@ export default function ForecastScreen() {
                   <Text style={styles.dailyDate}>
                     {formatDayName(day.date)}
                   </Text>
-                  <Text style={styles.dailyDate}>
-                    {formatDate(day.date)}
-                  </Text>
+                  <Text style={styles.dailyDate}>{formatDate(day.date)}</Text>
                 </View>
-                
+
                 <View style={styles.dailyCenter}>
                   <View style={styles.tempRange}>
                     <Text style={styles.tempLow}>
@@ -335,7 +345,7 @@ export default function ForecastScreen() {
                       {Math.round(day.maxTemp)}°
                     </Text>
                   </View>
-                  
+
                   <View style={styles.tempBar}>
                     <LinearGradient
                       colors={[theme.primary + '60', theme.primary]}
@@ -343,14 +353,14 @@ export default function ForecastScreen() {
                       end={{ x: 1, y: 0 }}
                       style={[
                         styles.tempBarFill,
-                        getTempBarGradient(day.minTemp, day.maxTemp)
+                        getTempBarGradient(day.minTemp, day.maxTemp),
                       ]}
                     />
                   </View>
                 </View>
 
                 <View style={styles.dailyRight}>
-                  <WeatherIcon 
+                  <WeatherIcon
                     weatherMain={day.weather.main}
                     size={32}
                     color={theme.primary}
@@ -367,11 +377,7 @@ export default function ForecastScreen() {
             ))}
           </View>
 
-          {error && (
-            <Text style={styles.errorText}>
-              ⚠️ {error}
-            </Text>
-          )}
+          {error && <Text style={styles.errorText}>⚠️ {error}</Text>}
         </ScrollView>
       </LinearGradient>
     </View>

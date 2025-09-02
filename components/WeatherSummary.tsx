@@ -1,18 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, GestureResponderEvent } from 'react-native';
-import { Sparkles, TriangleAlert as AlertTriangle, ThumbsDown, ThumbsUp, Cloud, RefreshCw, ChevronDown, ChevronUp, Lightbulb } from 'lucide-react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  GestureResponderEvent,
+} from 'react-native';
+import {
+  Sparkles,
+  TriangleAlert as AlertTriangle,
+  ThumbsDown,
+  ThumbsUp,
+  Cloud,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+} from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 
 export const WeatherSummary: React.FC = () => {
-  const { 
-    currentWeather, 
-    forecast, 
-    weatherAlerts, 
+  const {
+    currentWeather,
+    forecast,
     weatherSummary,
     summaryGeneratedAt,
-    cityName, 
     theme,
-    generateWeatherSummary
+    generateWeatherSummary,
   } = useWeather();
 
   const [loading, setLoading] = useState(false);
@@ -28,7 +43,11 @@ export const WeatherSummary: React.FC = () => {
     try {
       await generateWeatherSummary();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate weather summary');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to generate weather summary',
+      );
     } finally {
       setLoading(false);
     }
@@ -45,13 +64,6 @@ export const WeatherSummary: React.FC = () => {
     event.stopPropagation();
     handleGenerateSummary();
   };
-
-  // Auto-generate summary when weather data is available and no summary exists
-  useEffect(() => {
-    if (currentWeather && forecast && !weatherSummary && !loading) {
-      handleGenerateSummary();
-    }
-  }, [currentWeather, forecast, weatherSummary]);
 
   const getMoodIcon = (mood: string) => {
     switch (mood) {
@@ -81,12 +93,12 @@ export const WeatherSummary: React.FC = () => {
 
   const formatGeneratedTime = (timestamp: number | null): string => {
     if (!timestamp) return '';
-    
+
     const now = Date.now();
     const diffMs = now - timestamp;
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMinutes / 60);
-    
+
     if (diffMinutes < 1) {
       return 'Just now';
     } else if (diffMinutes < 60) {
@@ -297,8 +309,8 @@ export const WeatherSummary: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.cardTouchable} 
+      <TouchableOpacity
+        style={styles.cardTouchable}
         onPress={handleCardPress}
         activeOpacity={0.7}
         disabled={!weatherSummary || loading}
@@ -309,20 +321,20 @@ export const WeatherSummary: React.FC = () => {
               <Sparkles size={20} color={theme.primary} />
               <Text style={styles.title}>AI Weather Summary</Text>
             </View>
-            
+
             <View style={styles.headerActions}>
-              <TouchableOpacity 
-                style={styles.refreshButton} 
+              <TouchableOpacity
+                style={styles.refreshButton}
                 onPress={handleRefreshPress}
                 disabled={loading}
                 activeOpacity={0.7}
               >
-                <RefreshCw 
-                  size={16} 
-                  color={loading ? theme.textSecondary : theme.primary} 
+                <RefreshCw
+                  size={16}
+                  color={loading ? theme.textSecondary : theme.primary}
                 />
               </TouchableOpacity>
-              
+
               <View style={styles.expandIndicator}>
                 {expanded ? (
                   <ChevronUp size={16} color={theme.textSecondary} />
@@ -343,7 +355,10 @@ export const WeatherSummary: React.FC = () => {
           {error && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorText}>{error}</Text>
-              <TouchableOpacity style={styles.retryButton} onPress={handleGenerateSummary}>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={handleGenerateSummary}
+              >
                 <Text style={styles.retryButtonText}>Try Again</Text>
               </TouchableOpacity>
             </View>
@@ -351,11 +366,15 @@ export const WeatherSummary: React.FC = () => {
 
           {weatherSummary && (
             <View style={styles.content}>
-
               <View style={styles.moodRow}>
                 <View style={styles.moodIndicator}>
                   {getMoodIcon(weatherSummary.mood)}
-                  <Text style={[styles.moodText, { color: getMoodColor(weatherSummary.mood) }]}>
+                  <Text
+                    style={[
+                      styles.moodText,
+                      { color: getMoodColor(weatherSummary.mood) },
+                    ]}
+                  >
                     {weatherSummary.mood}
                   </Text>
                 </View>
@@ -366,12 +385,18 @@ export const WeatherSummary: React.FC = () => {
                 )}
               </View>
 
-              <Text style={styles.overviewText}>{weatherSummary.todayOverview}</Text>
+              <Text style={styles.overviewText}>
+                {weatherSummary.todayOverview}
+              </Text>
 
               {weatherSummary.alertSummary && (
                 <View style={styles.alertSection}>
-                  <Text style={styles.alertTitle}>⚠️ Active Weather Alerts</Text>
-                  <Text style={styles.alertText}>{weatherSummary.alertSummary}</Text>
+                  <Text style={styles.alertTitle}>
+                    ⚠️ Active Weather Alerts
+                  </Text>
+                  <Text style={styles.alertText}>
+                    {weatherSummary.alertSummary}
+                  </Text>
                 </View>
               )}
 
@@ -379,15 +404,21 @@ export const WeatherSummary: React.FC = () => {
                 <>
                   {weatherSummary.futureWarnings && (
                     <View style={styles.warningSection}>
-                      <Text style={styles.warningTitle}>🌩️ Upcoming Weather Concerns</Text>
-                      <Text style={styles.warningText}>{weatherSummary.futureWarnings}</Text>
+                      <Text style={styles.warningTitle}>
+                        🌩️ Upcoming Weather Concerns
+                      </Text>
+                      <Text style={styles.warningText}>
+                        {weatherSummary.futureWarnings}
+                      </Text>
                     </View>
                   )}
 
                   <View style={styles.recommendationsSection}>
                     <View style={styles.recommendationsTitle}>
                       <Lightbulb size={16} color={theme.primary} />
-                      <Text style={styles.recommendationsTitleText}>Recommendations</Text>
+                      <Text style={styles.recommendationsTitleText}>
+                        Recommendations
+                      </Text>
                     </View>
                     {weatherSummary.recommendations.map((rec, index) => (
                       <View key={index} style={styles.recommendation}>

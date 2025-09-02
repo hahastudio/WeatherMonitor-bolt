@@ -1,22 +1,27 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, RefreshControl, Dimensions, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  RefreshControl,
+  Platform,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
-  Thermometer, 
-  CloudRain, 
-  Wind, 
-  Gauge, 
+import {
+  Thermometer,
+  CloudRain,
+  Wind,
+  Gauge,
   Droplets,
   TrendingUp,
-  Clock
+  Clock,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { CustomChart, DataPoint } from '../../components/CustomChart';
-import { formatTime, formatDate } from '../../utils/weatherTheme';
-
-const { width: screenWidth } = Dimensions.get('window');
+import { formatTime } from '../../utils/weatherTheme';
 
 interface chartStats {
   min?: number;
@@ -26,13 +31,7 @@ interface chartStats {
 }
 
 export default function ChartsScreen() {
-  const { 
-    forecast, 
-    loading, 
-    error, 
-    theme, 
-    refreshWeather
-  } = useWeather();
+  const { forecast, loading, error, theme, refreshWeather } = useWeather();
 
   if (loading && !forecast) {
     return <LoadingSpinner message="Loading forecast charts..." />;
@@ -249,20 +248,26 @@ export default function ChartsScreen() {
 
   // Calculate statistics with proper number handling
   const calculateStats = (data: DataPoint[]): chartStats | undefined => {
-    const values = data.map(d => d.y).filter(v => typeof v === 'number' && !isNaN(v));
+    const values = data
+      .map((d) => d.y)
+      .filter((v) => typeof v === 'number' && !isNaN(v));
     if (values.length === 0) return undefined;
-    
+
     return {
       min: parseFloat(Math.min(...values).toFixed(1)),
       max: parseFloat(Math.max(...values).toFixed(1)),
-      avg: parseFloat((values.reduce((sum, v) => sum + v, 0) / values.length).toFixed(1)),
+      avg: parseFloat(
+        (values.reduce((sum, v) => sum + v, 0) / values.length).toFixed(1),
+      ),
     };
   };
 
   const tempStats = calculateStats(temperatureData);
   const precipStats = {
-    total: parseFloat(precipitationData.reduce((sum, d) => sum + d.y, 0).toFixed(1)),
-    max: parseFloat(Math.max(...precipitationData.map(d => d.y)).toFixed(1)),
+    total: parseFloat(
+      precipitationData.reduce((sum, d) => sum + d.y, 0).toFixed(1),
+    ),
+    max: parseFloat(Math.max(...precipitationData.map((d) => d.y)).toFixed(1)),
   };
   const windStats = calculateStats(windData);
   const pressureStats = calculateStats(pressureData);
@@ -275,21 +280,19 @@ export default function ChartsScreen() {
     color: string,
     unit: string,
     chartType: 'line' | 'area' | 'bar' = 'line',
-    stats?: chartStats
+    stats?: chartStats,
   ) => {
     return (
       <View key={title} style={styles.chartCard}>
         <View style={styles.chartHeader}>
-          <View style={styles.chartIcon}>
-            {icon}
-          </View>
+          <View style={styles.chartIcon}>{icon}</View>
           <Text style={styles.chartTitle}>{title}</Text>
           <View style={styles.chartTrend}>
             <TrendingUp size={16} color={theme.primary} />
             <Text style={styles.trendText}>48h</Text>
           </View>
         </View>
-        
+
         <View style={styles.chartContainer}>
           <CustomChart
             data={data}
@@ -306,7 +309,8 @@ export default function ChartsScreen() {
               <View key={key} style={styles.statItem}>
                 <Text style={styles.statLabel}>{key}</Text>
                 <Text style={styles.statValue}>
-                  {typeof value === 'number' ? value.toFixed(1) : String(value)}{unit}
+                  {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                  {unit}
                 </Text>
               </View>
             ))}
@@ -332,7 +336,7 @@ export default function ChartsScreen() {
           </View>
         </View>
 
-        <ScrollView 
+        <ScrollView
           style={styles.content}
           refreshControl={
             <RefreshControl
@@ -350,54 +354,50 @@ export default function ChartsScreen() {
             theme.primary,
             '°C',
             'line',
-            tempStats
+            tempStats,
           )}
 
           {renderChart(
             'Precipitation',
-            <CloudRain size={24} color='#4A90E2' />,
+            <CloudRain size={24} color="#4A90E2" />,
             precipitationData,
             '#4A90E2',
             'mm',
             'bar',
-            precipStats
+            precipStats,
           )}
 
           {renderChart(
             'Wind Speed',
-            <Wind size={24} color='#50C878' />,
+            <Wind size={24} color="#50C878" />,
             windData,
             '#50C878',
             ' km/h',
             'line',
-            windStats
+            windStats,
           )}
 
           {renderChart(
             'Atmospheric Pressure',
-            <Gauge size={24} color='#FF6B6B' />,
+            <Gauge size={24} color="#FF6B6B" />,
             pressureData,
             '#FF6B6B',
             ' hPa',
             'line',
-            pressureStats
+            pressureStats,
           )}
 
           {renderChart(
             'Humidity',
-            <Droplets size={24} color='#20B2AA' />,
+            <Droplets size={24} color="#20B2AA" />,
             humidityData,
             '#20B2AA',
             '%',
             'line',
-            humidityStats
+            humidityStats,
           )}
 
-          {error && (
-            <Text style={styles.errorText}>
-              ⚠️ {error}
-            </Text>
-          )}
+          {error && <Text style={styles.errorText}>⚠️ {error}</Text>}
         </ScrollView>
       </LinearGradient>
     </View>

@@ -6,7 +6,7 @@ console.log('🔄 Registering headless background fetch task...');
 BackgroundFetch.registerHeadlessTask(async (event) => {
   // Get task id from event {}:
   let taskId = event.taskId;
-  let isTimeout = event.timeout;  // <-- true when your background-time has expired.
+  let isTimeout = event.timeout; // <-- true when your background-time has expired.
   if (isTimeout) {
     // This task has exceeded its allowed running-time.
     // You must stop what you're doing immediately finish(taskId)

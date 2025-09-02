@@ -18,12 +18,12 @@ jest.mock('../../services/apiLogger', () => ({
 describe('WeatherService', () => {
   const mockCoords: LocationCoords = {
     latitude: 40.7128,
-    longitude: -74.0060,
+    longitude: -74.006,
   };
 
   const mockOneCallResponse: OneCallResponse = {
     lat: 40.7128,
-    lon: -74.0060,
+    lon: -74.006,
     timezone: 'America/New_York',
     timezone_offset: -14400,
     current: {
@@ -83,7 +83,7 @@ describe('WeatherService', () => {
         moonrise: 1629990000,
         moonset: 1630038000,
         moon_phase: 0.5,
-        summary: "Partly cloudy throughout the day",
+        summary: 'Partly cloudy throughout the day',
         temp: {
           day: 25,
           min: 20,
@@ -133,29 +133,33 @@ describe('WeatherService', () => {
 
       // Check if fetch was called with correct URL
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining(`lat=${mockCoords.latitude}&lon=${mockCoords.longitude}`)
+        expect.stringContaining(
+          `lat=${mockCoords.latitude}&lon=${mockCoords.longitude}`,
+        ),
       );
 
       // Verify the transformed current weather data
-      expect(result.currentWeather).toEqual(expect.objectContaining({
-        coord: {
-          lon: mockOneCallResponse.lon,
-          lat: mockOneCallResponse.lat,
-        },
-        weather: mockOneCallResponse.current.weather,
-        main: {
-          temp: mockOneCallResponse.current.temp,
-          feels_like: mockOneCallResponse.current.feels_like,
-          temp_min: mockOneCallResponse.daily[0].temp.min,
-          temp_max: mockOneCallResponse.daily[0].temp.max,
-          pressure: mockOneCallResponse.current.pressure,
-          humidity: mockOneCallResponse.current.humidity,
-        },
-      }));
+      expect(result.currentWeather).toEqual(
+        expect.objectContaining({
+          coord: {
+            lon: mockOneCallResponse.lon,
+            lat: mockOneCallResponse.lat,
+          },
+          weather: mockOneCallResponse.current.weather,
+          main: {
+            temp: mockOneCallResponse.current.temp,
+            feels_like: mockOneCallResponse.current.feels_like,
+            temp_min: mockOneCallResponse.daily[0].temp.min,
+            temp_max: mockOneCallResponse.daily[0].temp.max,
+            pressure: mockOneCallResponse.current.pressure,
+            humidity: mockOneCallResponse.current.humidity,
+          },
+        }),
+      );
 
       // Verify the transformed forecast data
       const { forecast } = result;
-      
+
       // Test the basic structure
       expect(forecast).toEqual({
         cod: '200',
@@ -240,9 +244,9 @@ describe('WeatherService', () => {
       const originalApiKey = weatherService.getApiKey();
       weatherService.setApiKey('your_openweathermap_api_key_here');
 
-      await expect(weatherService.getWeatherData(mockCoords))
-        .rejects
-        .toThrow('OpenWeatherMap API key not configured');
+      await expect(weatherService.getWeatherData(mockCoords)).rejects.toThrow(
+        'OpenWeatherMap API key not configured',
+      );
 
       // Restore API key
       weatherService.setApiKey(originalApiKey);
@@ -253,9 +257,9 @@ describe('WeatherService', () => {
       const originalApiKey = weatherService.getApiKey();
       weatherService.setApiKey('');
 
-      await expect(weatherService.getWeatherData(mockCoords))
-        .rejects
-        .toThrow('OpenWeatherMap API key not configured');
+      await expect(weatherService.getWeatherData(mockCoords)).rejects.toThrow(
+        'OpenWeatherMap API key not configured',
+      );
 
       // Restore API key
       weatherService.setApiKey(originalApiKey);
@@ -265,21 +269,21 @@ describe('WeatherService', () => {
       // Mock a failed API response
       fetch.mockResponseOnce(JSON.stringify({}), {
         status: 404,
-        statusText: 'Not Found'
+        statusText: 'Not Found',
       });
 
-      await expect(weatherService.getWeatherData(mockCoords))
-        .rejects
-        .toThrow('Weather API error: 404 Not Found');
+      await expect(weatherService.getWeatherData(mockCoords)).rejects.toThrow(
+        'Weather API error: 404 Not Found',
+      );
     });
 
     it('should handle network errors', async () => {
       // Mock a network error
       fetch.mockRejectOnce(new Error('Network error'));
 
-      await expect(weatherService.getWeatherData(mockCoords))
-        .rejects
-        .toThrow('Network error');
+      await expect(weatherService.getWeatherData(mockCoords)).rejects.toThrow(
+        'Network error',
+      );
     });
   });
 
@@ -290,22 +294,26 @@ describe('WeatherService', () => {
 
     it('getCurrentWeather should return current weather data', async () => {
       const result = await weatherService.getCurrentWeather(mockCoords);
-      expect(result).toEqual(expect.objectContaining({
-        coord: {
-          lon: mockOneCallResponse.lon,
-          lat: mockOneCallResponse.lat,
-        },
-        weather: mockOneCallResponse.current.weather,
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          coord: {
+            lon: mockOneCallResponse.lon,
+            lat: mockOneCallResponse.lat,
+          },
+          weather: mockOneCallResponse.current.weather,
+        }),
+      );
     });
 
     it('getForecast should return forecast data', async () => {
       const result = await weatherService.getForecast(mockCoords);
-      expect(result).toEqual(expect.objectContaining({
-        cod: '200',
-        hourly: expect.any(Array),
-        daily: expect.any(Array),
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          cod: '200',
+          hourly: expect.any(Array),
+          daily: expect.any(Array),
+        }),
+      );
     });
   });
 });

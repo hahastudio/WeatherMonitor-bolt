@@ -6,8 +6,8 @@ interface LoadingSpinnerProps {
   message?: string;
 }
 
-export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ 
-  message = 'Loading weather data...' 
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
+  message = 'Loading weather data...',
 }) => {
   const { theme } = useWeather();
 

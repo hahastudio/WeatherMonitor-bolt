@@ -270,12 +270,20 @@ export interface CaiyunWeatherResponse {
       content: CaiyunWeatherAlert[];
     };
     realtime?: {
-      air_quality?: CaiyunAirQuality
-    }
+      air_quality?: CaiyunAirQuality;
+    };
   };
 }
 
-export type WeatherCondition = 'clear' | 'clouds' | 'rain' | 'snow' | 'thunderstorm' | 'drizzle' | 'mist' | 'fog';
+export type WeatherCondition =
+  | 'clear'
+  | 'clouds'
+  | 'rain'
+  | 'snow'
+  | 'thunderstorm'
+  | 'drizzle'
+  | 'mist'
+  | 'fog';
 
 export interface LocationCoords {
   latitude: number;

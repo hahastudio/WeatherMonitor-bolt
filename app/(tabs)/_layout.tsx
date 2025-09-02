@@ -16,14 +16,13 @@ export default function TabLayout() {
         },
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.textSecondary,
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Weather',
-          tabBarIcon: ({ size, color }) => (
-            <Sun size={size} color={color} />
-          ),
+          tabBarIcon: ({ size, color }) => <Sun size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -48,9 +47,7 @@ export default function TabLayout() {
         name="map"
         options={{
           title: 'Map',
-          tabBarIcon: ({ size, color }) => (
-            <Map size={size} color={color} />
-          ),
+          tabBarIcon: ({ size, color }) => <Map size={size} color={color} />,
         }}
       />
       <Tabs.Screen

@@ -85,7 +85,9 @@ describe('CaiyunService', () => {
 
       // Check if fetch was called with correct URL
       expect(fetch).toHaveBeenCalledWith(
-        expect.stringContaining(`${mockCoords.longitude},${mockCoords.latitude}/weather`)
+        expect.stringContaining(
+          `${mockCoords.longitude},${mockCoords.latitude}/weather`,
+        ),
       );
 
       // Verify the response
@@ -99,9 +101,9 @@ describe('CaiyunService', () => {
 
       // Create a new instance with the invalid API key
       const testCaiyunService = new CaiyunService('your_caiyun_api_key_here');
-      await expect(testCaiyunService.getWeatherData(mockCoords))
-        .rejects
-        .toThrow('Caiyun API key not configured');
+      await expect(
+        testCaiyunService.getWeatherData(mockCoords),
+      ).rejects.toThrow('Caiyun API key not configured');
 
       // Restore API key
       process.env.EXPO_PUBLIC_CAIYUN_API_KEY = originalApiKey;
@@ -111,13 +113,13 @@ describe('CaiyunService', () => {
       // Mock a failed API response
       fetch.mockResponseOnce(JSON.stringify({}), {
         status: 404,
-        statusText: 'Not Found'
+        statusText: 'Not Found',
       });
 
       const testCaiyunService = new CaiyunService('test_api_key');
-      await expect(testCaiyunService.getWeatherData(mockCoords))
-        .rejects
-        .toThrow('Caiyun API error: 404 Not Found');
+      await expect(
+        testCaiyunService.getWeatherData(mockCoords),
+      ).rejects.toThrow('Caiyun API error: 404 Not Found');
     });
 
     it('should handle network errors', async () => {
@@ -125,9 +127,9 @@ describe('CaiyunService', () => {
       fetch.mockRejectOnce(new Error('Network error'));
 
       const testCaiyunService = new CaiyunService('test_api_key');
-      await expect(testCaiyunService.getWeatherData(mockCoords))
-        .rejects
-        .toThrow('Network error');
+      await expect(
+        testCaiyunService.getWeatherData(mockCoords),
+      ).rejects.toThrow('Network error');
     });
   });
 });

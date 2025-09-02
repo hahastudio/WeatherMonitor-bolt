@@ -9,7 +9,7 @@ class LocationService {
     try {
       // Request permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
-      
+
       if (status !== 'granted') {
         throw new Error('Location permission denied');
       }
@@ -39,7 +39,7 @@ class LocationService {
         reject(new Error('Geolocation not supported'));
         return;
       }
-      
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           resolve({
@@ -51,29 +51,31 @@ class LocationService {
           // Fallback to default location (New York)
           resolve({
             latitude: 40.7128,
-            longitude: -74.0060,
+            longitude: -74.006,
           });
         },
         {
           enableHighAccuracy: true,
           timeout: 10000,
           maximumAge: 300000, // 5 minutes
-        }
+        },
       );
     });
   }
 
-  private async getOpenWeatherMapLocation(coords: LocationCoords): Promise<string> {
+  private async getOpenWeatherMapLocation(
+    coords: LocationCoords,
+  ): Promise<string> {
     const endpoint = 'geocoding (reverse)';
     const startTime = Date.now();
-    
+
     try {
       console.log('Fetching OpenWeatherMap location for coords:', coords);
       const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
       const response = await fetch(
-        `https://api.openweathermap.org/geo/1.0/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1&appid=${apiKey}`
+        `https://api.openweathermap.org/geo/1.0/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1&appid=${apiKey}`,
       );
-      
+
       const responseTime = Date.now() - startTime;
       if (!response.ok) {
         await apiLogger.logRequest(
@@ -83,7 +85,7 @@ class LocationService {
           'auto',
           responseTime,
           `${response.status} ${response.statusText}`,
-          'openweather'
+          'openweather',
         );
         throw new Error('OpenWeatherMap geocoding failed');
       }
@@ -98,14 +100,14 @@ class LocationService {
           'auto',
           responseTime,
           undefined,
-          'openweather'
+          'openweather',
         );
         if (location.local_names?.en) {
           return location.local_names.en;
         }
         return location.name || 'Unknown Location';
       }
-      
+
       await apiLogger.logRequest(
         endpoint,
         'GET',
@@ -113,7 +115,7 @@ class LocationService {
         'auto',
         responseTime,
         'No location data returned',
-        'openweather'
+        'openweather',
       );
       throw new Error('No location data');
     } catch (error) {
@@ -126,7 +128,7 @@ class LocationService {
         'auto',
         responseTime,
         error instanceof Error ? error.message : 'Unknown error',
-        'openweather'
+        'openweather',
       );
       return 'Unknown Location';
     }
@@ -148,7 +150,7 @@ class LocationService {
           return cityName;
         }
       }
-      
+
       // If Expo geocoding doesn't return useful results, try OpenWeatherMap
       console.log('Falling back to OpenWeatherMap geocoding');
       return await this.getOpenWeatherMapLocation(coords);

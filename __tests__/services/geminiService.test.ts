@@ -1,6 +1,14 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
-import { GeminiService, type WeatherSummary } from '../../services/geminiService';
-import type { CurrentWeather, ForecastResponse, CaiyunWeatherAlert, CaiyunAirQuality } from '../../types/weather';
+import {
+  GeminiService,
+  type WeatherSummary,
+} from '../../services/geminiService';
+import type {
+  CurrentWeather,
+  ForecastResponse,
+  CaiyunWeatherAlert,
+  CaiyunAirQuality,
+} from '../../types/weather';
 import type { GenerateContentResponse } from '@google/genai';
 
 // Create mock function with proper type
@@ -10,9 +18,9 @@ const mockGenerateContent = jest.fn<() => Promise<GenerateContentResponse>>();
 jest.mock('@google/genai', () => ({
   GoogleGenAI: jest.fn().mockImplementation(() => ({
     models: {
-      generateContent: mockGenerateContent
-    }
-  }))
+      generateContent: mockGenerateContent,
+    },
+  })),
 }));
 
 // Mock the apiLogger
@@ -58,47 +66,55 @@ describe('GeminiService', () => {
       cod: '200',
       message: 0,
       cnt: 1,
-      hourly: [{
-        dt: 1630000000,
-        main: {
-          temp: 25,
-          feels_like: 26,
-          temp_min: 25,
-          temp_max: 25,
-          pressure: 1015,
-          humidity: 60,
+      hourly: [
+        {
+          dt: 1630000000,
+          main: {
+            temp: 25,
+            feels_like: 26,
+            temp_min: 25,
+            temp_max: 25,
+            pressure: 1015,
+            humidity: 60,
+          },
+          weather: [
+            { id: 800, main: 'Clear', description: '晴天', icon: '01d' },
+          ],
+          clouds: { all: 0 },
+          wind: {
+            speed: 5,
+            deg: 180,
+            gust: 8,
+          },
+          visibility: 10000,
+          pop: 0,
+          dt_txt: '2021-08-26 17:46:40',
         },
-        weather: [{ id: 800, main: 'Clear', description: '晴天', icon: '01d' }],
-        clouds: { all: 0 },
-        wind: {
-          speed: 5,
-          deg: 180,
-          gust: 8,
+      ],
+      daily: [
+        {
+          dt: 1630000000,
+          main: {
+            temp: 25,
+            feels_like: 26,
+            temp_min: 20,
+            temp_max: 28,
+            pressure: 1015,
+            humidity: 60,
+          },
+          weather: [
+            { id: 800, main: 'Clear', description: '晴天', icon: '01d' },
+          ],
+          clouds: { all: 0 },
+          wind: {
+            speed: 5,
+            deg: 180,
+            gust: 8,
+          },
+          pop: 0,
+          dt_txt: '2021-08-26 17:46:40',
         },
-        visibility: 10000,
-        pop: 0,
-        dt_txt: '2021-08-26 17:46:40',
-      }],
-      daily: [{
-        dt: 1630000000,
-        main: {
-          temp: 25,
-          feels_like: 26,
-          temp_min: 20,
-          temp_max: 28,
-          pressure: 1015,
-          humidity: 60,
-        },
-        weather: [{ id: 800, main: 'Clear', description: '晴天', icon: '01d' }],
-        clouds: { all: 0 },
-        wind: {
-          speed: 5,
-          deg: 180,
-          gust: 8,
-        },
-        pop: 0,
-        dt_txt: '2021-08-26 17:46:40',
-      }],
+      ],
       city: {
         id: 1816670,
         name: 'Beijing',
@@ -122,40 +138,44 @@ describe('GeminiService', () => {
     alertSummary: null,
     futureWarnings: null,
     recommendations: ['适合户外活动', '注意防晒'],
-    mood: 'positive'
+    mood: 'positive',
   };
 
   beforeEach(() => {
     // Reset mocks before each test
     jest.clearAllMocks();
-    
+
     // Set default mock implementation
     mockGenerateContent.mockResolvedValue({
       text: JSON.stringify(mockWeatherSummary),
-      candidates: [{
-        content: {
-          parts: [{
-            text: JSON.stringify(mockWeatherSummary)
-          }],
-          role: "model"
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify(mockWeatherSummary),
+              },
+            ],
+            role: 'model',
+          },
+          finishReason: 'STOP',
+          index: 0,
         },
-        finishReason: "STOP",
-        index: 0
-      }],
+      ],
       usageMetadata: {
         promptTokenCount: 5,
         candidatesTokenCount: 1128,
         totalTokenCount: 2550,
         promptTokensDetails: [
           {
-            modality: "TEXT",
-            tokenCount: 5
-          }
+            modality: 'TEXT',
+            tokenCount: 5,
+          },
         ],
-        thoughtsTokenCount: 1417
+        thoughtsTokenCount: 1417,
       },
-      modelVersion: "gemini-2.5-flash",
-      responseId: "mock_response_id_12345"
+      modelVersion: 'gemini-2.5-flash',
+      responseId: 'mock_response_id_12345',
     } as GenerateContentResponse);
 
     // Set test API key
@@ -170,28 +190,34 @@ describe('GeminiService', () => {
     });
 
     it('should handle API error', async () => {
-      mockGenerateContent.mockRejectedValueOnce(new Error('API Error') as never);
+      mockGenerateContent.mockRejectedValueOnce(
+        new Error('API Error') as never,
+      );
 
       const testGeminiService = new GeminiService('test_api_key');
-      await expect(testGeminiService.generateWeatherSummary(mockInput))
-        .rejects
-        .toThrow('API Error');
+      await expect(
+        testGeminiService.generateWeatherSummary(mockInput),
+      ).rejects.toThrow('API Error');
     });
 
     it('should handle invalid API response', async () => {
       mockGenerateContent.mockResolvedValueOnce({
         text: 'Invalid JSON',
-        candidates: [{
-          content: {
-            parts: [{
-              text: 'Invalid JSON'
-            }],
-            role: "model"
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: 'Invalid JSON',
+                },
+              ],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
           },
-          finishReason: "STOP",
-          index: 0
-        }],
-        modelVersion: "gemini-2.5-flash"
+        ],
+        modelVersion: 'gemini-2.5-flash',
       } as GenerateContentResponse);
 
       const testGeminiService = new GeminiService('test_api_key');
@@ -199,11 +225,15 @@ describe('GeminiService', () => {
 
       // Should return fallback response
       expect(result).toEqual({
-        todayOverview: 'Weather data is available. Check the details below for current conditions.',
+        todayOverview:
+          'Weather data is available. Check the details below for current conditions.',
         alertSummary: null,
         futureWarnings: null,
-        recommendations: ['Check the detailed weather information', 'Stay updated with weather changes'],
-        mood: 'neutral'
+        recommendations: [
+          'Check the detailed weather information',
+          'Stay updated with weather changes',
+        ],
+        mood: 'neutral',
       });
     });
 
@@ -215,9 +245,9 @@ describe('GeminiService', () => {
       // Create new instance with invalid API key
       const testGeminiService = new GeminiService('your_gemini_api_key_here');
 
-      await expect(testGeminiService.generateWeatherSummary(mockInput))
-        .rejects
-        .toThrow('Gemini API key not configured');
+      await expect(
+        testGeminiService.generateWeatherSummary(mockInput),
+      ).rejects.toThrow('Gemini API key not configured');
 
       // Restore API key
       process.env.EXPO_PUBLIC_GEMINI_API_KEY = originalApiKey;
