@@ -310,6 +310,7 @@ export const WeatherSummary: React.FC = () => {
   return (
     <View style={styles.container}>
       <TouchableOpacity
+        testID="weather-summary-card"
         style={styles.cardTouchable}
         onPress={handleCardPress}
         activeOpacity={0.7}
@@ -324,6 +325,7 @@ export const WeatherSummary: React.FC = () => {
 
             <View style={styles.headerActions}>
               <TouchableOpacity
+                testID="refresh-summary-button"
                 style={styles.refreshButton}
                 onPress={handleRefreshPress}
                 disabled={loading}
@@ -346,16 +348,17 @@ export const WeatherSummary: React.FC = () => {
           </View>
 
           {loading && (
-            <View style={styles.loadingContainer}>
+            <View style={styles.loadingContainer} testID="loading-container">
               <ActivityIndicator size="small" color={theme.primary} />
               <Text style={styles.loadingText}>Generating AI summary...</Text>
             </View>
           )}
 
           {error && (
-            <View style={styles.errorContainer}>
+            <View style={styles.errorContainer} testID="error-container">
               <Text style={styles.errorText}>{error}</Text>
               <TouchableOpacity
+                testID="retry-summary-button"
                 style={styles.retryButton}
                 onPress={handleGenerateSummary}
               >
@@ -401,7 +404,7 @@ export const WeatherSummary: React.FC = () => {
               )}
 
               {expanded && (
-                <>
+                <View testID="expanded-content">
                   {weatherSummary.futureWarnings && (
                     <View style={styles.warningSection}>
                       <Text style={styles.warningTitle}>
@@ -427,7 +430,7 @@ export const WeatherSummary: React.FC = () => {
                       </View>
                     ))}
                   </View>
-                </>
+                </View>
               )}
 
               {/* Show tap hint only when summary is available and not expanded */}

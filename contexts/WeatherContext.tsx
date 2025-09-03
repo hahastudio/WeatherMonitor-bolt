@@ -50,7 +50,7 @@ import {
 } from '../utils/weatherStorage';
 import { AppState, AppStateStatus } from 'react-native';
 
-interface WeatherContextType {
+export interface WeatherContextType {
   currentWeather: CurrentWeather | null;
   forecast: ForecastResponse | null;
   weatherAlerts: CaiyunWeatherAlert[];

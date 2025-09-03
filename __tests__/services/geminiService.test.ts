@@ -201,6 +201,7 @@ describe('GeminiService', () => {
     });
 
     it('should handle invalid API response', async () => {
+      jest.spyOn(console, 'error').mockImplementation(jest.fn());
       mockGenerateContent.mockResolvedValueOnce({
         text: 'Invalid JSON',
         candidates: [
