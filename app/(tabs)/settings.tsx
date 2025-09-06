@@ -31,6 +31,7 @@ import { useWeather } from '../../contexts/WeatherContext';
 import { notificationService } from '../../services/notificationService';
 import { alertTracker } from '../../services/alertTracker';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
+import { apiLogger } from '../../services/apiLogger';
 
 const REFRESH_RATE_OPTIONS = [
   { label: '15 minutes', value: 15 },
@@ -55,6 +56,8 @@ export default function SettingsScreen() {
 
   const [showRefreshRateModal, setShowRefreshRateModal] = useState(false);
   const [showApiLogModal, setShowApiLogModal] = useState(false);
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [logVersion, setLogVersion] = useState(0);
   const [alertTrackerStats, setAlertTrackerStats] = useState<{
     totalTrackedAlerts: number;
     oldestAlertAge: number | null;
@@ -102,6 +105,16 @@ export default function SettingsScreen() {
   const handleRefreshRateChange = async (newRate: number) => {
     await setRefreshRate(newRate);
     setShowRefreshRateModal(false);
+  };
+
+  const handleClearApiLogs = () => {
+    setShowClearConfirmModal(true);
+  };
+
+  const onConfirmClearLogs = async () => {
+    await apiLogger.clearLogs();
+    setLogVersion((v) => v + 1);
+    setShowClearConfirmModal(false);
   };
 
   const handleClearAlertHistory = async () => {
@@ -348,6 +361,33 @@ export default function SettingsScreen() {
       fontSize: 18,
       fontWeight: '600',
     },
+    modalMessage: {
+      color: theme.textSecondary,
+      fontSize: 16,
+      marginBottom: 24,
+      lineHeight: 22,
+    },
+    modalButtonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
+    modalButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      marginLeft: 12,
+    },
+    cancelButton: {
+      backgroundColor: theme.surface,
+    },
+    confirmButton: {
+      backgroundColor: theme.accent,
+    },
+    buttonText: {
+      color: theme.text,
+      fontSize: 16,
+      fontWeight: '600',
+    },
     closeButton: {
       padding: 4,
     },
@@ -441,13 +481,46 @@ export default function SettingsScreen() {
       onRequestClose={() => setShowApiLogModal(false)}
     >
       <View style={styles.apiLogModal}>
-        <ApiLogViewer />
+        <ApiLogViewer onClear={handleClearApiLogs} logVersion={logVersion} />
         <TouchableOpacity
           style={styles.apiLogModalHeader}
           onPress={() => setShowApiLogModal(false)}
         >
           <X size={24} color={theme.text} />
         </TouchableOpacity>
+      </View>
+    </Modal>
+  );
+
+  const ClearConfirmModal = () => (
+    <Modal
+      visible={showClearConfirmModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowClearConfirmModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Clear API Logs</Text>
+          <Text style={styles.modalMessage}>
+            Are you sure you want to clear all API request logs? This action
+            cannot be undone.
+          </Text>
+          <View style={styles.modalButtonContainer}>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => setShowClearConfirmModal(false)}
+            >
+              <Text style={styles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.confirmButton]}
+              onPress={onConfirmClearLogs}
+            >
+              <Text style={[styles.buttonText, { color: '#000' }]}>Clear</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
     </Modal>
   );
@@ -720,6 +793,7 @@ export default function SettingsScreen() {
 
         <RefreshRateModal />
         <ApiLogModal />
+        <ClearConfirmModal />
       </LinearGradient>
     </View>
   );

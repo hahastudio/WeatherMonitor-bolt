@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
 } from 'react-native';
 import {
   Activity,
@@ -23,7 +22,15 @@ import {
 import { useWeather } from '../contexts/WeatherContext';
 import { apiLogger, ApiLogEntry, ApiLogSummary } from '../services/apiLogger';
 
-export const ApiLogViewer: React.FC = () => {
+interface ApiLogViewerProps {
+  onClear: () => void;
+  logVersion: number;
+}
+
+export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
+  onClear,
+  logVersion,
+}) => {
   const { theme } = useWeather();
   const [logs, setLogs] = useState<ApiLogEntry[]>([]);
   const [summary, setSummary] = useState<ApiLogSummary | null>(null);
@@ -45,27 +52,9 @@ export const ApiLogViewer: React.FC = () => {
     }
   };
 
-  const handleClearLogs = () => {
-    Alert.alert(
-      'Clear API Logs',
-      'Are you sure you want to clear all API request logs? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            await apiLogger.clearLogs();
-            await loadLogs();
-          },
-        },
-      ],
-    );
-  };
-
   useEffect(() => {
     loadLogs();
-  }, []);
+  }, [logVersion]);
 
   const styles = StyleSheet.create({
     container: {
@@ -88,14 +77,28 @@ export const ApiLogViewer: React.FC = () => {
       fontWeight: '600',
       flex: 1,
     },
-    headerActions: {
+    actionsSection: {
       flexDirection: 'row',
-      gap: 12,
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      paddingVertical: 12,
+      marginBottom: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.textSecondary + '20',
     },
-    actionButton: {
-      padding: 8,
-      borderRadius: 8,
+    actionButtonContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 10,
+      paddingHorizontal: 20,
       backgroundColor: theme.surface,
+      borderRadius: 20,
+    },
+    actionButtonText: {
+      color: theme.text,
+      marginLeft: 10,
+      fontSize: 14,
+      fontWeight: '600',
     },
     content: {
       flex: 1,
@@ -343,22 +346,30 @@ export const ApiLogViewer: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>API Request Log</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.actionButton} onPress={loadLogs}>
-            <RefreshCw size={20} color={theme.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={handleClearLogs}
-          >
-            <Trash2 size={20} color={theme.accent} />
-          </TouchableOpacity>
-        </View>
       </View>
 
       <ScrollView style={styles.content}>
+        <View style={styles.actionsSection}>
+          <TouchableOpacity
+            testID="refresh-button"
+            style={styles.actionButtonContainer}
+            onPress={loadLogs}
+          >
+            <RefreshCw size={20} color={theme.primary} />
+            <Text style={styles.actionButtonText}>Refresh</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            testID="clear-logs-button"
+            style={styles.actionButtonContainer}
+            onPress={onClear}
+          >
+            <Trash2 size={20} color={theme.accent} />
+            <Text style={styles.actionButtonText}>Clear Logs</Text>
+          </TouchableOpacity>
+        </View>
+
         {summary && (
-          <View style={styles.summaryCard}>
+          <View testID="summary-card" style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>Last 48 Hours Summary</Text>
 
             <View style={styles.summaryGrid}>
@@ -450,71 +461,75 @@ export const ApiLogViewer: React.FC = () => {
             </Text>
           </View>
         ) : (
-          logs.slice(0, 50).map((log) => (
-            <View
-              key={log.id}
-              style={[
-                styles.logItem,
-                log.status === 'success'
-                  ? styles.logItemSuccess
-                  : styles.logItemError,
-              ]}
-            >
-              <View style={styles.logHeader}>
-                <Text style={styles.logEndpoint}>{log.endpoint}</Text>
-                <Text style={styles.logTime}>{formatTime(log.timestamp)}</Text>
-              </View>
-
-              <View style={styles.logDetails}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={styles.logTrigger}>
-                    {getTriggerIcon(log.trigger)}
-                    <Text style={styles.logTriggerText}>
-                      {formatTriggerLabel(log.trigger)}
-                    </Text>
-                  </View>
-
-                  <View style={styles.logProvider}>
-                    {getProviderIcon(log.provider)}
-                    <Text style={styles.logProviderText}>
-                      {formatProviderLabel(log.provider)}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.logStatus}>
-                  {log.status === 'success' ? (
-                    <CheckCircle size={12} color="#4CAF50" />
-                  ) : (
-                    <XCircle size={12} color="#F44336" />
-                  )}
-                  <Text
-                    style={[
-                      styles.logStatusText,
-                      log.status === 'success'
-                        ? styles.logStatusSuccess
-                        : styles.logStatusError,
-                    ]}
-                  >
-                    {log.status === 'success'
-                      ? formatResponseTime(log.responseTime)
-                      : 'Error'}
+          <View testID="log-list">
+            {logs.slice(0, 50).map((log) => (
+              <View
+                key={log.id}
+                style={[
+                  styles.logItem,
+                  log.status === 'success'
+                    ? styles.logItemSuccess
+                    : styles.logItemError,
+                ]}
+              >
+                <View style={styles.logHeader}>
+                  <Text style={styles.logEndpoint}>{log.endpoint}</Text>
+                  <Text style={styles.logTime}>
+                    {formatTime(log.timestamp)}
                   </Text>
                 </View>
-              </View>
 
-              {log.error && (
-                <Text
-                  style={[
-                    styles.logTriggerText,
-                    { marginTop: 4, color: theme.accent },
-                  ]}
-                >
-                  {log.error}
-                </Text>
-              )}
-            </View>
-          ))
+                <View style={styles.logDetails}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={styles.logTrigger}>
+                      {getTriggerIcon(log.trigger)}
+                      <Text style={styles.logTriggerText}>
+                        {formatTriggerLabel(log.trigger)}
+                      </Text>
+                    </View>
+
+                    <View style={styles.logProvider}>
+                      {getProviderIcon(log.provider)}
+                      <Text style={styles.logProviderText}>
+                        {formatProviderLabel(log.provider)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.logStatus}>
+                    {log.status === 'success' ? (
+                      <CheckCircle size={12} color="#4CAF50" />
+                    ) : (
+                      <XCircle size={12} color="#F44336" />
+                    )}
+                    <Text
+                      style={[
+                        styles.logStatusText,
+                        log.status === 'success'
+                          ? styles.logStatusSuccess
+                          : styles.logStatusError,
+                      ]}
+                    >
+                      {log.status === 'success'
+                        ? formatResponseTime(log.responseTime)
+                        : 'Error'}
+                    </Text>
+                  </View>
+                </View>
+
+                {log.error && (
+                  <Text
+                    style={[
+                      styles.logTriggerText,
+                      { marginTop: 4, color: theme.accent },
+                    ]}
+                  >
+                    {log.error}
+                  </Text>
+                )}
+              </View>
+            ))}
+          </View>
         )}
       </ScrollView>
     </View>
