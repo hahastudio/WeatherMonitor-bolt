@@ -2,6 +2,20 @@
 
 This document provides essential context for AI models interacting with this project. Adhering to these guidelines will ensure consistency and maintain code quality.
 
+## 0. Important Instructions for AI Collaboration
+
+Before submitting any changes, it is crucial to validate them by running the preflight check. This command will format codes, check for type errors, lint the code, and run all tests.
+
+To run the full suite of checks, execute the following command:
+
+```bash
+npm run preflight
+```
+
+This single command ensures that your changes meet all the quality gates of the project. While you can run the individual steps (`format`, `typecheck`, `lint`, `test`) separately, it is highly recommended to use `npm run preflight` to ensure a comprehensive validation.
+
+When you don't know how to deal with an error, or have tried several times but failed to fix the error, you can google to find whether there are other solutions via tool `google_web_search`.
+
 ## 1. Project Overview & Purpose
 
 - **Primary Goal:** A production-ready, cross-platform weather monitoring application built with React Native and Expo. It provides real-time weather data, forecasts, AI-powered summaries, interactive maps, and weather alerts.
@@ -59,16 +73,6 @@ This document provides essential context for AI models interacting with this pro
   - **Test Data:** Mock data should be defined within the test file when specific to that file
   - **Assertions:** Use Jest's `expect` with specific matchers like `toEqual`, `toHaveBeenCalled`
 
-Before submitting any changes, it is crucial to validate them by running the preflight check. This command will format codes, check for type errors, lint the code, and run all tests.
-
-To run the full suite of checks, execute the following command:
-
-```bash
-npm run preflight
-```
-
-This single command ensures that your changes meet all the quality gates of the project. While you can run the individual steps (`format`, `typecheck`, `lint`, `test`) separately, it is highly recommended to use `npm run preflight` to ensure a comprehensive validation.
-
 ## 5. Key Files & Entrypoints
 
 - **Main Entrypoint(s):** `index.ts` is the main entrypoint defined in `package.json`. App navigation and screen layout are controlled by Expo Router, starting with `app/_layout.tsx`.
@@ -95,7 +99,7 @@ This single command ensures that your changes meet all the quality gates of the 
   - **Test Philosophy:** Unit tests focus on service layer functionality, with particular attention to API transformations and error handling
 - **CI/CD Process:** Inferred to be a manual process, likely using EAS CLI for builds and submissions.
 
-## 7. Specific Instructions for AI Collaboration
+## 7. Specific Instructions for Collaboration
 
 - **Contribution Guidelines:** Follow the general steps: fork the repository, create a feature branch, and open a pull request.
 - **Infrastructure (IaC):** No Infrastructure as Code (IaC) is present in this project.
