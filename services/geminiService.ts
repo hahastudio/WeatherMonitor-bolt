@@ -220,7 +220,14 @@ export class GeminiService {
     const alertInfo =
       alerts.length > 0
         ? alerts
-            .map((alert) => `${alert.title}: ${alert.description}`)
+            .map((alert) => {
+              let info = `- [${alert.level}] ${alert.title}: ${alert.description}`;
+              if (alert.pubtimestamp) {
+                const pubDate = new Date(alert.pubtimestamp * 1000);
+                info += `\n  Issued at: ${pubDate.toLocaleString('en-US')}`;
+              }
+              return info;
+            })
             .join('\n')
         : 'No active weather alerts';
 
