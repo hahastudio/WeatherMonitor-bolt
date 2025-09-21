@@ -1,10 +1,5 @@
 import React from 'react';
-import {
-  render,
-  fireEvent,
-  act,
-  within,
-} from '@testing-library/react-native';
+import { render, fireEvent, act, within } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
 import { useWeather } from '../../contexts/WeatherContext';

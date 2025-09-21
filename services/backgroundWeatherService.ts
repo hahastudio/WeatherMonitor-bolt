@@ -1,4 +1,5 @@
 import BackgroundFetch from 'react-native-background-fetch';
+import { Platform } from 'react-native';
 import { weatherService } from './weatherService';
 import { caiyunService } from './caiyunService';
 import { locationService } from './locationService';
@@ -115,7 +116,13 @@ export async function weatherTask(taskId: string) {
 }
 
 export async function initBackgroundFetch() {
-  let status = await BackgroundFetch.configure(
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
+    console.log(
+      '⏭️ BackgroundFetch is not supported on this platform, skipping init.',
+    );
+    return;
+  }
+  const status = await BackgroundFetch.configure(
     {
       requiredNetworkType: BackgroundFetch.NETWORK_TYPE_NONE,
       minimumFetchInterval: 15, // minutes

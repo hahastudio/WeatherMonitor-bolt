@@ -26,11 +26,13 @@ import {
   Activity,
   Shield,
   Database,
+  KeyRound,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { notificationService } from '../../services/notificationService';
 import { alertTracker } from '../../services/alertTracker';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
+import ApiKeySettingsScreen from '../../components/ApiKeySettings';
 import { apiLogger } from '../../services/apiLogger';
 
 const REFRESH_RATE_OPTIONS = [
@@ -56,6 +58,7 @@ export default function SettingsScreen() {
 
   const [showRefreshRateModal, setShowRefreshRateModal] = useState(false);
   const [showApiLogModal, setShowApiLogModal] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
   const [logVersion, setLogVersion] = useState(0);
   const [alertTrackerStats, setAlertTrackerStats] = useState<{
@@ -594,6 +597,28 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* API Keys Settings */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>API Keys</Text>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => setShowApiKeyModal(true)}
+            >
+              <View style={styles.settingLeft}>
+                <View style={styles.settingIcon}>
+                  <KeyRound size={24} color={theme.primary} />
+                </View>
+                <View style={styles.settingInfo}>
+                  <Text style={styles.settingTitle}>Configure API Keys</Text>
+                  <Text style={styles.settingDescription}>
+                    Set your own API keys for weather services
+                  </Text>
+                </View>
+              </View>
+              <ChevronRight size={20} color={theme.textSecondary} />
+            </TouchableOpacity>
+          </View>
+
           {/* Data Settings */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Data</Text>
@@ -790,6 +815,22 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        <Modal
+          visible={showApiKeyModal}
+          animationType="slide"
+          onRequestClose={() => setShowApiKeyModal(false)}
+        >
+          <View style={styles.apiLogModal}>
+            <ApiKeySettingsScreen />
+            <TouchableOpacity
+              style={styles.apiLogModalHeader}
+              onPress={() => setShowApiKeyModal(false)}
+            >
+              <X size={24} color={theme.text} />
+            </TouchableOpacity>
+          </View>
+        </Modal>
 
         <RefreshRateModal />
         <ApiLogModal />

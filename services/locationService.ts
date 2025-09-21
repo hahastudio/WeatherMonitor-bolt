@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 import { LocationCoords } from '../types/weather';
 import { apiLogger } from './apiLogger';
+import { getApiKey } from './apiKeyManager';
 
 class LocationService {
   async getCurrentLocation(): Promise<LocationCoords> {
@@ -71,7 +72,10 @@ class LocationService {
 
     try {
       console.log('Fetching OpenWeatherMap location for coords:', coords);
-      const apiKey = process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY;
+      const apiKey = getApiKey('openWeatherMap');
+      if (!apiKey) {
+        throw new Error('OpenWeatherMap API key not configured');
+      }
       const response = await fetch(
         `https://api.openweathermap.org/geo/1.0/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1&appid=${apiKey}`,
       );

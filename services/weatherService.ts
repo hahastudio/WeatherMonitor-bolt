@@ -8,23 +8,11 @@ import {
   DailyForecast,
 } from '../types/weather';
 import { apiLogger } from './apiLogger';
+import { getApiKey } from './apiKeyManager';
 
 const BASE_URL = 'https://api.openweathermap.org/data/3.0/onecall';
 
 class WeatherService {
-  private apiKey: string;
-
-  constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY || '';
-  }
-
-  setApiKey(apiKey: string) {
-    this.apiKey = apiKey;
-  }
-
-  getApiKey(): string {
-    return this.apiKey;
-  }
   private transformOneCallToCurrentWeather(
     data: OneCallResponse,
   ): CurrentWeather {
@@ -176,13 +164,14 @@ class WeatherService {
     currentWeather: CurrentWeather;
     forecast: ForecastResponse;
   }> {
-    if (!this.apiKey || this.apiKey === 'your_openweathermap_api_key_here') {
+    const apiKey = getApiKey('openWeatherMap');
+    if (!apiKey) {
       throw new Error(
-        'OpenWeatherMap API key not configured. Please add your API key to .env file.',
+        'OpenWeatherMap API key not configured. Please add it in the settings.',
       );
     }
 
-    const url = `${BASE_URL}?lat=${coords.latitude}&lon=${coords.longitude}&appid=${this.apiKey}&units=metric&exclude=minutely,alerts`;
+    const url = `${BASE_URL}?lat=${coords.latitude}&lon=${coords.longitude}&appid=${apiKey}&units=metric&exclude=minutely,alerts`;
     const startTime = Date.now();
 
     try {
@@ -259,8 +248,16 @@ class WeatherService {
     const { forecast } = await this.getWeatherData(coords, trigger);
     return forecast;
   }
+
+  async validateApiKey(apiKey: string): Promise<boolean> {
+    const url = `${BASE_URL}?lat=0&lon=0&appid=${apiKey}&units=metric&exclude=minutely,alerts`;
+    try {
+      const response = await fetch(url);
+      return response.ok;
+    } catch (error) {
+      return false;
+    }
+  }
 }
 
-export const weatherService = new WeatherService(
-  process.env.EXPO_PUBLIC_OPENWEATHER_API_KEY,
-);
+export const weatherService = new WeatherService();

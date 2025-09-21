@@ -10,6 +10,14 @@ export interface WeatherTheme {
   accent: string;
   gradientStart: string;
   gradientEnd: string;
+  colors: {
+    background: string;
+    text: string;
+    primary: string;
+  };
+  radii: {
+    medium: number;
+  };
 }
 
 const isNightTime = (): boolean => {
@@ -33,7 +41,27 @@ export const getWeatherCondition = (weatherMain: string): WeatherCondition => {
   return 'clear';
 };
 
-export const getWeatherTheme = (
+export const defaultTheme: WeatherTheme = {
+  primary: '#4A90E2',
+  secondary: '#4A90E2',
+  background: '#F0F4F8',
+  surface: '#FFFFFF',
+  text: '#333333',
+  textSecondary: '#667788',
+  accent: '#FF6B6B',
+  gradientStart: '#F8FAFC',
+  gradientEnd: '#E0E8F0',
+  colors: {
+    background: '#F0F4F8',
+    text: '#333333',
+    primary: '#4A90E2',
+  },
+  radii: {
+    medium: 8,
+  },
+};
+
+export const getTheme = (
   condition: WeatherCondition,
   isDarkMode: boolean = false,
 ): WeatherTheme => {
@@ -55,6 +83,14 @@ export const getWeatherTheme = (
         accent: '#DC143C', // Crimson red
         gradientStart: '#87CEEB',
         gradientEnd: '#B0E0E6', // Powder blue
+        colors: {
+          background: '#87CEEB',
+          text: '#1A1A1A',
+          primary: '#FF8C00',
+        },
+        radii: {
+          medium: 8,
+        },
       },
       dark: {
         primary: '#FFD700', // Bright gold
@@ -66,6 +102,14 @@ export const getWeatherTheme = (
         accent: '#FF6B6B', // Coral red
         gradientStart: '#0F1419',
         gradientEnd: '#1E2A3A',
+        colors: {
+          background: '#0F1419',
+          text: '#FFFFFF',
+          primary: '#FFD700',
+        },
+        radii: {
+          medium: 8,
+        },
       },
     },
     clouds: {
@@ -79,6 +123,14 @@ export const getWeatherTheme = (
         accent: '#FF4500', // Orange red
         gradientStart: '#F5F5F5',
         gradientEnd: '#E6E6FA', // Lavender
+        colors: {
+          background: '#F5F5F5',
+          text: '#1A1A1A',
+          primary: '#4169E1',
+        },
+        radii: {
+          medium: 8,
+        },
       },
       dark: {
         primary: '#87CEEB', // Sky blue
@@ -90,6 +142,14 @@ export const getWeatherTheme = (
         accent: '#FFD700', // Gold
         gradientStart: '#2C2C2C',
         gradientEnd: '#3A3A3A',
+        colors: {
+          background: '#2C2C2C',
+          text: '#FFFFFF',
+          primary: '#87CEEB',
+        },
+        radii: {
+          medium: 8,
+        },
       },
     },
     rain: {
@@ -103,6 +163,14 @@ export const getWeatherTheme = (
         accent: '#FF1493', // Deep pink
         gradientStart: '#F0F8FF',
         gradientEnd: '#E0F6FF', // Light cyan
+        colors: {
+          background: '#F0F8FF',
+          text: '#1A1A1A',
+          primary: '#1E90FF',
+        },
+        radii: {
+          medium: 8,
+        },
       },
       dark: {
         primary: '#00BFFF', // Deep sky blue
@@ -114,6 +182,14 @@ export const getWeatherTheme = (
         accent: '#FF6B6B', // Coral
         gradientStart: '#0D1B2A',
         gradientEnd: '#1B263B',
+        colors: {
+          background: '#0D1B2A',
+          text: '#FFFFFF',
+          primary: '#00BFFF',
+        },
+        radii: {
+          medium: 8,
+        },
       },
     },
     snow: {
@@ -127,6 +203,14 @@ export const getWeatherTheme = (
         accent: '#DC143C', // Crimson
         gradientStart: '#F8F8FF',
         gradientEnd: '#F0F8FF', // Alice blue
+        colors: {
+          background: '#F8F8FF',
+          text: '#1A1A1A',
+          primary: '#4169E1',
+        },
+        radii: {
+          medium: 8,
+        },
       },
       dark: {
         primary: '#87CEEB', // Sky blue
@@ -138,6 +222,14 @@ export const getWeatherTheme = (
         accent: '#FFD700', // Gold
         gradientStart: '#1C2541',
         gradientEnd: '#2A3A5A',
+        colors: {
+          background: '#1C2541',
+          text: '#FFFFFF',
+          primary: '#87CEEB',
+        },
+        radii: {
+          medium: 8,
+        },
       },
     },
     thunderstorm: {
@@ -151,6 +243,14 @@ export const getWeatherTheme = (
         accent: '#FFD700', // Gold
         gradientStart: '#E6E6FA',
         gradientEnd: '#DDA0DD', // Plum
+        colors: {
+          background: '#E6E6FA',
+          text: '#1A1A1A',
+          primary: '#8B008B',
+        },
+        radii: {
+          medium: 8,
+        },
       },
       dark: {
         primary: '#9370DB', // Medium orchid
@@ -162,6 +262,14 @@ export const getWeatherTheme = (
         accent: '#FFD700', // Gold
         gradientStart: '#1A0B2E',
         gradientEnd: '#2D1B3D',
+        colors: {
+          background: '#1A0B2E',
+          text: '#FFFFFF',
+          primary: '#9370DB',
+        },
+        radii: {
+          medium: 8,
+        },
       },
     },
     drizzle: {
@@ -175,6 +283,14 @@ export const getWeatherTheme = (
         accent: '#FF4500', // Orange red
         gradientStart: '#F0FFFF',
         gradientEnd: '#E0FFFF', // Light cyan
+        colors: {
+          background: '#F0FFFF',
+          text: '#1A1A1A',
+          primary: '#20B2AA',
+        },
+        radii: {
+          medium: 8,
+        },
       },
       dark: {
         primary: '#40E0D0', // Turquoise
@@ -186,6 +302,14 @@ export const getWeatherTheme = (
         accent: '#FF6B6B', // Coral
         gradientStart: '#0F2027',
         gradientEnd: '#1E3A3A',
+        colors: {
+          background: '#0F2027',
+          text: '#FFFFFF',
+          primary: '#40E0D0',
+        },
+        radii: {
+          medium: 8,
+        },
       },
     },
     mist: {
@@ -199,6 +323,14 @@ export const getWeatherTheme = (
         accent: '#FF6347', // Tomato
         gradientStart: '#F5F5F5',
         gradientEnd: '#DCDCDC', // Gainsboro
+        colors: {
+          background: '#F5F5F5',
+          text: '#1A1A1A',
+          primary: '#696969',
+        },
+        radii: {
+          medium: 8,
+        },
       },
       dark: {
         primary: '#A9A9A9', // Dark gray
@@ -210,6 +342,14 @@ export const getWeatherTheme = (
         accent: '#FF6B6B', // Coral
         gradientStart: '#2F2F2F',
         gradientEnd: '#3A3A3A',
+        colors: {
+          background: '#2F2F2F',
+          text: '#FFFFFF',
+          primary: '#A9A9A9',
+        },
+        radii: {
+          medium: 8,
+        },
       },
     },
     fog: {
@@ -223,6 +363,14 @@ export const getWeatherTheme = (
         accent: '#FF6347', // Tomato
         gradientStart: '#F5F5F5',
         gradientEnd: '#DCDCDC', // Gainsboro
+        colors: {
+          background: '#F5F5F5',
+          text: '#1A1A1A',
+          primary: '#696969',
+        },
+        radii: {
+          medium: 8,
+        },
       },
       dark: {
         primary: '#A9A9A9', // Dark gray
@@ -234,6 +382,14 @@ export const getWeatherTheme = (
         accent: '#FF6B6B', // Coral
         gradientStart: '#2F2F2F',
         gradientEnd: '#3A3A3A',
+        colors: {
+          background: '#2F2F2F',
+          text: '#FFFFFF',
+          primary: '#A9A9A9',
+        },
+        radii: {
+          medium: 8,
+        },
       },
     },
   };
@@ -246,7 +402,7 @@ export const formatTemperature = (temp: number): string => {
 };
 
 export const formatTime = (timestamp: number): string => {
-  var time = new Date(timestamp * 1000);
+  const time = new Date(timestamp * 1000);
   if (time.getHours() === 0 && time.getMinutes() === 0)
     return time.toLocaleDateString('en-US', {
       month: 'short',

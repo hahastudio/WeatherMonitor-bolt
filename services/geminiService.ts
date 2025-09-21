@@ -8,8 +8,7 @@ import {
   DailyForecast,
 } from '../types/weather';
 import { apiLogger } from './apiLogger';
-
-const API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+import { getApiKey } from './apiKeyManager';
 
 interface WeatherSummaryInput {
   currentWeather: CurrentWeather;
@@ -27,24 +26,24 @@ export interface WeatherSummary {
   mood: 'positive' | 'neutral' | 'warning' | 'severe';
 }
 
+const MODEL = 'gemini-2.5-flash';
+
 export class GeminiService {
   private genAI: GoogleGenAI | undefined;
-
-  constructor(apiKey?: string) {
-    const API_KEY = apiKey || process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-    if (API_KEY && API_KEY !== 'your_gemini_api_key_here') {
-      this.genAI = new GoogleGenAI({ apiKey: API_KEY });
-    }
-  }
 
   async generateWeatherSummary(
     input: WeatherSummaryInput,
     trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual',
   ): Promise<WeatherSummary> {
-    if (!this.genAI) {
+    const apiKey = getApiKey('gemini');
+    if (!apiKey) {
       throw new Error(
-        'Gemini API key not configured. Please add your API key to .env file.',
+        'Gemini API key not configured. Please add it in the settings.',
       );
+    }
+
+    if (!this.genAI) {
+      this.genAI = new GoogleGenAI({ apiKey });
     }
 
     const startTime = Date.now();
@@ -53,7 +52,7 @@ export class GeminiService {
       const prompt = this.buildPrompt(input);
 
       const result = await this.genAI.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: MODEL,
         contents: prompt,
         config: {
           responseMimeType: 'application/json',
@@ -106,18 +105,26 @@ export class GeminiService {
   private buildHourlyForecastSummary(forecast: HourlyForecast): string {
     const date = new Date(forecast.dt * 1000);
     const hours = date.getHours();
-    var result = '';
+    let result = '';
     if (hours === 0)
       result += `- ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} 0:00\n`;
     else result += `- ${hours}:00\n`;
-    result += `  - Temperature: ${forecast.main.temp}°C, feels like: ${forecast.main.feels_like}°C,\n`;
-    result += `  - Condition: ${forecast.weather[0].description}\n`;
-    result += `  - Humidity: ${forecast.main.humidity}%\n`;
-    result += `  - Pressure: ${forecast.main.pressure} hPa\n`;
-    result += `  - Wind: ${forecast.wind.speed} m/s, direction: ${forecast.wind.deg}°\n`;
-    result += `  - Precipitation Probability: ${(forecast.pop * 100).toFixed(0)}%\n`;
-    result += `  - Rain: ${forecast.rain?.['1h'] ? forecast.rain['1h'].toFixed(2) : '0'} mm\n`;
-    result += `  - Snow: ${forecast.snow?.['1h'] ? forecast.snow['1h'].toFixed(2) : '0'} mm\n`;
+    result += `  - Temperature: ${forecast.main.temp}°C, feels like: ${forecast.main.feels_like}°C,
+`;
+    result += `  - Condition: ${forecast.weather[0].description}
+`;
+    result += `  - Humidity: ${forecast.main.humidity}%
+`;
+    result += `  - Pressure: ${forecast.main.pressure} hPa
+`;
+    result += `  - Wind: ${forecast.wind.speed} m/s, direction: ${forecast.wind.deg}°
+`;
+    result += `  - Precipitation Probability: ${(forecast.pop * 100).toFixed(0)}%
+`;
+    result += `  - Rain: ${forecast.rain?.['1h'] ? forecast.rain['1h'].toFixed(2) : '0'} mm
+`;
+    result += `  - Snow: ${forecast.snow?.['1h'] ? forecast.snow['1h'].toFixed(2) : '0'} mm
+`;
     return result;
   }
 
@@ -129,14 +136,22 @@ export class GeminiService {
       day: 'numeric',
     });
     let result = `- ${dayOfWeek}, ${monthDay}\n`;
-    result += `  - Temperature: Low ${forecast.main.temp_min}°C High ${forecast.main.temp_max}°C\n`;
-    result += `  - Condition: ${forecast.weather[0].description}\n`;
-    result += `  - Humidity: ${forecast.main.humidity}%\n`;
-    result += `  - Pressure: ${forecast.main.pressure} hPa\n`;
-    result += `  - Wind: ${forecast.wind.speed} m/s, direction: ${forecast.wind.deg}°\n`;
-    result += `  - Precipitation Probability: ${(forecast.pop * 100).toFixed(0)}%\n`;
-    result += `  - Rain: ${forecast.rain ? forecast.rain.toFixed(2) : '0'} mm\n`;
-    result += `  - Snow: ${forecast.snow ? forecast.snow.toFixed(2) : '0'} mm\n`;
+    result += `  - Temperature: Low ${forecast.main.temp_min}°C High ${forecast.main.temp_max}°C
+`;
+    result += `  - Condition: ${forecast.weather[0].description}
+`;
+    result += `  - Humidity: ${forecast.main.humidity}%
+`;
+    result += `  - Pressure: ${forecast.main.pressure} hPa
+`;
+    result += `  - Wind: ${forecast.wind.speed} m/s, direction: ${forecast.wind.deg}°
+`;
+    result += `  - Precipitation Probability: ${(forecast.pop * 100).toFixed(0)}%
+`;
+    result += `  - Rain: ${forecast.rain ? forecast.rain.toFixed(2) : '0'} mm
+`;
+    result += `  - Snow: ${forecast.snow ? forecast.snow.toFixed(2) : '0'} mm
+`;
     return result;
   }
 
@@ -312,6 +327,19 @@ Guidelines:
         ],
         mood: 'neutral',
       };
+    }
+  }
+
+  async validateApiKey(apiKey: string): Promise<boolean> {
+    try {
+      const genAI = new GoogleGenAI({ apiKey });
+      await genAI.models.generateContent({
+        model: MODEL,
+        contents: [{ parts: [{ text: 'test' }] }],
+      });
+      return true;
+    } catch (error) {
+      return false;
     }
   }
 }

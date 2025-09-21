@@ -1,7 +1,7 @@
 {
   "name": "weather-monitor-nt",
   "main": "index.ts",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "lint": "expo lint",
@@ -12,7 +12,7 @@
     "test": "jest",
     "test:ci": "jest --coverage=false",
     "test:watch": "jest --watch",
-    "android": "expo run:android",
+    "android": "expo run:android --variant release",
     "ios": "expo run:ios",
     "build:web": "expo export --platform web",
     "build:android:local": "NODE_ENV=production dotenv -- eas build -p android --profile production --local"

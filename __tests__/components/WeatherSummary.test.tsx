@@ -3,7 +3,7 @@ import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { WeatherSummary } from '../../components/WeatherSummary';
 import { useWeather } from '../../contexts/WeatherContext';
 import { mockWeatherContext, mockCurrentWeather, mockForecast } from '../mocks';
-import { getWeatherTheme } from '../../utils/weatherTheme';
+import { getTheme } from '../../utils/weatherTheme';
 
 // Mock lucide-react-native icons
 jest.mock('lucide-react-native', () => {
@@ -63,7 +63,7 @@ describe('WeatherSummary', () => {
       weatherSummary: null,
       summaryGeneratedAt: null,
       generateWeatherSummary: jest.fn(),
-      theme: getWeatherTheme('clear'),
+      theme: getTheme('clear'),
     });
   });
 
@@ -71,7 +71,7 @@ describe('WeatherSummary', () => {
     mockedUseWeather.mockReturnValueOnce({
       ...mockWeatherContext,
       currentWeather: null,
-      theme: getWeatherTheme('clear'),
+      theme: getTheme('clear'),
     });
     const { queryByText } = render(<WeatherSummary />);
     expect(queryByText('AI Weather Summary')).toBeNull();
@@ -94,7 +94,7 @@ describe('WeatherSummary', () => {
       currentWeather: mockCurrentWeather,
       forecast: mockForecast,
       generateWeatherSummary,
-      theme: getWeatherTheme('clear'),
+      theme: getTheme('clear'),
     });
 
     const { getByTestId, findByTestId, queryByTestId } = render(
@@ -128,7 +128,7 @@ describe('WeatherSummary', () => {
       currentWeather: mockCurrentWeather,
       forecast: mockForecast,
       generateWeatherSummary,
-      theme: getWeatherTheme('clear'),
+      theme: getTheme('clear'),
     });
 
     const { getByTestId, findByText } = render(<WeatherSummary />);
@@ -158,7 +158,7 @@ describe('WeatherSummary', () => {
       forecast: mockForecast,
       weatherSummary: summaryWithAlerts,
       summaryGeneratedAt: Date.now(),
-      theme: getWeatherTheme('clear'),
+      theme: getTheme('clear'),
     });
 
     const { getByText } = render(<WeatherSummary />);
@@ -175,7 +175,7 @@ describe('WeatherSummary', () => {
       currentWeather: mockCurrentWeather,
       forecast: mockForecast,
       weatherSummary: mockSummary,
-      theme: getWeatherTheme('clear'),
+      theme: getTheme('clear'),
     });
 
     const { getByTestId, queryByTestId, getByText } = render(
@@ -213,7 +213,7 @@ describe('WeatherSummary', () => {
         forecast: mockForecast,
         weatherSummary: mockSummary,
         summaryGeneratedAt: timestamp,
-        theme: getWeatherTheme('clear'),
+        theme: getTheme('clear'),
       });
       return <WeatherSummary />;
     };
@@ -251,7 +251,7 @@ describe('WeatherSummary', () => {
       forecast: mockForecast,
       weatherSummary: mockSummary,
       generateWeatherSummary,
-      theme: getWeatherTheme('clear'),
+      theme: getTheme('clear'),
     });
 
     const { getByTestId, findByTestId, queryByTestId } = render(

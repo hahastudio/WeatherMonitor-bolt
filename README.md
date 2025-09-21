@@ -96,9 +96,6 @@ It's mainly built with [Bolt](https://bolt.new/).
    Create a `.env` file in the root directory:
 
    ```env
-   EXPO_PUBLIC_OPENWEATHER_API_KEY=your_openweathermap_api_key_here
-   EXPO_PUBLIC_CAIYUN_API_KEY=your_caiyun_api_key_here
-   EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
    ANDROID_GOOGLE_SERVICES_FILE_PATH=your_firebase_json_file_here
    ```
 

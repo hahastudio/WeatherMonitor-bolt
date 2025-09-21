@@ -1,7 +1,8 @@
 import { describe, expect, it, beforeEach } from '@jest/globals';
-import { caiyunService, CaiyunService } from '../../services/caiyunService';
+import { caiyunService } from '../../services/caiyunService';
 import type { FetchMock } from 'jest-fetch-mock';
 import type { CaiyunWeatherResponse } from '../../types/weather';
+import { setApiKeys } from '../../services/apiKeyManager';
 
 // Get the global fetch mock
 const fetch = global.fetch as unknown as FetchMock;
@@ -69,9 +70,22 @@ describe('CaiyunService', () => {
   };
 
   beforeEach(() => {
+    // Suppress console logs
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     fetch.resetMocks();
     // Set default API key for tests
-    process.env.EXPO_PUBLIC_CAIYUN_API_KEY = 'test_api_key';
+    setApiKeys({
+      openWeatherMap: 'test_owm_key',
+      caiyun: 'test_api_key',
+      gemini: 'test_gemini_key',
+    });
+  });
+
+  afterEach(() => {
+    // Restore console logs
+    jest.restoreAllMocks();
   });
 
   describe('getWeatherData', () => {
@@ -79,9 +93,7 @@ describe('CaiyunService', () => {
       // Mock the fetch response
       fetch.mockResponseOnce(JSON.stringify(mockWeatherResponse));
 
-      // Create a new instance with the test API key
-      const testCaiyunService = new CaiyunService('test_api_key');
-      const result = await testCaiyunService.getWeatherData(mockCoords);
+      const result = await caiyunService.getWeatherData(mockCoords);
 
       // Check if fetch was called with correct URL
       expect(fetch).toHaveBeenCalledWith(
@@ -95,18 +107,16 @@ describe('CaiyunService', () => {
     });
 
     it('should throw error when API key is not configured', async () => {
-      // Store original API key
-      const originalApiKey = process.env.EXPO_PUBLIC_CAIYUN_API_KEY;
-      process.env.EXPO_PUBLIC_CAIYUN_API_KEY = 'your_caiyun_api_key_here';
+      // Set an invalid API key
+      setApiKeys({
+        openWeatherMap: 'test_owm_key',
+        caiyun: '',
+        gemini: 'test_gemini_key',
+      });
 
-      // Create a new instance with the invalid API key
-      const testCaiyunService = new CaiyunService('your_caiyun_api_key_here');
-      await expect(
-        testCaiyunService.getWeatherData(mockCoords),
-      ).rejects.toThrow('Caiyun API key not configured');
-
-      // Restore API key
-      process.env.EXPO_PUBLIC_CAIYUN_API_KEY = originalApiKey;
+      await expect(caiyunService.getWeatherData(mockCoords)).rejects.toThrow(
+        'Caiyun API key not configured',
+      );
     });
 
     it('should handle API errors', async () => {
@@ -116,20 +126,18 @@ describe('CaiyunService', () => {
         statusText: 'Not Found',
       });
 
-      const testCaiyunService = new CaiyunService('test_api_key');
-      await expect(
-        testCaiyunService.getWeatherData(mockCoords),
-      ).rejects.toThrow('Caiyun API error: 404 Not Found');
+      await expect(caiyunService.getWeatherData(mockCoords)).rejects.toThrow(
+        'Caiyun API error: 404 Not Found',
+      );
     });
 
     it('should handle network errors', async () => {
       // Mock a network error
       fetch.mockRejectOnce(new Error('Network error'));
 
-      const testCaiyunService = new CaiyunService('test_api_key');
-      await expect(
-        testCaiyunService.getWeatherData(mockCoords),
-      ).rejects.toThrow('Network error');
+      await expect(caiyunService.getWeatherData(mockCoords)).rejects.toThrow(
+        'Network error',
+      );
     });
   });
 });

@@ -1,6 +1,6 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import {
-  GeminiService,
+  geminiService,
   type WeatherSummary,
 } from '../../services/geminiService';
 import type {
@@ -10,6 +10,7 @@ import type {
   CaiyunAirQuality,
 } from '../../types/weather';
 import type { GenerateContentResponse } from '@google/genai';
+import { setApiKeys } from '../../services/apiKeyManager';
 
 // Create mock function with proper type
 const mockGenerateContent = jest.fn<() => Promise<GenerateContentResponse>>();
@@ -179,13 +180,16 @@ describe('GeminiService', () => {
     } as GenerateContentResponse);
 
     // Set test API key
-    process.env.EXPO_PUBLIC_GEMINI_API_KEY = 'test_api_key';
+    setApiKeys({
+      openWeatherMap: 'test_owm_key',
+      caiyun: 'test_caiyun_key',
+      gemini: 'test_api_key',
+    });
   });
 
   describe('generateWeatherSummary', () => {
     it('should generate weather summary successfully', async () => {
-      const testGeminiService = new GeminiService('test_api_key');
-      const result = await testGeminiService.generateWeatherSummary(mockInput);
+      const result = await geminiService.generateWeatherSummary(mockInput);
       expect(result).toEqual(mockWeatherSummary);
     });
 
@@ -194,9 +198,8 @@ describe('GeminiService', () => {
         new Error('API Error') as never,
       );
 
-      const testGeminiService = new GeminiService('test_api_key');
       await expect(
-        testGeminiService.generateWeatherSummary(mockInput),
+        geminiService.generateWeatherSummary(mockInput),
       ).rejects.toThrow('API Error');
     });
 
@@ -221,8 +224,7 @@ describe('GeminiService', () => {
         modelVersion: 'gemini-2.5-flash',
       } as GenerateContentResponse);
 
-      const testGeminiService = new GeminiService('test_api_key');
-      const result = await testGeminiService.generateWeatherSummary(mockInput);
+      const result = await geminiService.generateWeatherSummary(mockInput);
 
       // Should return fallback response
       expect(result).toEqual({
@@ -239,19 +241,16 @@ describe('GeminiService', () => {
     });
 
     it('should throw error when API key is not configured', async () => {
-      // Store original API key
-      const originalApiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-      process.env.EXPO_PUBLIC_GEMINI_API_KEY = 'your_gemini_api_key_here';
-
-      // Create new instance with invalid API key
-      const testGeminiService = new GeminiService('your_gemini_api_key_here');
+      // Set an invalid API key
+      setApiKeys({
+        openWeatherMap: 'test_owm_key',
+        caiyun: 'test_caiyun_key',
+        gemini: '',
+      });
 
       await expect(
-        testGeminiService.generateWeatherSummary(mockInput),
+        geminiService.generateWeatherSummary(mockInput),
       ).rejects.toThrow('Gemini API key not configured');
-
-      // Restore API key
-      process.env.EXPO_PUBLIC_GEMINI_API_KEY = originalApiKey;
     });
   });
 });

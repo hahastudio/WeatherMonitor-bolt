@@ -5,7 +5,7 @@ import {
   LocationCoords,
 } from '../types/weather';
 import { WeatherContextType } from '../contexts/WeatherContext';
-import { getWeatherTheme } from '../utils/weatherTheme';
+import { getTheme } from '../utils/weatherTheme';
 
 // Mock Expo's fetch implementation
 jest.mock('expo/fetch', () => ({
@@ -93,7 +93,7 @@ export const mockWeatherContext: WeatherContextType = {
   refreshLocation: jest.fn() as jest.Mock<() => Promise<void>>,
   loading: false,
   error: null,
-  theme: getWeatherTheme('clear'),
+  theme: getTheme('clear'),
   weatherCondition: 'clear',
   isDarkMode: false,
   refreshRate: 15,

@@ -22,7 +22,7 @@ import { alertTracker } from '../services/alertTracker';
 import { geminiService, WeatherSummary } from '../services/geminiService';
 import {
   getWeatherCondition,
-  getWeatherTheme,
+  getTheme,
   WeatherTheme,
 } from '../utils/weatherTheme';
 import { initBackgroundFetch } from '../services/backgroundWeatherService';
@@ -112,7 +112,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     ? getWeatherCondition(currentWeather.weather[0].main)
     : 'clear';
 
-  const theme = getWeatherTheme(weatherCondition, isDarkMode);
+  const theme = getTheme(weatherCondition, isDarkMode);
 
   // Load all data from storage and update UI
   const loadDataFromStorage = async () => {

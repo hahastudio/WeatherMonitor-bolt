@@ -1,5 +1,6 @@
-const { describe, expect, it, beforeEach } = require('@jest/globals');
-const { weatherService } = require('../../services/weatherService');
+import { describe, expect, it, beforeEach, afterEach } from '@jest/globals';
+import { weatherService } from '../../services/weatherService';
+import { setApiKeys } from '../../services/apiKeyManager';
 
 // Import types
 import type { LocationCoords, OneCallResponse } from '../../types/weather';
@@ -120,8 +121,22 @@ describe('WeatherService', () => {
   };
 
   beforeEach(() => {
+    // Suppress console logs
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+
     // Reset all fetch mocks before each test
     fetch.resetMocks();
+    setApiKeys({
+      openWeatherMap: 'test_owm_key',
+      caiyun: 'test_caiyun_key',
+      gemini: 'test_gemini_key',
+    });
+  });
+
+  afterEach(() => {
+    // Restore console logs
+    jest.restoreAllMocks();
   });
 
   describe('getWeatherData', () => {
@@ -240,29 +255,15 @@ describe('WeatherService', () => {
     });
 
     it('should throw error when API key is not configured', async () => {
-      // Temporarily set API key to invalid value
-      const originalApiKey = weatherService.getApiKey();
-      weatherService.setApiKey('your_openweathermap_api_key_here');
+      setApiKeys({
+        openWeatherMap: '',
+        caiyun: 'test_caiyun_key',
+        gemini: 'test_gemini_key',
+      });
 
       await expect(weatherService.getWeatherData(mockCoords)).rejects.toThrow(
         'OpenWeatherMap API key not configured',
       );
-
-      // Restore API key
-      weatherService.setApiKey(originalApiKey);
-    });
-
-    it('should throw error when API key is empty', async () => {
-      // Temporarily set API key to empty string
-      const originalApiKey = weatherService.getApiKey();
-      weatherService.setApiKey('');
-
-      await expect(weatherService.getWeatherData(mockCoords)).rejects.toThrow(
-        'OpenWeatherMap API key not configured',
-      );
-
-      // Restore API key
-      weatherService.setApiKey(originalApiKey);
     });
 
     it('should handle API errors', async () => {

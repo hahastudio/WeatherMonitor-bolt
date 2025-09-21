@@ -2,7 +2,7 @@ import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import {
   WeatherTheme,
   getWeatherCondition,
-  getWeatherTheme,
+  getTheme,
   formatTemperature,
   formatTime,
   formatDate,
@@ -32,7 +32,7 @@ describe('Weather Theme Utils', () => {
     });
   });
 
-  describe('getWeatherTheme', () => {
+  describe('getTheme', () => {
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -43,19 +43,19 @@ describe('Weather Theme Utils', () => {
 
     it('should return light theme during daytime', () => {
       jest.setSystemTime(new Date('2025-08-31T12:00:00')); // noon
-      const theme = getWeatherTheme('clear', false);
+      const theme = getTheme('clear', false);
       expect(theme.background).toBe('#87CEEB'); // light theme sky blue
     });
 
     it('should return dark theme during nighttime', () => {
       jest.setSystemTime(new Date('2025-08-31T20:00:00')); // 8 PM
-      const theme = getWeatherTheme('clear', false);
+      const theme = getTheme('clear', false);
       expect(theme.background).toBe('#0F1419'); // dark theme background
     });
 
     it('should return dark theme when isDarkMode is true regardless of time', () => {
       jest.setSystemTime(new Date('2025-08-31T12:00:00')); // noon
-      const theme = getWeatherTheme('clear', true);
+      const theme = getTheme('clear', true);
       expect(theme.background).toBe('#0F1419'); // dark theme background
     });
 
@@ -80,7 +80,7 @@ describe('Weather Theme Utils', () => {
       ];
 
       conditions.forEach((condition) => {
-        const theme = getWeatherTheme(condition, false);
+        const theme = getTheme(condition, false);
         expect(theme).toHaveProperty('primary');
         expect(theme).toHaveProperty('secondary');
         expect(theme).toHaveProperty('background');

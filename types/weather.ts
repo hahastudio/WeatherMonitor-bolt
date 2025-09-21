@@ -289,3 +289,9 @@ export interface LocationCoords {
   latitude: number;
   longitude: number;
 }
+
+export interface ApiKeys {
+  openWeatherMap: string;
+  caiyun: string;
+  gemini: string;
+}

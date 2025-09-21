@@ -5,6 +5,7 @@ import {
   CaiyunWeatherAlert,
   CaiyunAirQuality,
   LocationCoords,
+  ApiKeys,
 } from '../types/weather';
 import type { AlertTracker } from '../services/alertTracker';
 import type { ApiLogEntry } from '../services/apiLogger';
@@ -22,7 +23,18 @@ const STORAGE_KEYS = {
   WEATHER_SUMMARY: '@weather_app_weather_summary',
   LOCATION: '@weather_app_location',
   CITY_NAME: '@weather_app_city_name',
+  API_KEYS: '@weather_app_api_keys',
 };
+
+// API Keys storage
+export async function saveApiKeys(apiKeys: ApiKeys) {
+  await AsyncStorage.setItem(STORAGE_KEYS.API_KEYS, JSON.stringify(apiKeys));
+}
+
+export async function loadApiKeys(): Promise<ApiKeys | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.API_KEYS);
+  return data ? JSON.parse(data) : null;
+}
 
 // Weather data storage
 export async function saveCurrentWeather(weather: CurrentWeather | null) {
