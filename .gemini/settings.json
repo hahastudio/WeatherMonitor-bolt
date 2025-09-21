@@ -1,4 +1,5 @@
 {
+  "contextFileName": "AGENTS.md",
   "tools": {
     "allowed": [
       "run_shell_command(npm test)",
