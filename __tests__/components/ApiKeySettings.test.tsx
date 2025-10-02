@@ -1,19 +1,20 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
-import { Alert, Text, View } from 'react-native';
+import { Alert } from 'react-native';
 import ApiKeySettingsScreen from '../../components/ApiKeySettings';
 import { useApiKeys } from '../../contexts/ApiKeyContext';
 import { useWeather } from '../../contexts/WeatherContext';
-const mockUseApiKeys = useApiKeys as jest.Mock;
-const mockUseWeather = useWeather as jest.Mock;
-
-jest.mock('../../contexts/ApiKeyContext');
-jest.mock('../../contexts/WeatherContext');
 import { weatherService } from '../../services/weatherService';
 import { caiyunService } from '../../services/caiyunService';
 import { geminiService } from '../../services/geminiService';
 import { defaultTheme, WeatherTheme } from '../../utils/weatherTheme';
 
+const mockUseApiKeys = useApiKeys as jest.Mock;
+const mockUseWeather = useWeather as jest.Mock;
+
+jest.mock('../../contexts/ApiKeyContext');
+jest.mock('../../contexts/WeatherContext');
 jest.mock('../../services/weatherService');
 jest.mock('../../services/caiyunService');
 jest.mock('../../services/geminiService');
