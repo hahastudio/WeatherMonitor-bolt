@@ -149,7 +149,7 @@ class LocationService {
       if (reverseGeocode.length > 0) {
         const address = reverseGeocode[0];
         console.log('Expo geocoding result:', address);
-        const cityName = address.city || address.subregion || address.region;
+        const cityName = address.city || address.subregion;
         if (cityName) {
           return cityName;
         }

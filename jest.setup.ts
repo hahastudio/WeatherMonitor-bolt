@@ -1,10 +1,9 @@
 import '@testing-library/jest-native/extend-expect';
+import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 import fetchMock from 'jest-fetch-mock';
 
 // Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () =>
-  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
-);
+jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
 
 // Mock react-native-background-fetch
 jest.mock('react-native-background-fetch', () => {
