@@ -404,7 +404,7 @@ export const WeatherSummary: React.FC = () => {
               )}
 
               {expanded && (
-                <View testID="expanded-content">
+                <View testID="expanded-content" style={styles.content}>
                   {weatherSummary.futureWarnings && (
                     <View style={styles.warningSection}>
                       <Text style={styles.warningTitle}>
