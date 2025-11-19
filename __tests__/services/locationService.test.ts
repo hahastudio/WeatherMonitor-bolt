@@ -36,7 +36,9 @@ describe('LocationService', () => {
 
   describe('getCurrentLocation', () => {
     it('should return current location when permission is granted', async () => {
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      (
+        Location.requestForegroundPermissionsAsync as jest.Mock
+      ).mockResolvedValue({
         status: 'granted',
       });
       (Location.getCurrentPositionAsync as jest.Mock).mockResolvedValue({
@@ -45,12 +47,16 @@ describe('LocationService', () => {
 
       const location = await locationService.getCurrentLocation();
       expect(location).toEqual({ latitude: 34.0522, longitude: -118.2437 });
-      expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalledTimes(1);
+      expect(Location.requestForegroundPermissionsAsync).toHaveBeenCalledTimes(
+        1,
+      );
       expect(Location.getCurrentPositionAsync).toHaveBeenCalledTimes(1);
     });
 
     it('should throw an error when permission is denied', async () => {
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      (
+        Location.requestForegroundPermissionsAsync as jest.Mock
+      ).mockResolvedValue({
         status: 'denied',
       });
 
@@ -61,18 +67,22 @@ describe('LocationService', () => {
 
     it('should fallback to web location on web when native location fails', async () => {
       Platform.OS = 'web';
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      (
+        Location.requestForegroundPermissionsAsync as jest.Mock
+      ).mockResolvedValue({
         status: 'granted',
       });
-      (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(new Error('Native location failed'));
+      (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(
+        new Error('Native location failed'),
+      );
 
       // Mock web geolocation success
       const mockWebPosition = {
         coords: { latitude: 51.5074, longitude: -0.1278 },
       };
-      (navigator.geolocation.getCurrentPosition as jest.Mock).mockImplementationOnce((success) =>
-        success(mockWebPosition),
-      );
+      (
+        navigator.geolocation.getCurrentPosition as jest.Mock
+      ).mockImplementationOnce((success) => success(mockWebPosition));
 
       const location = await locationService.getCurrentLocation();
       expect(location).toEqual({ latitude: 51.5074, longitude: -0.1278 });
@@ -80,51 +90,71 @@ describe('LocationService', () => {
 
     it('should throw an error on non-web platforms when native location fails', async () => {
       Platform.OS = 'ios';
-      (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
+      (
+        Location.requestForegroundPermissionsAsync as jest.Mock
+      ).mockResolvedValue({
         status: 'granted',
       });
-      (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(new Error('Native location failed'));
+      (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(
+        new Error('Native location failed'),
+      );
 
-      await expect(locationService.getCurrentLocation()).rejects.toThrow('Native location failed');
+      await expect(locationService.getCurrentLocation()).rejects.toThrow(
+        'Native location failed',
+      );
     });
 
     it('should fallback to default location on web when geolocation fails', async () => {
-        Platform.OS = 'web';
-        (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-          status: 'granted',
-        });
-        (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(new Error('Native location failed'));
-  
-        // Mock web geolocation error
-        (navigator.geolocation.getCurrentPosition as jest.Mock).mockImplementationOnce((success, error) =>
-          error({ code: 1, message: 'User denied Geolocation' }),
-        );
-  
-        const location = await locationService.getCurrentLocation();
-        expect(location).toEqual({ latitude: 40.7128, longitude: -74.006 });
+      Platform.OS = 'web';
+      (
+        Location.requestForegroundPermissionsAsync as jest.Mock
+      ).mockResolvedValue({
+        status: 'granted',
+      });
+      (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(
+        new Error('Native location failed'),
+      );
+
+      // Mock web geolocation error
+      (
+        navigator.geolocation.getCurrentPosition as jest.Mock
+      ).mockImplementationOnce((success, error) =>
+        error({ code: 1, message: 'User denied Geolocation' }),
+      );
+
+      const location = await locationService.getCurrentLocation();
+      expect(location).toEqual({ latitude: 40.7128, longitude: -74.006 });
+    });
+
+    it('should reject if geolocation is not supported on web', async () => {
+      Platform.OS = 'web';
+      (
+        Location.requestForegroundPermissionsAsync as jest.Mock
+      ).mockResolvedValue({
+        status: 'granted',
+      });
+      (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(
+        new Error('Native location failed'),
+      );
+
+      Object.defineProperty(global.navigator, 'geolocation', {
+        value: undefined,
+        writable: true,
       });
 
-      it('should reject if geolocation is not supported on web', async () => {
-        Platform.OS = 'web';
-        (Location.requestForegroundPermissionsAsync as jest.Mock).mockResolvedValue({
-          status: 'granted',
-        });
-        (Location.getCurrentPositionAsync as jest.Mock).mockRejectedValue(new Error('Native location failed'));
-  
-        Object.defineProperty(global.navigator, 'geolocation', {
-            value: undefined,
-            writable: true,
-        });
-  
-        await expect(locationService.getCurrentLocation()).rejects.toThrow('Geolocation not supported');
-      });
+      await expect(locationService.getCurrentLocation()).rejects.toThrow(
+        'Geolocation not supported',
+      );
+    });
   });
 
   describe('getCityName', () => {
     const coords = { latitude: 34.0522, longitude: -118.2437 };
 
     it('should return city name from Expo reverse geocoding', async () => {
-      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([{ city: 'Los Angeles' }]);
+      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([
+        { city: 'Los Angeles' },
+      ]);
 
       const cityName = await locationService.getCityName(coords);
       expect(cityName).toBe('Los Angeles');
@@ -132,14 +162,18 @@ describe('LocationService', () => {
     });
 
     it('should return subregion when city is not available', async () => {
-        (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([{ subregion: 'Manhattan' }]);
-  
-        const cityName = await locationService.getCityName(coords);
-        expect(cityName).toBe('Manhattan');
+      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([
+        { subregion: 'Manhattan' },
+      ]);
+
+      const cityName = await locationService.getCityName(coords);
+      expect(cityName).toBe('Manhattan');
     });
 
     it('should fallback to OpenWeatherMap when Expo geocoding returns no city name', async () => {
-      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([{ region: 'California' }]);
+      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([
+        { region: 'California' },
+      ]);
       mockedGetApiKey.mockReturnValue('fake-api-key');
       mockedFetch.mockResolvedValue({
         ok: true,
@@ -152,11 +186,14 @@ describe('LocationService', () => {
     });
 
     it('should fallback to OpenWeatherMap when Expo geocoding fails', async () => {
-      (Location.reverseGeocodeAsync as jest.Mock).mockRejectedValue(new Error('Expo geocoding failed'));
+      (Location.reverseGeocodeAsync as jest.Mock).mockRejectedValue(
+        new Error('Expo geocoding failed'),
+      );
       mockedGetApiKey.mockReturnValue('fake-api-key');
       mockedFetch.mockResolvedValue({
         ok: true,
-        json: () => Promise.resolve([{ local_names: { en: 'LA from OWM (en)' } }]),
+        json: () =>
+          Promise.resolve([{ local_names: { en: 'LA from OWM (en)' } }]),
       } as Response);
 
       const cityName = await locationService.getCityName(coords);
@@ -165,81 +202,83 @@ describe('LocationService', () => {
     });
 
     it('should return "Unknown Location" if all geocoding fails', async () => {
-        (Location.reverseGeocodeAsync as jest.Mock).mockRejectedValue(new Error('Expo geocoding failed'));
-        mockedGetApiKey.mockReturnValue('fake-api-key');
-        mockedFetch.mockRejectedValue(new Error('Network error'));
-  
-        const cityName = await locationService.getCityName(coords);
-        expect(cityName).toBe('Unknown Location');
-        expect(apiLogger.logRequest).toHaveBeenCalledWith(
-            'geocoding (reverse)',
-            'GET',
-            'error',
-            'auto',
-            expect.any(Number),
-            'Network error',
-            'openweather'
-        );
+      (Location.reverseGeocodeAsync as jest.Mock).mockRejectedValue(
+        new Error('Expo geocoding failed'),
+      );
+      mockedGetApiKey.mockReturnValue('fake-api-key');
+      mockedFetch.mockRejectedValue(new Error('Network error'));
+
+      const cityName = await locationService.getCityName(coords);
+      expect(cityName).toBe('Unknown Location');
+      expect(apiLogger.logRequest).toHaveBeenCalledWith(
+        'geocoding (reverse)',
+        'GET',
+        'error',
+        'auto',
+        expect.any(Number),
+        'Network error',
+        'openweather',
+      );
     });
 
     it('should handle OpenWeatherMap API key not being configured', async () => {
-        (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([]);
-        mockedGetApiKey.mockReturnValue(null);
-  
-        const cityName = await locationService.getCityName(coords);
-        expect(cityName).toBe('Unknown Location');
-        expect(apiLogger.logRequest).toHaveBeenCalledWith(
-            'geocoding (reverse)',
-            'GET',
-            'error',
-            'auto',
-            expect.any(Number),
-            'OpenWeatherMap API key not configured',
-            'openweather'
-        );
+      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([]);
+      mockedGetApiKey.mockReturnValue(null);
+
+      const cityName = await locationService.getCityName(coords);
+      expect(cityName).toBe('Unknown Location');
+      expect(apiLogger.logRequest).toHaveBeenCalledWith(
+        'geocoding (reverse)',
+        'GET',
+        'error',
+        'auto',
+        expect.any(Number),
+        'OpenWeatherMap API key not configured',
+        'openweather',
+      );
     });
 
     it('should handle OpenWeatherMap API failure', async () => {
-        (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([]);
-        mockedGetApiKey.mockReturnValue('fake-api-key');
-        mockedFetch.mockResolvedValue({
-            ok: false,
-            status: 401,
-            statusText: 'Unauthorized',
-        } as Response);
-  
-        const cityName = await locationService.getCityName(coords);
-        expect(cityName).toBe('Unknown Location');
-        expect(apiLogger.logRequest).toHaveBeenCalledWith(
-            'geocoding (reverse)',
-            'GET',
-            'error',
-            'auto',
-            expect.any(Number),
-            '401 Unauthorized',
-            'openweather'
-        );
+      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([]);
+      mockedGetApiKey.mockReturnValue('fake-api-key');
+      mockedFetch.mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: 'Unauthorized',
+      } as Response);
+
+      const cityName = await locationService.getCityName(coords);
+      expect(cityName).toBe('Unknown Location');
+      expect(apiLogger.logRequest).toHaveBeenCalledWith(
+        'geocoding (reverse)',
+        'GET',
+        'error',
+        'auto',
+        expect.any(Number),
+        '401 Unauthorized',
+        'openweather',
+      );
     });
 
     it('should handle no location data from OpenWeatherMap', async () => {
-        (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([]);
-        mockedGetApiKey.mockReturnValue('fake-api-key');
-        mockedFetch.mockResolvedValue({
-            ok: true,
-            json: () => Promise.resolve([]),
-        } as Response);
-  
-        const cityName = await locationService.getCityName(coords);
-        expect(cityName).toBe('Unknown Location');
-        expect(apiLogger.logRequest).toHaveBeenCalledWith(
-            'geocoding (reverse)',
-            'GET',
-            'error',
-            'auto',
-            expect.any(Number),
-            'No location data returned',
-            'openweather'
-        );
+      (Location.reverseGeocodeAsync as jest.Mock).mockResolvedValue([]);
+      mockedGetApiKey.mockReturnValue('fake-api-key');
+      mockedFetch.mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve([]),
+      } as Response);
+
+      const cityName = await locationService.getCityName(coords);
+      expect(cityName).toBe('Unknown Location');
+      expect(apiLogger.logRequest).toHaveBeenCalledWith(
+        'geocoding (reverse)',
+        'GET',
+        'error',
+        'auto',
+        expect.any(Number),
+        'No location data returned',
+        'openweather',
+      );
     });
   });
 });

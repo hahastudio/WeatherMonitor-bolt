@@ -203,6 +203,16 @@ export default function ChartsScreen() {
     };
   });
 
+  const feelsLikeData = next48Hours.map((item, index) => {
+    const feelsLike = item.main?.feels_like;
+    const hour = new Date(item.dt * 1000).getHours();
+    return {
+      x: index,
+      y: typeof feelsLike === 'number' ? parseFloat(feelsLike.toFixed(1)) : 0,
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
+    };
+  });
+
   const precipitationData = next48Hours.map((item, index) => {
     const rain = item.rain?.['1h'] || 0;
     const snow = item.snow?.['1h'] || 0;
@@ -222,6 +232,17 @@ export default function ChartsScreen() {
     return {
       x: index,
       y: typeof windKmh === 'number' ? parseFloat(windKmh.toFixed(1)) : 0,
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
+    };
+  });
+
+  const windGustData = next48Hours.map((item, index) => {
+    const windGust = item.wind?.gust || item.wind?.speed || 0; // Fallback to speed if gust is missing
+    const gustKmh = windGust * 3.6; // Convert m/s to km/h
+    const hour = new Date(item.dt * 1000).getHours();
+    return {
+      x: index,
+      y: typeof gustKmh === 'number' ? parseFloat(gustKmh.toFixed(1)) : 0,
       label: hour % 12 === 0 ? formatTime(item.dt) : '',
     };
   });
@@ -263,6 +284,7 @@ export default function ChartsScreen() {
   };
 
   const tempStats = calculateStats(temperatureData);
+  const feelsLikeStats = calculateStats(feelsLikeData);
   const precipStats = {
     total: parseFloat(
       precipitationData.reduce((sum, d) => sum + d.y, 0).toFixed(1),
@@ -270,6 +292,7 @@ export default function ChartsScreen() {
     max: parseFloat(Math.max(...precipitationData.map((d) => d.y)).toFixed(1)),
   };
   const windStats = calculateStats(windData);
+  const windGustStats = calculateStats(windGustData);
   const pressureStats = calculateStats(pressureData);
   const humidityStats = calculateStats(humidityData);
 
@@ -281,6 +304,10 @@ export default function ChartsScreen() {
     unit: string,
     chartType: 'line' | 'area' | 'bar' = 'line',
     stats?: chartStats,
+    data2?: DataPoint[],
+    color2?: string,
+    stats2?: chartStats,
+    stats2Label?: string,
   ) => {
     return (
       <View key={title} style={styles.chartCard}>
@@ -297,6 +324,8 @@ export default function ChartsScreen() {
           <CustomChart
             data={data}
             color={color}
+            data2={data2}
+            color2={color2}
             unit={unit}
             type={chartType}
             showGrid={true}
@@ -305,10 +334,68 @@ export default function ChartsScreen() {
 
         {stats && (
           <View style={styles.statsRow}>
+            {stats2 && (
+              <View
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  left: 0,
+                  right: 0,
+                  alignItems: 'center',
+                }}
+              >
+                <Text
+                  style={{
+                    fontSize: 10,
+                    color: color,
+                    fontWeight: 'bold',
+                    backgroundColor: theme.surface,
+                    paddingHorizontal: 8,
+                  }}
+                >
+                  ACTUAL
+                </Text>
+              </View>
+            )}
             {Object.entries(stats).map(([key, value]) => (
               <View key={key} style={styles.statItem}>
                 <Text style={styles.statLabel}>{key}</Text>
                 <Text style={styles.statValue}>
+                  {typeof value === 'number' ? value.toFixed(1) : String(value)}
+                  {unit}
+                </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {stats2 && (
+          <View style={[styles.statsRow, { marginTop: 0, borderTopWidth: 0 }]}>
+            <View
+              style={{
+                position: 'absolute',
+                top: 4,
+                left: 0,
+                right: 0,
+                alignItems: 'center',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 10,
+                  color: color2,
+                  fontWeight: 'bold',
+                  backgroundColor: theme.surface,
+                  paddingHorizontal: 8,
+                }}
+              >
+                {stats2Label || 'SECONDARY'}
+              </Text>
+            </View>
+            {Object.entries(stats2).map(([key, value]) => (
+              <View key={key} style={styles.statItem}>
+                <Text style={styles.statLabel}>{key}</Text>
+                <Text style={[styles.statValue, { color: theme.textSecondary }]}>
                   {typeof value === 'number' ? value.toFixed(1) : String(value)}
                   {unit}
                 </Text>
@@ -355,6 +442,10 @@ export default function ChartsScreen() {
             '°C',
             'line',
             tempStats,
+            feelsLikeData,
+            '#FF9F1C', // Orange for feels like
+            feelsLikeStats,
+            'FEELS LIKE',
           )}
 
           {renderChart(
@@ -375,6 +466,10 @@ export default function ChartsScreen() {
             ' km/h',
             'line',
             windStats,
+            windGustData,
+            '#8A2BE2', // BlueViolet for wind gust
+            windGustStats,
+            'GUST',
           )}
 
           {renderChart(

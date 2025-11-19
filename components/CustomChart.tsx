@@ -26,6 +26,8 @@ export interface DataPoint {
 interface CustomChartProps {
   data: DataPoint[];
   color: string;
+  data2?: DataPoint[];
+  color2?: string;
   unit: string;
   type?: 'line' | 'area' | 'bar';
   showGrid?: boolean;
@@ -34,6 +36,8 @@ interface CustomChartProps {
 export const CustomChart: React.FC<CustomChartProps> = ({
   data,
   color,
+  data2,
+  color2,
   unit,
   type = 'line',
   showGrid = true,
@@ -81,6 +85,16 @@ export const CustomChart: React.FC<CustomChartProps> = ({
 
   // Calculate scales with special handling for precipitation and pressure
   const yValues = validData.map((d) => d.y);
+  if (data2) {
+    const validData2 = data2.filter(
+      (d) =>
+        typeof d.x === 'number' &&
+        typeof d.y === 'number' &&
+        !isNaN(d.y) &&
+        isFinite(d.y),
+    );
+    yValues.push(...validData2.map((d) => d.y));
+  }
   let minY = Math.min(...yValues);
   let maxY = Math.max(...yValues);
 
@@ -109,12 +123,12 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   const xScale = (x: number) =>
     padding.left +
     (x / (validData.length - 1 || 1)) *
-      (chartWidth - padding.left - padding.right);
+    (chartWidth - padding.left - padding.right);
   const yScale = (y: number) =>
     chartHeight -
     padding.bottom -
     ((y - minY + yPadding) / (yRange + 2 * yPadding)) *
-      (chartHeight - padding.top - padding.bottom);
+    (chartHeight - padding.top - padding.bottom);
 
   // Generate path for line/area chart
   const generatePath = () => {
@@ -149,6 +163,39 @@ export const CustomChart: React.FC<CustomChartProps> = ({
     return path;
   };
 
+  const generatePath2 = () => {
+    if (!data2 || data2.length === 0) return '';
+    const validData2 = data2.filter(
+      (d) =>
+        typeof d.x === 'number' &&
+        typeof d.y === 'number' &&
+        !isNaN(d.y) &&
+        isFinite(d.y),
+    );
+    if (validData2.length === 0) return '';
+
+    let path = `M ${xScale(0)} ${yScale(validData2[0].y)}`;
+
+    for (let i = 1; i < validData2.length; i++) {
+      const x = xScale(i);
+      const y = yScale(validData2[i].y);
+
+      // Use smooth curves for better visual appeal
+      if (i === 1) {
+        path += ` L ${x} ${y}`;
+      } else {
+        const prevX = xScale(i - 1);
+        const prevY = yScale(validData2[i - 1].y);
+        const cpX1 = prevX + (x - prevX) * 0.5;
+        const cpY1 = prevY;
+        const cpX2 = prevX + (x - prevX) * 0.5;
+        const cpY2 = y;
+        path += ` C ${cpX1} ${cpY1}, ${cpX2} ${cpY2}, ${x} ${y}`;
+      }
+    }
+    return path;
+  };
+
   // Generate grid lines
   const generateGridLines = () => {
     if (!showGrid) return null;
@@ -162,6 +209,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
         (i / numYLines) * (chartHeight - padding.top - padding.bottom);
       gridLines.push(
         <Line
+          testID="svg-line-grid"
           key={`grid-y-${i}`}
           x1={padding.left}
           y1={y}
@@ -246,6 +294,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
 
       labels.push(
         <SvgText
+          testID="y-label"
           key={`y-label-${i}`}
           x={padding.left - 12} // Moved further left
           y={y + 4}
@@ -271,6 +320,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
       if (dataPoint.label) {
         labels.push(
           <SvgText
+            testID="x-label"
             key={`x-label-${i}`}
             x={xScale(i)}
             y={chartHeight - padding.bottom + 16}
@@ -327,7 +377,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
             const barWidth = Math.max(
               4,
               ((chartWidth - padding.left - padding.right) / validData.length) *
-                0.6,
+              0.6,
             );
             const x = xScale(index) - barWidth / 2;
             const y = yScale(point.y);
@@ -336,6 +386,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
 
             return (
               <Rect
+                testID="svg-rect"
                 key={`bar-${index}`}
                 x={x}
                 y={y}
@@ -354,6 +405,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
           <>
             {type === 'area' && (
               <Path
+                testID="svg-path-area"
                 d={generatePath()}
                 fill={`url(#gradient-${color.replace('#', '')})`}
                 stroke="none"
@@ -361,6 +413,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
             )}
 
             <Path
+              testID="svg-path"
               d={generatePath()}
               fill="none"
               stroke={color}
@@ -368,6 +421,20 @@ export const CustomChart: React.FC<CustomChartProps> = ({
               strokeLinecap="round"
               strokeLinejoin="round"
             />
+
+            {/* Second line if data2 is present */}
+            {data2 && color2 && (
+              <Path
+                testID="svg-path-2"
+                d={generatePath2()}
+                fill="none"
+                stroke={color2}
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="5, 5"
+              />
+            )}
 
             {/* Data points for line charts */}
             {type === 'line' &&
@@ -384,7 +451,27 @@ export const CustomChart: React.FC<CustomChartProps> = ({
                       strokeWidth={2}
                     />
                   );
-                return <></>;
+                return null;
+              })}
+
+            {/* Data points for second line */}
+            {type === 'line' &&
+              data2 &&
+              color2 &&
+              data2.map((point, index) => {
+                if (point.label)
+                  return (
+                    <Circle
+                      key={`point2-${index}`}
+                      cx={xScale(index)}
+                      cy={yScale(point.y)}
+                      r={3}
+                      fill={color2}
+                      stroke="rgba(255,255,255,0.9)"
+                      strokeWidth={2}
+                    />
+                  );
+                return null;
               })}
           </>
         )}
