@@ -52,7 +52,8 @@ export const WeatherIcon: React.FC<WeatherIconProps> = ({
     if (
       main.includes('mist') ||
       main.includes('fog') ||
-      main.includes('haze')
+      main.includes('haze') ||
+      main.includes('dust')
     ) {
       return <CloudFog size={size} color={color} />;
     }

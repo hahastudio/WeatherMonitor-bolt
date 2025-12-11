@@ -15,6 +15,7 @@ import {
   Gauge,
   Droplets,
   TrendingUp,
+  AirVent,
   Clock,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
@@ -267,6 +268,32 @@ export default function ChartsScreen() {
     };
   });
 
+  const aqiChnData = next48Hours.map((item, index) => {
+    const aqi = item.air_quality?.chn;
+    const hour = new Date(item.dt * 1000).getHours();
+    return {
+      x: index,
+      y: typeof aqi === 'number' ? Math.max(0, aqi) : 0,
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
+    };
+  });
+
+  const aqiUsaData = next48Hours.map((item, index) => {
+    const aqi = item.air_quality?.usa;
+    const hour = new Date(item.dt * 1000).getHours();
+    return {
+      x: index,
+      y: typeof aqi === 'number' ? Math.max(0, aqi) : 0,
+      label: hour % 12 === 0 ? formatTime(item.dt) : '',
+    };
+  });
+
+  const hasAqiData = next48Hours.some(
+    (item) =>
+      typeof item.air_quality?.chn === 'number' ||
+      typeof item.air_quality?.usa === 'number',
+  );
+
   // Calculate statistics with proper number handling
   const calculateStats = (data: DataPoint[]): chartStats | undefined => {
     const values = data
@@ -294,7 +321,10 @@ export default function ChartsScreen() {
   const windStats = calculateStats(windData);
   const windGustStats = calculateStats(windGustData);
   const pressureStats = calculateStats(pressureData);
+
   const humidityStats = calculateStats(humidityData);
+  const aqiChnStats = calculateStats(aqiChnData);
+  const aqiUsaStats = calculateStats(aqiUsaData);
 
   const renderChart = (
     title: string,
@@ -308,6 +338,7 @@ export default function ChartsScreen() {
     color2?: string,
     stats2?: chartStats,
     stats2Label?: string,
+    statsLabel?: string,
   ) => {
     return (
       <View key={title} style={styles.chartCard}>
@@ -353,7 +384,7 @@ export default function ChartsScreen() {
                     paddingHorizontal: 8,
                   }}
                 >
-                  ACTUAL
+                  {statsLabel || 'ACTUAL'}
                 </Text>
               </View>
             )}
@@ -395,7 +426,9 @@ export default function ChartsScreen() {
             {Object.entries(stats2).map(([key, value]) => (
               <View key={key} style={styles.statItem}>
                 <Text style={styles.statLabel}>{key}</Text>
-                <Text style={[styles.statValue, { color: theme.textSecondary }]}>
+                <Text
+                  style={[styles.statValue, { color: theme.textSecondary }]}
+                >
                   {typeof value === 'number' ? value.toFixed(1) : String(value)}
                   {unit}
                 </Text>
@@ -481,6 +514,22 @@ export default function ChartsScreen() {
             'line',
             pressureStats,
           )}
+
+          {hasAqiData &&
+            renderChart(
+              'Air Quality Index',
+              <AirVent size={24} color="#00CED1" />,
+              aqiChnData,
+              '#00CED1', // DarkTurquoise for China AQI
+              '',
+              'line',
+              aqiChnStats,
+              aqiUsaData,
+              '#FF6347', // Tomato for USA AQI
+              aqiUsaStats,
+              'USA AQI',
+              'CHINA AQI',
+            )}
 
           {renderChart(
             'Humidity',

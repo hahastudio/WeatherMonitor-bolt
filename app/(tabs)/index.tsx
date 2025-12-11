@@ -7,6 +7,7 @@ import {
   RefreshControl,
   TouchableOpacity,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   MapPin,
@@ -21,6 +22,7 @@ import {
   Gauge,
   AirVent,
   MousePointer2,
+  ChevronRight,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -55,6 +57,7 @@ const windSectors = [
 ];
 
 export default function HomeScreen() {
+  const router = useRouter();
   const {
     currentWeather,
     weatherAlerts,
@@ -358,12 +361,30 @@ export default function HomeScreen() {
               )}
 
               {/* Show air quality data if available */}
-              {hasAirQualityData &&
-                renderDetailCard(
-                  <AirVent size={24} color={theme.primary} />,
-                  'Air Quality',
-                  `AQI ${weatherAirQuality.aqi.usa.toFixed(1)}`,
-                )}
+              {hasAirQualityData && (
+                <TouchableOpacity
+                  style={[styles.detailCard, { width: '48%' }]}
+                  onPress={() => router.push('/air-quality')}
+                >
+                  <View style={styles.detailIcon}>
+                    <AirVent size={24} color={theme.primary} />
+                  </View>
+                  <Text style={styles.detailLabel}>Air Quality</Text>
+                  <Text style={styles.detailValue}>
+                    AQI {weatherAirQuality.aqi.usa.toFixed(1)}
+                  </Text>
+                  <View
+                    style={{
+                      position: 'absolute',
+                      right: 8,
+                      top: '50%',
+                      marginTop: -8,
+                    }}
+                  >
+                    <ChevronRight size={16} color={theme.textSecondary} />
+                  </View>
+                </TouchableOpacity>
+              )}
 
               {renderDetailCard(
                 <Eye size={24} color={theme.primary} />,

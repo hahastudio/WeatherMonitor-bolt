@@ -15,7 +15,9 @@ import {
   loadRefreshRate,
   loadLastUpdated,
   loadLocation,
+  loadApiKeys,
 } from '../utils/weatherStorage';
+import { setApiKeys } from './apiKeyManager';
 
 export async function weatherTask(taskId: string) {
   try {
@@ -53,6 +55,12 @@ export async function weatherTask(taskId: string) {
       return;
     }
 
+    // Get API keys from storage
+    const storedKeys = await loadApiKeys();
+    if (storedKeys) {
+      setApiKeys(storedKeys);
+    }
+
     // Use the new One Call API to get both current weather and forecast in a single call
     const { currentWeather: weatherData, forecast: forecastData } =
       await weatherService.getWeatherData(coords, 'auto');
@@ -66,9 +74,29 @@ export async function weatherTask(taskId: string) {
 
     console.log('✅ BackgroundFetch: Weather data updated successfully');
 
-    // Fetch weather alerts
+    // Fetch weather alerts and data from Caiyun
     try {
       const caiyunResponse = await caiyunService.getWeatherData(coords, 'auto');
+
+      // Merge Caiyun Current Weather
+      console.log('✅ BackgroundFetch: Merging Caiyun current weather data');
+      const mergedWeather = caiyunService.mergeCaiyunCurrentWeather(
+        weatherData,
+        caiyunResponse,
+      );
+      Object.assign(weatherData, mergedWeather);
+      await saveCurrentWeather(weatherData);
+
+      // Merge Caiyun Hourly Forecast (Next 4 hours)
+      if (forecastData.hourly.length > 0) {
+        console.log('✅ BackgroundFetch: Merging Caiyun hourly forecast data');
+        const mergedForecastHourly = caiyunService.mergeCaiyunHourlyForecast(
+          forecastData.hourly,
+          caiyunResponse,
+        );
+        forecastData.hourly = mergedForecastHourly;
+        await saveForecast(forecastData);
+      }
       if (
         caiyunResponse.result?.alert?.content &&
         caiyunResponse.result.alert.content.length > 0

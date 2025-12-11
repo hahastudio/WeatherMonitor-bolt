@@ -85,6 +85,10 @@ export interface HourlyForecast {
   snow?: {
     '1h': number;
   };
+  air_quality?: {
+    chn: number;
+    usa: number;
+  };
 }
 
 export interface DailyForecast {
@@ -252,6 +256,104 @@ export interface CaiyunAirQuality {
     chn: number;
     usa: number;
   };
+  pm25?: number;
+  pm10?: number;
+  o3?: number;
+  so2?: number;
+  no2?: number;
+  co?: number;
+}
+
+export interface CaiyunRealtime {
+  temperature: number;
+  humidity: number;
+  cloudrate: number;
+  skycon: string;
+  visibility: number;
+  dswrf: number;
+  wind: {
+    speed: number;
+    direction: number;
+  };
+  pressure: number;
+  apparent_temperature: number;
+  precipitation: {
+    local: {
+      status: string;
+      intensity: number;
+      datasource: string;
+    };
+    nearest: {
+      status: string;
+      distance: number;
+      intensity: number;
+    };
+  };
+  air_quality?: CaiyunAirQuality;
+  life_index?: {
+    ultraviolet: {
+      index: number;
+      desc: string;
+    };
+    comfort: {
+      index: number;
+      desc: string;
+    };
+  };
+}
+
+export interface CaiyunHourly {
+  description: string;
+  precipitation: Array<{
+    datetime: string;
+    value: number;
+  }>;
+  temperature: Array<{
+    datetime: string;
+    value: number;
+  }>;
+  humidity: Array<{
+    datetime: string;
+    value: number;
+  }>;
+  cloudrate: Array<{
+    datetime: string;
+    value: number;
+  }>;
+  skycon: Array<{
+    datetime: string;
+    value: string;
+  }>;
+  visibility: Array<{
+    datetime: string;
+    value: number;
+  }>;
+  dswrf: Array<{
+    datetime: string;
+    value: number;
+  }>;
+  wind: Array<{
+    datetime: string;
+    speed: number;
+    direction: number;
+  }>;
+  pressure: Array<{
+    datetime: string;
+    value: number;
+  }>;
+  air_quality?: {
+    aqi: Array<{
+      datetime: string;
+      value: {
+        chn: number;
+        usa: number;
+      };
+    }>;
+    pm25: Array<{
+      datetime: string;
+      value: number;
+    }>;
+  };
 }
 
 export interface CaiyunWeatherResponse {
@@ -269,9 +371,9 @@ export interface CaiyunWeatherResponse {
       status: string;
       content: CaiyunWeatherAlert[];
     };
-    realtime?: {
-      air_quality?: CaiyunAirQuality;
-    };
+    realtime?: CaiyunRealtime;
+    hourly?: CaiyunHourly;
+    forecast_keypoint?: string;
   };
 }
 

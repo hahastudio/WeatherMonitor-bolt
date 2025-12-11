@@ -32,6 +32,13 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="air-quality"
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right'
+        }}
+      />
       <Stack.Screen name="+not-found" />
       <Stack.Screen name="welcome" options={{ headerShown: false }} />
     </Stack>

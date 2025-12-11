@@ -197,4 +197,16 @@ describe('CustomChart', () => {
     });
     expect(hasHighValue).toBe(true);
   });
+  it('enforces non-negative Y-axis (starts at 0) for AQI charts (empty unit)', async () => {
+    const aqiData: DataPoint[] = [
+      { x: 0, y: 50 },
+      { x: 1, y: 60 },
+      { x: 2, y: 55 },
+    ];
+    render(<CustomChart data={aqiData} color="#00CED1" unit="" />);
+
+    // Should find a label '0' because min Y is forced to 0
+    const zeroLabels = await screen.findAllByText(/^0$/);
+    expect(zeroLabels.length).toBeGreaterThan(0);
+  });
 });

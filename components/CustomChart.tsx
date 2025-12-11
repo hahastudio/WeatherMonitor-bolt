@@ -99,10 +99,14 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   let maxY = Math.max(...yValues);
 
   // Special handling for precipitation charts - always start from 0
-  const isPrecipitationChart = unit.includes('mm');
+  const isNonNegativeChart =
+    unit.includes('mm') ||
+    unit.includes('km/h') ||
+    unit.includes('%') ||
+    unit === '';
   const isPressureChart = unit.includes('hPa');
 
-  if (isPrecipitationChart) {
+  if (isNonNegativeChart) {
     minY = 0; // Force precipitation charts to start from 0
     // Ensure we have some range even if all values are 0
     if (maxY === 0) {
@@ -118,17 +122,17 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   }
 
   const yRange = maxY - minY || 1;
-  const yPadding = isPrecipitationChart ? 0 : yRange * 0.1; // No padding for precipitation
+  const yPadding = isNonNegativeChart ? 0 : yRange * 0.1; // No padding for precipitation
 
   const xScale = (x: number) =>
     padding.left +
     (x / (validData.length - 1 || 1)) *
-    (chartWidth - padding.left - padding.right);
+      (chartWidth - padding.left - padding.right);
   const yScale = (y: number) =>
     chartHeight -
     padding.bottom -
     ((y - minY + yPadding) / (yRange + 2 * yPadding)) *
-    (chartHeight - padding.top - padding.bottom);
+      (chartHeight - padding.top - padding.bottom);
 
   // Generate path for line/area chart
   const generatePath = () => {
@@ -377,7 +381,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
             const barWidth = Math.max(
               4,
               ((chartWidth - padding.left - padding.right) / validData.length) *
-              0.6,
+                0.6,
             );
             const x = xScale(index) - barWidth / 2;
             const y = yScale(point.y);

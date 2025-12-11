@@ -363,6 +363,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
         await weatherService.getWeatherData(coords, trigger);
 
       // Save all data to storage and update UI
+      // We will update this again after Caiyun data is merged, but save first to have something
       await saveDataToStorage({
         weather: weatherData,
         forecast: forecastData,
@@ -372,12 +373,30 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
       var hasNewAlerts = false;
 
       try {
-        console.log('🌩️ Fetching weather alerts from Caiyun API...');
+        console.log('🌩️ Fetching weather data from Caiyun API...');
 
         const caiyunResponse = await caiyunService.getWeatherData(
           coords,
           trigger,
         );
+
+        // Merge Caiyun Current Weather
+        console.log('✅ Merging Caiyun current weather data');
+        const mergedWeather = caiyunService.mergeCaiyunCurrentWeather(
+          weatherData,
+          caiyunResponse,
+        );
+        Object.assign(weatherData, mergedWeather);
+        await saveDataToStorage({ weather: weatherData });
+
+        // Merge Caiyun Hourly Forecast (Next 4 hours)
+        console.log('✅ Merging Caiyun hourly forecast data (next 4 hours)');
+        const mergedForecastHourly = caiyunService.mergeCaiyunHourlyForecast(
+          forecastData.hourly,
+          caiyunResponse,
+        );
+        forecastData.hourly = mergedForecastHourly;
+        await saveDataToStorage({ forecast: forecastData });
 
         if (
           caiyunResponse.result?.alert?.content &&
