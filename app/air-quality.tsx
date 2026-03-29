@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    // paddingTop is now handled dynamically in the component style prop if needed, 
+    // paddingTop is now handled dynamically in the component style prop if needed,
     // or we can remove it here and add it to the View/SafeAreaView.
     // But since we have `useSafeAreaInsets` hook, let's use style prop on LinearGradient.
   },

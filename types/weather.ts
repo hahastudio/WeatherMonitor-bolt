@@ -307,8 +307,13 @@ export interface CaiyunHourly {
   precipitation: Array<{
     datetime: string;
     value: number;
+    probability: number;
   }>;
   temperature: Array<{
+    datetime: string;
+    value: number;
+  }>;
+  apparent_temperature: Array<{
     datetime: string;
     value: number;
   }>;

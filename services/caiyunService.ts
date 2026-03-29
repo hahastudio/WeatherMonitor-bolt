@@ -1,9 +1,14 @@
 import { fetch } from 'expo/fetch';
-import { CaiyunWeatherResponse, LocationCoords } from '../types/weather';
+import {
+  CaiyunWeatherResponse,
+  LocationCoords,
+  CurrentWeather,
+  HourlyForecast,
+} from '../types/weather';
 import { apiLogger } from './apiLogger';
 import { getApiKey } from './apiKeyManager';
 
-const BASE_URL = 'https://api.caiyunapp.com/v2.5';
+const BASE_URL = 'https://api.caiyunapp.com/v2.6';
 
 export class CaiyunService {
   async getWeatherData(
@@ -114,6 +119,17 @@ export class CaiyunService {
     return map[skycon] || '01d';
   }
 
+  // Helper to determine if a skycon represents snow-type precipitation
+  private isSnowSkycon(skycon: string): boolean {
+    return [
+      'LIGHT_SNOW',
+      'MODERATE_SNOW',
+      'HEAVY_SNOW',
+      'STORM_SNOW',
+      'SLEET',
+    ].includes(skycon);
+  }
+
   // Helper to map Caiyun skycon to OpenWeatherMap main description
   private getMainFromSkycon(skycon: string): string {
     const map: Record<string, string> = {
@@ -206,11 +222,14 @@ export class CaiyunService {
       const dt = new Date(hourly.temperature[i].datetime).getTime() / 1000;
       const skycon = hourly.skycon[i].value;
 
+      const precipValue = hourly.precipitation[i].value;
+      const isSnow = this.isSnowSkycon(skycon);
+
       result.push({
         dt: dt,
         main: {
           temp: hourly.temperature[i].value,
-          feels_like: hourly.temperature[i].value, // Hourly doesn't have feels_like
+          feels_like: hourly.apparent_temperature[i].value,
           temp_min: hourly.temperature[i].value,
           temp_max: hourly.temperature[i].value,
           pressure: hourly.pressure[i].value / 100,
@@ -232,7 +251,9 @@ export class CaiyunService {
           deg: hourly.wind[i].direction,
         },
         visibility: hourly.visibility[i].value * 1000,
-        pop: hourly.precipitation[i].value > 0 ? 1 : 0, // Simplified POP
+        pop: hourly.precipitation[i].probability / 100,
+        rain: precipValue > 0 && !isSnow ? { '1h': precipValue } : undefined,
+        snow: precipValue > 0 && isSnow ? { '1h': precipValue } : undefined,
         dt_txt: hourly.temperature[i].datetime,
         sys: {
           sunrise: 0,
@@ -251,11 +272,13 @@ export class CaiyunService {
   }
 
   mergeCaiyunCurrentWeather(
-    base: import('../types/weather').CurrentWeather,
+    base: CurrentWeather,
     caiyunData: CaiyunWeatherResponse,
-  ): import('../types/weather').CurrentWeather {
+  ): CurrentWeather {
     if (!caiyunData.result?.realtime) return base;
     const rt = caiyunData.result.realtime;
+    const intensity = rt.precipitation.local.intensity;
+    const isSnow = this.isSnowSkycon(rt.skycon);
 
     // Create a new object to avoid mutating the base directly if needed,
     // but here we return a new object with merged properties.
@@ -280,14 +303,16 @@ export class CaiyunService {
       clouds: {
         all: rt.cloudrate * 100,
       },
+      rain: intensity > 0 && !isSnow ? { '1h': intensity } : undefined,
+      snow: intensity > 0 && isSnow ? { '1h': intensity } : undefined,
       dt: caiyunData.server_time,
     };
   }
 
   mergeCaiyunHourlyForecast(
-    base: import('../types/weather').HourlyForecast[],
+    base: HourlyForecast[],
     caiyunData: CaiyunWeatherResponse,
-  ): import('../types/weather').HourlyForecast[] {
+  ): HourlyForecast[] {
     if (!caiyunData.result?.hourly || base.length === 0) return base;
 
     const caiyunHourly = this.transformToHourlyForecast(caiyunData);
@@ -323,8 +348,9 @@ export class CaiyunService {
             main: {
               ...original.main,
               temp: ch.main.temp,
+              feels_like: ch.main.feels_like,
               humidity: ch.main.humidity,
-              // Preserve feels_like, temp_min, temp_max from original
+              // Preserve temp_min, temp_max from original
             },
             weather: ch.weather,
             clouds: ch.clouds,
@@ -332,7 +358,8 @@ export class CaiyunService {
             wind: original.wind,
             visibility: ch.visibility,
             pop: ch.pop,
-            // Preserve sys, dt_txt, rain, snow from original
+            rain: ch.rain,
+            snow: ch.snow,
           };
           updatesCount++;
         }

@@ -22,7 +22,7 @@ describe('CaiyunService', () => {
 
   const mockWeatherResponse: CaiyunWeatherResponse = {
     status: 'ok',
-    api_version: 'v2.5',
+    api_version: 'v2.6',
     api_status: 'active',
     lang: 'zh_CN',
     unit: 'metric',
@@ -92,8 +92,11 @@ describe('CaiyunService', () => {
       },
       hourly: {
         description: 'Clear',
-        precipitation: [{ datetime: '2025-08-30 12:00', value: 0 }],
+        precipitation: [
+          { datetime: '2025-08-30 12:00', value: 0, probability: 0 },
+        ],
         temperature: [{ datetime: '2025-08-30 12:00', value: 25 }],
+        apparent_temperature: [{ datetime: '2025-08-30 12:00', value: 27 }],
         humidity: [{ datetime: '2025-08-30 12:00', value: 0.6 }],
         cloudrate: [{ datetime: '2025-08-30 12:00', value: 0.5 }],
         skycon: [{ datetime: '2025-08-30 12:00', value: 'CLEAR_DAY' }],
@@ -281,13 +284,16 @@ describe('CaiyunService', () => {
           hourly: {
             ...mockWeatherResponse.result!.hourly,
             temperature: [{ datetime: matchTimeStr, value: 25 }],
+            apparent_temperature: [{ datetime: matchTimeStr, value: 27 }],
             humidity: [{ datetime: matchTimeStr, value: 0.6 }],
             cloudrate: [{ datetime: matchTimeStr, value: 0.5 }],
             skycon: [{ datetime: matchTimeStr, value: 'CLEAR_DAY' }],
             visibility: [{ datetime: matchTimeStr, value: 10 }],
             dswrf: [{ datetime: matchTimeStr, value: 100 }],
             wind: [{ datetime: matchTimeStr, speed: 5, direction: 180 }],
-            precipitation: [{ datetime: matchTimeStr, value: 0 }],
+            precipitation: [
+              { datetime: matchTimeStr, value: 0, probability: 0 },
+            ],
             pressure: [{ datetime: matchTimeStr, value: 1013 }],
             air_quality: {
               aqi: [
@@ -313,10 +319,12 @@ describe('CaiyunService', () => {
       // Should update temp from Caiyun (25)
       expect(mergedItem.main.temp).toBe(25);
 
-      // Should preserve temp_min, temp_max, feels_like from base
+      // Should preserve temp_min and temp_max from base
       expect(mergedItem.main.temp_min).toBe(18);
       expect(mergedItem.main.temp_max).toBe(22);
-      expect(mergedItem.main.feels_like).toBe(20);
+
+      // Should update feels_like from Caiyun (27)
+      expect(mergedItem.main.feels_like).toBe(27);
 
       // Should preserve wind from base
       expect(mergedItem.wind).toEqual(baseHourly[0].wind);
@@ -338,6 +346,7 @@ describe('CaiyunService', () => {
       const baseHourly: any[] = [];
       const caiyunHourlyMock: any = {
         temperature: [],
+        apparent_temperature: [],
         humidity: [],
         cloudrate: [],
         skycon: [],
@@ -362,13 +371,18 @@ describe('CaiyunService', () => {
 
         // Mock Caiyun data for this hour
         caiyunHourlyMock.temperature.push({ datetime: ts, value: 30 }); // Caiyun temp
+        caiyunHourlyMock.apparent_temperature.push({ datetime: ts, value: 32 }); // Caiyun feels_like
         caiyunHourlyMock.humidity.push({ datetime: ts, value: 0.8 });
         caiyunHourlyMock.cloudrate.push({ datetime: ts, value: 0.5 });
         caiyunHourlyMock.skycon.push({ datetime: ts, value: 'RAIN' });
         caiyunHourlyMock.visibility.push({ datetime: ts, value: 5 });
         caiyunHourlyMock.dswrf.push({ datetime: ts, value: 0 });
         caiyunHourlyMock.wind.push({ datetime: ts, speed: 20, direction: 0 });
-        caiyunHourlyMock.precipitation.push({ datetime: ts, value: 10 });
+        caiyunHourlyMock.precipitation.push({
+          datetime: ts,
+          value: 10,
+          probability: 80,
+        });
         caiyunHourlyMock.pressure.push({ datetime: ts, value: 1000 });
         caiyunHourlyMock.air_quality.aqi.push({
           datetime: ts,
@@ -392,6 +406,9 @@ describe('CaiyunService', () => {
       // Check 1st item (should have Caiyun temp)
       expect(result[0].main.temp).toBe(30);
       expect(result[0].air_quality).toEqual({ chn: 80, usa: 90 });
+      // RAIN skycon → rain.1h should be set
+      expect(result[0].rain).toEqual({ '1h': 10 });
+      expect(result[0].snow).toBeUndefined();
 
       // Check 5th item (should have Base temp but Caiyun AQI)
       const lastItem = result[4];
@@ -456,6 +473,7 @@ describe('CaiyunService', () => {
       expect(result).toHaveLength(1);
       expect(result[0].main.temp).toBe(25);
       expect(result[0].weather[0].main).toBe('Clear');
+      expect(result[0].pop).toBe(0); // probability 0 / 100
       expect(result[0].dt_txt).toBe('2025-08-30 12:00');
     });
 
