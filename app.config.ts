@@ -3,7 +3,7 @@ export default {
     name: 'Weather Monitor NT',
     slug: 'weathermonitor-nt',
     version: process.env.npm_package_version || '1.0.0',
-    orientation: 'portrait',
+    orientation: 'default',
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     android: {

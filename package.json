@@ -1,7 +1,7 @@
 {
   "name": "weather-monitor-nt",
   "main": "index.ts",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "private": true,
   "scripts": {
     "lint": "expo lint",
@@ -19,7 +19,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
-    "@google/genai": "^1.9.0",
+    "@google/genai": "^2.4.0",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/bottom-tabs": "^7.2.0",
     "@react-navigation/native": "^7.0.14",

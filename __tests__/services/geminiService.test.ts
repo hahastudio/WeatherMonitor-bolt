@@ -175,7 +175,7 @@ describe('GeminiService', () => {
         ],
         thoughtsTokenCount: 1417,
       },
-      modelVersion: 'gemini-2.5-flash',
+      modelVersion: 'gemini-3.5-flash',
       responseId: 'mock_response_id_12345',
     } as GenerateContentResponse);
 
@@ -221,7 +221,7 @@ describe('GeminiService', () => {
             index: 0,
           },
         ],
-        modelVersion: 'gemini-2.5-flash',
+        modelVersion: 'gemini-3.5-flash',
       } as GenerateContentResponse);
 
       const result = await geminiService.generateWeatherSummary(mockInput);

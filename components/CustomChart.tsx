@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import Svg, {
   Path,
   Line,
@@ -12,8 +12,6 @@ import Svg, {
 } from 'react-native-svg';
 import { useWeather } from '../contexts/WeatherContext';
 
-const { width: screenWidth } = Dimensions.get('window');
-const chartWidth = screenWidth - 60; // Increased chart width
 const chartHeight = 180;
 const padding = { top: 20, right: 20, bottom: 40, left: 65 }; // Increased left padding for Y-axis labels
 
@@ -43,6 +41,8 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   showGrid = true,
 }) => {
   const { theme } = useWeather();
+  const { width: screenWidth } = useWindowDimensions();
+  const chartWidth = screenWidth - 60;
 
   const styles = StyleSheet.create({
     container: {

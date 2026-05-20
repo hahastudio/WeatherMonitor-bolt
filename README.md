@@ -208,7 +208,7 @@ For mobile app builds, you'll need to use EAS Build:
 
 **Model Used:**
 
-- `gemini-2.5-flash` - Fast, efficient model for text generation
+- `gemini-3.5-flash` - Fast, efficient model for text generation
 
 **AI Features:**
 
