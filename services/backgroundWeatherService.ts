@@ -1,5 +1,5 @@
 import BackgroundFetch from 'react-native-background-fetch';
-import { Platform } from 'react-native';
+import { Platform, AppState } from 'react-native';
 import { weatherService } from './weatherService';
 import { caiyunService } from './caiyunService';
 import { locationService } from './locationService';
@@ -16,13 +16,37 @@ import {
   loadLastUpdated,
   loadLocation,
   loadApiKeys,
+  acquireFetchLock,
+  releaseFetchLock,
 } from '../utils/weatherStorage';
 import { setApiKeys } from './apiKeyManager';
 
 export async function weatherTask(taskId: string) {
-  try {
-    console.log('🔄 Background weather fetch event triggered:', taskId);
+  console.log('🔄 Background weather fetch event triggered:', taskId);
 
+  if (Platform.OS !== 'web' && AppState.currentState === 'active') {
+    console.log(
+      '⏭️ BackgroundFetch: App is currently in the foreground, skipping background task',
+    );
+    BackgroundFetch.finish(taskId);
+    return;
+  }
+
+  console.log('🔄 BackgroundFetch: app is not in foreground, continue.');
+
+  const acquired = await acquireFetchLock('background');
+  if (!acquired) {
+    console.log(
+      '⏭️ BackgroundFetch: Fetch lock is currently held, skipping background fetch',
+    );
+    BackgroundFetch.finish(taskId);
+    return;
+  }
+
+  console.log('🔄 BackgroundFetch: got fetch lock, continue.');
+
+  try {
+    console.log('🔄 BackgroundFetch: processing...');
     // Get refresh rate from storage
     let refreshRate = 15;
     const storedRefreshRate = await loadRefreshRate();
@@ -136,9 +160,10 @@ export async function weatherTask(taskId: string) {
     }
 
     console.log('✅ BackgroundFetch event completed');
-    BackgroundFetch.finish(taskId);
   } catch (e) {
     console.error('❌ BackgroundFetch event failed:', e);
+  } finally {
+    await releaseFetchLock();
     BackgroundFetch.finish(taskId);
   }
 }

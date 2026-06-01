@@ -24,6 +24,7 @@ const STORAGE_KEYS = {
   LOCATION: '@weather_app_location',
   CITY_NAME: '@weather_app_city_name',
   API_KEYS: '@weather_app_api_keys',
+  FETCH_LOCK: '@weather_app_fetch_lock',
 };
 
 // API Keys storage
@@ -195,4 +196,69 @@ export async function loadApiLogs(): Promise<ApiLogEntry[] | null> {
 
 export async function clearApiLogs() {
   await AsyncStorage.removeItem('@weather_app_api_logs');
+}
+
+// Fetch Lock synchronization helpers
+export interface FetchLock {
+  isFetching: boolean;
+  timestamp: number;
+  clientId: string;
+}
+
+export async function saveFetchLock(lock: FetchLock | null) {
+  if (lock) {
+    await AsyncStorage.setItem(STORAGE_KEYS.FETCH_LOCK, JSON.stringify(lock));
+  } else {
+    await AsyncStorage.removeItem(STORAGE_KEYS.FETCH_LOCK);
+  }
+}
+
+export async function loadFetchLock(): Promise<FetchLock | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.FETCH_LOCK);
+  return data ? JSON.parse(data) : null;
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export async function acquireFetchLock(clientId: string): Promise<boolean> {
+  try {
+    const lock = await loadFetchLock();
+    const now = Date.now();
+
+    if (lock && lock.isFetching) {
+      // Expiration time of 30 seconds to prevent deadlocks
+      if (now - lock.timestamp < 30 * 1000) {
+        console.log(
+          `[Lock] Fetch lock is currently held by ${lock.clientId}, age: ${now - lock.timestamp}ms`,
+        );
+        return false;
+      }
+      console.log(
+        `[Lock] Fetch lock held by ${lock.clientId} has expired, reclaiming lock.`,
+      );
+    }
+
+    // Write intent to acquire lock
+    const newLock: FetchLock = {
+      isFetching: true,
+      timestamp: now,
+      clientId,
+    };
+    await saveFetchLock(newLock);
+
+    console.log(`[Lock] Fetch lock successfully acquired by ${clientId}`);
+    return true;
+  } catch (error) {
+    console.error('[Lock] Failed to acquire fetch lock:', error);
+    return false;
+  }
+}
+
+export async function releaseFetchLock() {
+  try {
+    await saveFetchLock(null);
+    console.log('[Lock] Fetch lock released');
+  } catch (error) {
+    console.error('[Lock] Failed to release fetch lock:', error);
+  }
 }

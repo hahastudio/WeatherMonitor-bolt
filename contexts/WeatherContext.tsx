@@ -47,6 +47,8 @@ import {
   loadLocation,
   saveCityName,
   loadCityName,
+  acquireFetchLock,
+  releaseFetchLock,
 } from '../utils/weatherStorage';
 import { AppState, AppStateStatus } from 'react-native';
 
@@ -349,7 +351,47 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     coords: LocationCoords,
     trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual',
   ) => {
+    // Attempt to acquire the fetch lock with retries
+    const clientId = trigger === 'manual' ? 'foreground_manual' : 'foreground';
+    let acquired = false;
+    let retries = 0;
+    const maxRetries = 5;
+    const sleep = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
+    while (!acquired && retries < maxRetries) {
+      acquired = await acquireFetchLock(clientId);
+      if (!acquired) {
+        console.log(
+          `🔒 [Context] Fetch lock held by another thread, retrying in 2 seconds... (retry ${retries + 1}/${maxRetries})`,
+        );
+        await sleep(2000);
+        retries++;
+      }
+    }
+
+    if (!acquired) {
+      console.log(
+        '❌ [Context] Could not acquire fetch lock after retries, skipping fetch to prevent redundant calls.',
+      );
+      return;
+    }
+
     try {
+      // Double check if data was recently refreshed by another context (e.g. background fetch) while we were waiting
+      if (trigger !== 'manual') {
+        const lastUpdatedTime = await loadLastUpdated();
+        const storedRefreshRate =
+          (await loadRefreshRate()) || DEFAULT_REFRESH_RATE;
+        if (!shouldAutoRefresh(lastUpdatedTime, storedRefreshRate)) {
+          console.log(
+            '✅ [Context] Weather data was recently updated by another context, skipping actual API fetch.',
+          );
+          await loadDataFromStorage();
+          return;
+        }
+      }
+
       if (loading) {
         console.log('🔄 Already fetching weather data, skipping...');
         return;
@@ -494,6 +536,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
       setError(errorMessage);
     } finally {
       setLoading(false);
+      await releaseFetchLock();
     }
   };
 

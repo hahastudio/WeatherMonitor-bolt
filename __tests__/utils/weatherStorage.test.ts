@@ -325,4 +325,80 @@ describe('Weather Storage', () => {
       expect(loadedLogs).toBeNull();
     });
   });
+
+  describe('Fetch Lock Synchronization', () => {
+    beforeEach(() => {
+      mockAsyncStorage.clear();
+      jest.clearAllMocks();
+    });
+
+    it('should save and load fetch lock', async () => {
+      const mockLock = {
+        isFetching: true,
+        timestamp: Date.now(),
+        clientId: 'test-client',
+      };
+      await weatherStorage.saveFetchLock(mockLock);
+      const loadedLock = await weatherStorage.loadFetchLock();
+      expect(loadedLock).toEqual(mockLock);
+    });
+
+    it('should handle null fetch lock', async () => {
+      await weatherStorage.saveFetchLock(null);
+      const loadedLock = await weatherStorage.loadFetchLock();
+      expect(loadedLock).toBeNull();
+    });
+
+    it('should acquire fetch lock successfully when free', async () => {
+      const acquired = await weatherStorage.acquireFetchLock('client-a');
+      expect(acquired).toBe(true);
+
+      const activeLock = await weatherStorage.loadFetchLock();
+      expect(activeLock).not.toBeNull();
+      expect(activeLock?.isFetching).toBe(true);
+      expect(activeLock?.clientId).toBe('client-a');
+    });
+
+    it('should fail to acquire fetch lock when already held by another client', async () => {
+      // First acquire lock for client-a
+      const firstAcquisition =
+        await weatherStorage.acquireFetchLock('client-a');
+      expect(firstAcquisition).toBe(true);
+
+      // Now try to acquire for client-b
+      const secondAcquisition =
+        await weatherStorage.acquireFetchLock('client-b');
+      expect(secondAcquisition).toBe(false);
+
+      // Verify lock is still held by client-a
+      const activeLock = await weatherStorage.loadFetchLock();
+      expect(activeLock?.clientId).toBe('client-a');
+    });
+
+    it('should reclaim expired fetch lock (> 30s)', async () => {
+      await weatherStorage.acquireFetchLock('client-a');
+
+      // Mock Date.now to be 35 seconds in the future
+      const realNow = Date.now;
+      const futureTime = realNow() + 35000;
+      jest.spyOn(Date, 'now').mockImplementation(() => futureTime);
+
+      const acquired = await weatherStorage.acquireFetchLock('client-b');
+      expect(acquired).toBe(true);
+
+      const activeLock = await weatherStorage.loadFetchLock();
+      expect(activeLock?.clientId).toBe('client-b');
+
+      // Restore Date.now
+      jest.restoreAllMocks();
+    });
+
+    it('should release fetch lock successfully', async () => {
+      await weatherStorage.acquireFetchLock('client-a');
+      await weatherStorage.releaseFetchLock();
+
+      const activeLock = await weatherStorage.loadFetchLock();
+      expect(activeLock).toBeNull();
+    });
+  });
 });
