@@ -13,7 +13,8 @@ import type { GenerateContentResponse } from '@google/genai';
 import { setApiKeys } from '../../services/apiKeyManager';
 
 // Create mock function with proper type
-const mockGenerateContent = jest.fn<() => Promise<GenerateContentResponse>>();
+const mockGenerateContent =
+  jest.fn<(...args: any[]) => Promise<GenerateContentResponse>>();
 
 // Mock GoogleGenAI
 jest.mock('@google/genai', () => ({
@@ -193,6 +194,111 @@ describe('GeminiService', () => {
       expect(result).toEqual(mockWeatherSummary);
     });
 
+    it('should fallback to gemini-3-flash if gemini-3.5-flash returns 429', async () => {
+      mockGenerateContent.mockImplementation(async (args: any) => {
+        if (args?.model === 'gemini-3.5-flash') {
+          const err = new Error('Rate limit exceeded') as any;
+          err.status = 429;
+          throw err;
+        }
+        return {
+          text: JSON.stringify(mockWeatherSummary),
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify(mockWeatherSummary),
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          modelVersion: 'gemini-3-flash-preview',
+        } as GenerateContentResponse;
+      });
+
+      const result = await geminiService.generateWeatherSummary(mockInput);
+      expect(result).toEqual(mockWeatherSummary);
+      expect(mockGenerateContent).toHaveBeenCalledTimes(2);
+      expect(mockGenerateContent.mock.calls[0][0]).toMatchObject({
+        model: 'gemini-3.5-flash',
+      });
+      expect(mockGenerateContent.mock.calls[1][0]).toMatchObject({
+        model: 'gemini-3-flash-preview',
+      });
+    });
+
+    it('should fallback to gemini-2.5-flash if both gemini-3.5-flash and gemini-3-flash return 429', async () => {
+      mockGenerateContent.mockImplementation(async (args: any) => {
+        if (
+          args?.model === 'gemini-3.5-flash' ||
+          args?.model === 'gemini-3-flash-preview'
+        ) {
+          const err = new Error('RESOURCE_EXHAUSTED') as any;
+          throw err;
+        }
+        return {
+          text: JSON.stringify(mockWeatherSummary),
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify(mockWeatherSummary),
+                  },
+                ],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+            },
+          ],
+          modelVersion: 'gemini-2.5-flash',
+        } as GenerateContentResponse;
+      });
+
+      const result = await geminiService.generateWeatherSummary(mockInput);
+      expect(result).toEqual(mockWeatherSummary);
+      expect(mockGenerateContent).toHaveBeenCalledTimes(3);
+      expect(mockGenerateContent.mock.calls[0][0]).toMatchObject({
+        model: 'gemini-3.5-flash',
+      });
+      expect(mockGenerateContent.mock.calls[1][0]).toMatchObject({
+        model: 'gemini-3-flash-preview',
+      });
+      expect(mockGenerateContent.mock.calls[2][0]).toMatchObject({
+        model: 'gemini-2.5-flash',
+      });
+    });
+
+    it('should throw error if all models return 429', async () => {
+      mockGenerateContent.mockImplementation(async () => {
+        const err = new Error('Too Many Requests') as any;
+        err.statusCode = 429;
+        throw err;
+      });
+
+      await expect(
+        geminiService.generateWeatherSummary(mockInput),
+      ).rejects.toThrow('Too Many Requests');
+      expect(mockGenerateContent).toHaveBeenCalledTimes(3);
+    });
+
+    it('should fail immediately on non-429 error', async () => {
+      mockGenerateContent.mockImplementation(async () => {
+        throw new Error('Some standard API error');
+      });
+
+      await expect(
+        geminiService.generateWeatherSummary(mockInput),
+      ).rejects.toThrow('Some standard API error');
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+    });
+
     it('should handle API error', async () => {
       mockGenerateContent.mockRejectedValueOnce(
         new Error('API Error') as never,
@@ -251,6 +357,30 @@ describe('GeminiService', () => {
       await expect(
         geminiService.generateWeatherSummary(mockInput),
       ).rejects.toThrow('Gemini API key not configured');
+    });
+  });
+
+  describe('validateApiKey', () => {
+    it('should return true for valid api key', async () => {
+      mockGenerateContent.mockResolvedValueOnce({} as any);
+      const result = await geminiService.validateApiKey('valid_key');
+      expect(result).toBe(true);
+    });
+
+    it('should return false for invalid api key', async () => {
+      mockGenerateContent.mockRejectedValueOnce(
+        new Error('Invalid key') as never,
+      );
+      const result = await geminiService.validateApiKey('invalid_key');
+      expect(result).toBe(false);
+    });
+
+    it('should return true if api key validation returns 429', async () => {
+      const err = new Error('Rate limit exceeded') as any;
+      err.status = 429;
+      mockGenerateContent.mockRejectedValueOnce(err as never);
+      const result = await geminiService.validateApiKey('rate_limited_key');
+      expect(result).toBe(true);
     });
   });
 });

@@ -26,7 +26,8 @@ export interface WeatherSummary {
   mood: 'positive' | 'neutral' | 'warning' | 'severe';
 }
 
-const MODEL = 'gemini-3.5-flash';
+const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
+const MODEL = MODELS[0];
 
 export class GeminiService {
   private genAI: GoogleGenAI | undefined;
@@ -47,59 +48,86 @@ export class GeminiService {
     }
 
     const startTime = Date.now();
+    let lastError: unknown = null;
 
-    try {
-      const prompt = this.buildPrompt(input);
+    for (let i = 0; i < MODELS.length; i++) {
+      const modelName = MODELS[i];
+      try {
+        const prompt = this.buildPrompt(input);
 
-      const result = await this.genAI.models.generateContent({
-        model: MODEL,
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: 'object',
-            properties: {
-              todayOverview: { type: 'string' },
-              alertSummary: { type: 'string', nullable: true },
-              futureWarnings: { type: 'string', nullable: true },
-              recommendations: { type: 'array', items: { type: 'string' } },
-              mood: {
-                type: 'string',
-                enum: ['positive', 'neutral', 'warning', 'severe'],
+        const result = await this.genAI.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: 'object',
+              properties: {
+                todayOverview: { type: 'string' },
+                alertSummary: { type: 'string', nullable: true },
+                futureWarnings: { type: 'string', nullable: true },
+                recommendations: { type: 'array', items: { type: 'string' } },
+                mood: {
+                  type: 'string',
+                  enum: ['positive', 'neutral', 'warning', 'severe'],
+                },
               },
+              required: ['todayOverview', 'recommendations', 'mood'],
             },
-            required: ['todayOverview', 'recommendations', 'mood'],
+            temperature: 0.55,
           },
-          temperature: 0.55,
-        },
-      });
-      const responseTime = Date.now() - startTime;
-      const text = result.text || '';
+        });
+        const responseTime = Date.now() - startTime;
+        const text = result.text || '';
 
-      await apiLogger.logRequest(
-        'generateWeatherSummary (Gemini)',
-        'POST',
-        'success',
-        trigger,
-        responseTime,
-        undefined,
-        'gemini',
-      );
+        await apiLogger.logRequest(
+          `generateWeatherSummary (Gemini - ${modelName})`,
+          'POST',
+          'success',
+          trigger,
+          responseTime,
+          undefined,
+          'gemini',
+        );
 
-      return this.parseResponse(text);
-    } catch (error) {
-      const responseTime = Date.now() - startTime;
-      await apiLogger.logRequest(
-        'generateWeatherSummary (Gemini)',
-        'POST',
-        'error',
-        trigger,
-        responseTime,
-        error instanceof Error ? error.message : 'Unknown error',
-        'gemini',
-      );
-      throw error;
+        return this.parseResponse(text);
+      } catch (error) {
+        lastError = error;
+
+        const is429 =
+          (error &&
+            typeof error === 'object' &&
+            (('status' in error && error.status === 429) ||
+              ('statusCode' in error && error.statusCode === 429))) ||
+          (error instanceof Error &&
+            (error.message.includes('429') ||
+              error.message.includes('RESOURCE_EXHAUSTED') ||
+              error.message.toLowerCase().includes('too many requests')));
+
+        if (is429 && i < MODELS.length - 1) {
+          console.warn(
+            `Gemini model ${modelName} returned 429. Falling back to ${MODELS[i + 1]}...`,
+          );
+          continue;
+        }
+
+        // If not 429, or it is the last model, we log the failure and throw
+        const responseTime = Date.now() - startTime;
+        await apiLogger.logRequest(
+          `generateWeatherSummary (Gemini - ${modelName})`,
+          'POST',
+          'error',
+          trigger,
+          responseTime,
+          error instanceof Error ? error.message : 'Unknown error',
+          'gemini',
+        );
+        throw error;
+      }
     }
+
+    // Theoretically unreachable as the loop either returns or throws
+    throw lastError || new Error('All Gemini models failed');
   }
 
   private buildHourlyForecastSummary(forecast: HourlyForecast): string {
@@ -220,15 +248,15 @@ export class GeminiService {
     const alertInfo =
       alerts.length > 0
         ? alerts
-            .map((alert) => {
-              let info = `- [${alert.level}] ${alert.title}: ${alert.description}`;
-              if (alert.pubtimestamp) {
-                const pubDate = new Date(alert.pubtimestamp * 1000);
-                info += `\n  Issued at: ${pubDate.toLocaleString('en-US')}`;
-              }
-              return info;
-            })
-            .join('\n')
+          .map((alert) => {
+            let info = `- [${alert.level}] ${alert.title}: ${alert.description}`;
+            if (alert.pubtimestamp) {
+              const pubDate = new Date(alert.pubtimestamp * 1000);
+              info += `\n  Issued at: ${pubDate.toLocaleString('en-US')}`;
+            }
+            return info;
+          })
+          .join('\n')
         : 'No active weather alerts';
 
     // Air quality information
@@ -341,11 +369,23 @@ Guidelines:
     try {
       const genAI = new GoogleGenAI({ apiKey });
       await genAI.models.generateContent({
-        model: MODEL,
+        model: MODELS[0],
         contents: [{ parts: [{ text: 'test' }] }],
       });
       return true;
     } catch (error) {
+      const is429 =
+        (error &&
+          typeof error === 'object' &&
+          (('status' in error && error.status === 429) ||
+            ('statusCode' in error && error.statusCode === 429))) ||
+        (error instanceof Error &&
+          (error.message.includes('429') ||
+            error.message.includes('RESOURCE_EXHAUSTED') ||
+            error.message.toLowerCase().includes('too many requests')));
+      if (is429) {
+        return true;
+      }
       return false;
     }
   }
