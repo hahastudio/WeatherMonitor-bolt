@@ -26,7 +26,11 @@ export interface WeatherSummary {
   mood: 'positive' | 'neutral' | 'warning' | 'severe';
 }
 
-const MODELS = ['gemini-3.5-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash'];
+const MODELS = [
+  'gemini-3.5-flash',
+  'gemini-3-flash-preview',
+  'gemini-2.5-flash',
+];
 const MODEL = MODELS[0];
 
 export class GeminiService {
@@ -248,15 +252,15 @@ export class GeminiService {
     const alertInfo =
       alerts.length > 0
         ? alerts
-          .map((alert) => {
-            let info = `- [${alert.level}] ${alert.title}: ${alert.description}`;
-            if (alert.pubtimestamp) {
-              const pubDate = new Date(alert.pubtimestamp * 1000);
-              info += `\n  Issued at: ${pubDate.toLocaleString('en-US')}`;
-            }
-            return info;
-          })
-          .join('\n')
+            .map((alert) => {
+              let info = `- [${alert.level}] ${alert.title}: ${alert.description}`;
+              if (alert.pubtimestamp) {
+                const pubDate = new Date(alert.pubtimestamp * 1000);
+                info += `\n  Issued at: ${pubDate.toLocaleString('en-US')}`;
+              }
+              return info;
+            })
+            .join('\n')
         : 'No active weather alerts';
 
     // Air quality information

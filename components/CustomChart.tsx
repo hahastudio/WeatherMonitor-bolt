@@ -1,5 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
+import React, { useState, useCallback } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  useWindowDimensions,
+  LayoutChangeEvent,
+} from 'react-native';
 import Svg, {
   Path,
   Line,
@@ -12,8 +18,7 @@ import Svg, {
 } from 'react-native-svg';
 import { useWeather } from '../contexts/WeatherContext';
 
-const chartHeight = 180;
-const padding = { top: 20, right: 20, bottom: 40, left: 65 }; // Increased left padding for Y-axis labels
+const padding = { top: 20, right: 20, bottom: 20, left: 50 }; // Increased left padding for Y-axis labels
 
 export interface DataPoint {
   x: number;
@@ -29,6 +34,7 @@ interface CustomChartProps {
   unit: string;
   type?: 'line' | 'area' | 'bar';
   showGrid?: boolean;
+  height?: number;
 }
 
 export const CustomChart: React.FC<CustomChartProps> = ({
@@ -39,13 +45,35 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   unit,
   type = 'line',
   showGrid = true,
+  height = 180,
 }) => {
   const { theme } = useWeather();
   const { width: screenWidth } = useWindowDimensions();
-  const chartWidth = screenWidth - 60;
+  // Seed initial width from the window (preserves first-paint behavior and
+  // existing tests). The real width is then taken from the parent container's
+  // onLayout below, which fires on every layout pass — including the one
+  // triggered by foldable fold/unfold and other configuration changes that
+  // useWindowDimensions may miss or deliver late on Android (RN 0.79 +
+  // new architecture + Activity-handled screenSize/screenLayout configChanges).
+  const [measuredWidth, setMeasuredWidth] = useState<number>(
+    Math.max(0, screenWidth - 60),
+  );
+  const chartWidth = measuredWidth;
+  const chartHeight = height;
+
+  const handleLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const { width } = event.nativeEvent.layout;
+      if (width > 0 && width !== measuredWidth) {
+        setMeasuredWidth(width);
+      }
+    },
+    [measuredWidth],
+  );
 
   const styles = StyleSheet.create({
     container: {
+      width: '100%',
       alignItems: 'center',
       justifyContent: 'center',
       // Remove ALL background styling to prevent Android grey border
@@ -60,7 +88,10 @@ export const CustomChart: React.FC<CustomChartProps> = ({
 
   if (!data || data.length === 0) {
     return (
-      <View style={[styles.container, { height: chartHeight }]}>
+      <View
+        style={[styles.container, { height: chartHeight }]}
+        onLayout={handleLayout}
+      >
         <Text style={styles.noDataText}>No data available</Text>
       </View>
     );
@@ -77,7 +108,10 @@ export const CustomChart: React.FC<CustomChartProps> = ({
 
   if (validData.length === 0) {
     return (
-      <View style={[styles.container, { height: chartHeight }]}>
+      <View
+        style={[styles.container, { height: chartHeight }]}
+        onLayout={handleLayout}
+      >
         <Text style={styles.noDataText}>No valid data points</Text>
       </View>
     );
@@ -343,7 +377,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={handleLayout}>
       <Svg width={chartWidth} height={chartHeight}>
         <Defs>
           <LinearGradient
