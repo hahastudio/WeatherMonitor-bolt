@@ -4,12 +4,13 @@ import { ApiKeyProvider, useApiKeys } from '../contexts/ApiKeyContext';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFrameworkReady } from '../hooks/useFrameworkReady';
-import { WeatherProvider } from '../contexts/WeatherContext';
+import { WeatherProvider, useWeather } from '../contexts/WeatherContext';
 
 function RootLayoutNav() {
   const { areKeysSet } = useApiKeys();
   const router = useRouter();
   const navigationState = useRootNavigationState();
+  const { theme } = useWeather();
 
   useEffect(() => {
     if (!navigationState?.key) {
@@ -30,13 +31,19 @@ function RootLayoutNav() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: theme.gradientStart },
+      }}
+    >
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen
         name="air-quality"
         options={{
           headerShown: false,
           animation: 'slide_from_right',
+          contentStyle: { backgroundColor: theme.gradientStart },
         }}
       />
       <Stack.Screen name="+not-found" />

@@ -21,6 +21,10 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ bottom: 20, top: 0, left: 0, right: 0 }),
 }));
 
+jest.mock('@react-navigation/native', () => ({
+  useIsFocused: () => true,
+}));
+
 describe('AirQualityScreen', () => {
   const mockRouter = {
     back: jest.fn(),
