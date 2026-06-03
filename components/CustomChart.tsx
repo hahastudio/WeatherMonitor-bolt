@@ -18,7 +18,7 @@ import Svg, {
 } from 'react-native-svg';
 import { useWeather } from '../contexts/WeatherContext';
 
-const padding = { top: 20, right: 20, bottom: 20, left: 50 }; // Increased left padding for Y-axis labels
+const padding = { top: 20, right: 20, bottom: 20, left: 60 }; // Increased left padding for Y-axis labels
 
 export interface DataPoint {
   x: number;
@@ -161,12 +161,12 @@ export const CustomChart: React.FC<CustomChartProps> = ({
   const xScale = (x: number) =>
     padding.left +
     (x / (validData.length - 1 || 1)) *
-      (chartWidth - padding.left - padding.right);
+    (chartWidth - padding.left - padding.right);
   const yScale = (y: number) =>
     chartHeight -
     padding.bottom -
     ((y - minY + yPadding) / (yRange + 2 * yPadding)) *
-      (chartHeight - padding.top - padding.bottom);
+    (chartHeight - padding.top - padding.bottom);
 
   // Generate path for line/area chart
   const generatePath = () => {
@@ -415,7 +415,7 @@ export const CustomChart: React.FC<CustomChartProps> = ({
             const barWidth = Math.max(
               4,
               ((chartWidth - padding.left - padding.right) / validData.length) *
-                0.6,
+              0.6,
             );
             const x = xScale(index) - barWidth / 2;
             const y = yScale(point.y);
