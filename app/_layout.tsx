@@ -30,25 +30,32 @@ function RootLayoutNav() {
     );
   }
 
+  // Wrap the Stack in a View whose background matches the current theme.
+  // On Android, expo-router/react-native-screens briefly unmounts the
+  // outgoing screen during the back-navigation animation, exposing whatever
+  // is rendered behind the stack. Without this background, that underlay
+  // appears as a white flash. See expo/expo#33647.
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: theme.gradientStart },
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="air-quality"
-        options={{
+    <View style={{ flex: 1, backgroundColor: theme.gradientStart }}>
+      <Stack
+        screenOptions={{
           headerShown: false,
-          animation: 'slide_from_right',
           contentStyle: { backgroundColor: theme.gradientStart },
         }}
-      />
-      <Stack.Screen name="+not-found" />
-      <Stack.Screen name="welcome" options={{ headerShown: false }} />
-    </Stack>
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="air-quality"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+            contentStyle: { backgroundColor: theme.gradientStart },
+          }}
+        />
+        <Stack.Screen name="+not-found" />
+        <Stack.Screen name="welcome" options={{ headerShown: false }} />
+      </Stack>
+    </View>
   );
 }
 
