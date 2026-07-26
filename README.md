@@ -206,9 +206,10 @@ For mobile app builds, you'll need to use EAS Build:
 
 ### AI Weather Analysis: Google Gemini
 
-**Model Used:**
+**Models Used:**
 
-- `gemini-3.5-flash` - Fast, efficient model for text generation
+- `gemini-3.6-flash` - Primary fast, efficient model for text generation
+- `gemini-3.5-flash`, `gemini-3-flash-preview`, and `gemini-2.5-flash` - Fallback models for rate limits
 
 **AI Features:**
 
