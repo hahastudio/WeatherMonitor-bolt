@@ -21,8 +21,9 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ bottom: 20, top: 0, left: 0, right: 0 }),
 }));
 
+const mockUseIsFocused = jest.fn(() => true);
 jest.mock('@react-navigation/native', () => ({
-  useIsFocused: () => true,
+  useIsFocused: () => mockUseIsFocused(),
 }));
 
 describe('AirQualityScreen', () => {
@@ -43,6 +44,7 @@ describe('AirQualityScreen', () => {
   beforeEach(() => {
     (useRouter as jest.Mock).mockReturnValue(mockRouter);
     jest.clearAllMocks();
+    mockUseIsFocused.mockReturnValue(true);
   });
 
   it('renders loading spinner when loading and no data', () => {
@@ -106,7 +108,7 @@ describe('AirQualityScreen', () => {
     expect(screen.getByText('60')).toBeTruthy();
   });
 
-  it('navigates back when back button pressed', () => {
+  it('navigates back from the populated screen', () => {
     (useWeather as jest.Mock).mockReturnValue({
       weatherAirQuality: { aqi: { usa: 50 }, pm25: 10 },
       theme: defaultTheme,
@@ -114,21 +116,9 @@ describe('AirQualityScreen', () => {
     });
 
     render(<AirQualityScreen />);
+    fireEvent.press(screen.getByLabelText('Go back'));
 
-    // Find back button by icon or just assume firstTouchableOpacity in header
-    // Since lucide icons render SVG, we might need a testID or look for parent
-    // Just finding the TouchableOpacity is tricky without testID.
-    // Let's assume title is present and we can mock icon.
-    // Actually, in the code: <TouchableOpacity onPress={() => router.back()} ...>
-
-    // We can interact with the element if we add testID in implementation
-    // But since I can't edit implementation easily in this step without extra tools call,
-    // I'll skip interaction test if I didn't add testID, OR rely on accessibility label if added.
-    // Wait, I created the file. I didn't add testID.
-    // I will skip interaction test for now or try to find by accessible role if default elements support it.
-    // React Native testing library often finds by Text.
-
-    // Let's verify data rendering mostly.
+    expect(mockRouter.back).toHaveBeenCalledTimes(1);
   });
 
   it('calculates correct color and description for Hazardous AQI', () => {
@@ -147,5 +137,38 @@ describe('AirQualityScreen', () => {
 
     expect(screen.getByText('350')).toBeTruthy();
     expect(screen.getByText('Hazardous')).toBeTruthy();
+  });
+
+  it('keeps rendering the last data after losing focus even if context clears', () => {
+    const mockData = {
+      aqi: { usa: 75, chn: 60 },
+      pm25: 15,
+      pm10: 25,
+    };
+
+    (useWeather as jest.Mock).mockReturnValue({
+      weatherAirQuality: mockData,
+      theme: defaultTheme,
+      loading: false,
+    });
+
+    const { rerender } = render(<AirQualityScreen />);
+    expect(screen.getByText('75')).toBeTruthy();
+
+    // Simulate the back-navigation transition: the screen loses focus while the
+    // shared WeatherContext churns (data cleared, loading flips on). The frozen
+    // snapshot must keep the contents rendered for the whole animation.
+    mockUseIsFocused.mockReturnValue(false);
+    (useWeather as jest.Mock).mockReturnValue({
+      weatherAirQuality: null,
+      theme: defaultTheme,
+      loading: true,
+    });
+    rerender(<AirQualityScreen />);
+
+    expect(screen.getByText('75')).toBeTruthy();
+    expect(screen.getByText('US AQI')).toBeTruthy();
+    expect(screen.queryByText('Loading air quality data...')).toBeNull();
+    expect(screen.queryByText('No air quality data available')).toBeNull();
   });
 });

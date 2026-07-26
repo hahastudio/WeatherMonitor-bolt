@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
@@ -21,8 +22,33 @@ import { getAqiDescription } from '../utils/aqiUtils';
 
 export default function AirQualityScreen() {
   const router = useRouter();
-  const { weatherAirQuality, theme, loading } = useWeather();
+  const {
+    weatherAirQuality: liveAirQuality,
+    theme: liveTheme,
+    loading,
+  } = useWeather();
   const insets = useSafeAreaInsets();
+  const isFocused = useIsFocused();
+
+  // Root cause of "contents disappear during the back animation": this screen
+  // reads live WeatherContext and early-returns to a spinner / empty view when
+  // data or loading churn. While it animates out, the now-focused home screen
+  // can trigger those context updates, so the still-mounted screen re-renders
+  // into an empty state mid-slide. Freeze the rendered data/theme once the
+  // screen loses focus so the outgoing frame stays intact for the whole
+  // transition (keeps the slide animation, unlike disabling it).
+  const snapshotAirQuality = useRef(liveAirQuality);
+  const snapshotTheme = useRef(liveTheme);
+
+  useEffect(() => {
+    if (isFocused) {
+      snapshotAirQuality.current = liveAirQuality;
+      snapshotTheme.current = liveTheme;
+    }
+  }, [isFocused, liveAirQuality, liveTheme]);
+
+  const weatherAirQuality = snapshotAirQuality.current;
+  const theme = snapshotTheme.current;
 
   if (loading && !weatherAirQuality) {
     return <LoadingSpinner message="Loading air quality data..." />;
@@ -36,6 +62,7 @@ export default function AirQualityScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
             style={styles.backButton}
           >
             <ArrowLeft size={24} color={theme.text} />
@@ -103,6 +130,7 @@ export default function AirQualityScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             onPress={() => router.back()}
+            accessibilityLabel="Go back"
             style={styles.backButton}
           >
             <ArrowLeft size={24} color={theme.text} />
