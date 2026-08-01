@@ -34,6 +34,7 @@ import { alertTracker } from '../../services/alertTracker';
 import { ApiLogViewer } from '../../components/ApiLogViewer';
 import ApiKeySettingsScreen from '../../components/ApiKeySettings';
 import { apiLogger } from '../../services/apiLogger';
+import { useNow } from '../../hooks/useNow';
 
 const REFRESH_RATE_OPTIONS = [
   { label: '15 minutes', value: 15 },
@@ -66,6 +67,8 @@ export default function SettingsScreen() {
     oldestAlertAge: number | null;
     newestAlertAge: number | null;
   } | null>(null);
+
+  const now = useNow();
 
   const handleNotificationTest = async () => {
     try {
@@ -175,7 +178,6 @@ export default function SettingsScreen() {
   const formatLastUpdated = (timestamp: number | null): string => {
     if (!timestamp) return 'Never';
 
-    const now = Date.now();
     const diffMs = now - timestamp;
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMinutes / 60);
@@ -211,7 +213,18 @@ export default function SettingsScreen() {
 
   // Load alert tracker stats when component mounts
   React.useEffect(() => {
-    loadAlertTrackerStats();
+    let active = true;
+    (async () => {
+      try {
+        const stats = await alertTracker.getTrackerStats();
+        if (active) setAlertTrackerStats(stats);
+      } catch (error) {
+        console.error('Failed to load alert tracker stats:', error);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const styles = StyleSheet.create({
@@ -431,7 +444,7 @@ export default function SettingsScreen() {
     },
   });
 
-  const RefreshRateModal = () => (
+  const refreshRateModal = (
     <Modal
       visible={showRefreshRateModal}
       transparent
@@ -477,7 +490,7 @@ export default function SettingsScreen() {
     </Modal>
   );
 
-  const ApiLogModal = () => (
+  const apiLogModal = (
     <Modal
       visible={showApiLogModal}
       animationType="slide"
@@ -495,7 +508,7 @@ export default function SettingsScreen() {
     </Modal>
   );
 
-  const ClearConfirmModal = () => (
+  const clearConfirmModal = (
     <Modal
       visible={showClearConfirmModal}
       transparent
@@ -832,9 +845,9 @@ export default function SettingsScreen() {
           </View>
         </Modal>
 
-        <RefreshRateModal />
-        <ApiLogModal />
-        <ClearConfirmModal />
+        {refreshRateModal}
+        {apiLogModal}
+        {clearConfirmModal}
       </LinearGradient>
     </View>
   );

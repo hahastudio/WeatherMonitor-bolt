@@ -43,9 +43,7 @@ export default function MapScreen() {
   const [webViewLoading, setWebViewLoading] = useState(true);
   const [webViewError, setWebViewError] = useState<string | null>(null);
   const [mapKey, setMapKey] = useState(0); // For forcing WebView reload
-  const [loadingTimeout, setLoadingTimeout] = useState<ReturnType<
-    typeof setTimeout
-  > | null>(null);
+  const loadingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   const layerOptions = [
     {
@@ -129,9 +127,7 @@ export default function MapScreen() {
     setMapKey((prev) => prev + 1);
 
     // Clear any existing timeout
-    if (loadingTimeout) {
-      clearTimeout(loadingTimeout);
-    }
+    clearTimeout(loadingTimeoutRef.current);
 
     // Also try to reload the WebView directly
     if (webViewRef.current) {
@@ -216,9 +212,7 @@ export default function MapScreen() {
           console.log('✅ Windy map loaded successfully');
           setWebViewLoading(false);
           setWebViewError(null);
-          if (loadingTimeout) {
-            clearTimeout(loadingTimeout);
-          }
+          clearTimeout(loadingTimeoutRef.current);
           break;
         case 'error':
           console.error('❌ Windy map error:', data.message);
@@ -250,7 +244,7 @@ export default function MapScreen() {
         }
       }, 15000); // 15 second timeout
 
-      setLoadingTimeout(timeout);
+      loadingTimeoutRef.current = timeout;
 
       return () => {
         clearTimeout(timeout);

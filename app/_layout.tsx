@@ -30,11 +30,6 @@ function RootLayoutNav() {
     );
   }
 
-  // Wrap the Stack in a View whose background matches the current theme.
-  // On Android, expo-router/react-native-screens briefly unmounts the
-  // outgoing screen during the back-navigation animation, exposing whatever
-  // is rendered behind the stack. Without this background, that underlay
-  // appears as a white flash. See expo/expo#33647.
   return (
     <View style={{ flex: 1, backgroundColor: theme.gradientStart }}>
       <Stack

@@ -104,12 +104,11 @@ describe('WeatherSummary', () => {
 
     fireEvent.press(refreshButton, { stopPropagation: jest.fn() });
 
-    await findByTestId('loading-container');
+    expect(getByTestId('loading-container')).toBeTruthy();
 
     // Advance timers to trigger promise resolution
     await act(async () => {
-      jest.advanceTimersByTime(100);
-      await Promise.resolve();
+      await jest.advanceTimersByTimeAsync(100);
     });
 
     await waitFor(() => {

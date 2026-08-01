@@ -19,6 +19,7 @@ import {
   Lightbulb,
 } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
+import { useNow } from '../hooks/useNow';
 
 export const WeatherSummary: React.FC = () => {
   const {
@@ -33,6 +34,7 @@ export const WeatherSummary: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const now = useNow();
 
   const handleGenerateSummary = async () => {
     if (!currentWeather || !forecast) return;
@@ -94,7 +96,6 @@ export const WeatherSummary: React.FC = () => {
   const formatGeneratedTime = (timestamp: number | null): string => {
     if (!timestamp) return '';
 
-    const now = Date.now();
     const diffMs = now - timestamp;
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMinutes / 60);

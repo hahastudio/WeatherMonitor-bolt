@@ -53,7 +53,25 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
   };
 
   useEffect(() => {
-    loadLogs();
+    let active = true;
+    (async () => {
+      try {
+        const [logsData, summaryData] = await Promise.all([
+          apiLogger.getLogs(),
+          apiLogger.getLogsSummary(),
+        ]);
+        if (!active) return;
+        setLogs(logsData);
+        setSummary(summaryData);
+      } catch (error) {
+        console.error('Failed to load API logs:', error);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
   }, [logVersion]);
 
   const styles = StyleSheet.create({

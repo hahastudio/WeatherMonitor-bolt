@@ -35,6 +35,7 @@ import {
   formatTime,
   capitalizeWords,
 } from '../../utils/weatherTheme';
+import { useNow } from '../../hooks/useNow';
 
 const windSectors = [
   'N',
@@ -70,6 +71,8 @@ export default function HomeScreen() {
     refreshWeather,
   } = useWeather();
 
+  const now = useNow();
+
   if (loading && !currentWeather) {
     return <LoadingSpinner message="Getting your location and weather..." />;
   }
@@ -85,7 +88,6 @@ export default function HomeScreen() {
   const formatLastUpdated = (timestamp: number | null): string => {
     if (!timestamp) return 'Never';
 
-    const now = Date.now();
     const diffMs = now - timestamp;
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMinutes / 60);

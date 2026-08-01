@@ -5,7 +5,6 @@ export default {
     version: process.env.npm_package_version || '1.0.0',
     orientation: 'default',
     userInterfaceStyle: 'automatic',
-    newArchEnabled: true,
     android: {
       package: 'com.hahastudio.weathermonitornt',
       icon: './assets/images/icon.png',
@@ -14,7 +13,6 @@ export default {
         backgroundImage: './assets/images/adaptive-icon-background.png',
         monochromeImage: './assets/images/adaptive-icon-monochrome.png',
       },
-      edgeToEdgeEnabled: true,
       googleServicesFile: process.env.ANDROID_GOOGLE_SERVICES_FILE_PATH,
     },
     ios: {
@@ -58,6 +56,7 @@ export default {
         },
       ],
       'react-native-background-fetch',
+      'expo-status-bar',
     ],
     experiments: {
       typedRoutes: true,
