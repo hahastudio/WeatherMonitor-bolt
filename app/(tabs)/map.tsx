@@ -206,21 +206,21 @@ export default function MapScreen() {
 
       switch (data.type) {
         case 'ready':
-          console.log('📱 WebView JavaScript ready');
+          console.log('WebView JavaScript ready');
           break;
         case 'loaded':
-          console.log('✅ Windy map loaded successfully');
+          console.log('Windy map loaded successfully');
           setWebViewLoading(false);
           setWebViewError(null);
           clearTimeout(loadingTimeoutRef.current);
           break;
         case 'error':
-          console.error('❌ Windy map error:', data.message);
+          console.error('Windy map error:', data.message);
           setWebViewError(data.message);
           setWebViewLoading(false);
           break;
         case 'timeout':
-          console.warn('⏰ Windy map loading timeout');
+          console.warn('Windy map loading timeout');
           setWebViewError(
             'Map is taking longer than expected to load. This may be due to network conditions.',
           );
@@ -543,12 +543,12 @@ export default function MapScreen() {
                 source={{ uri: windyUrl }}
                 style={styles.webView}
                 onLoadStart={() => {
-                  console.log('🔄 Starting to load Windy map...');
+                  console.log('Starting to load Windy map...');
                   setWebViewLoading(true);
                   setWebViewError(null);
                 }}
                 onLoadEnd={() => {
-                  console.log('✅ WebView load end');
+                  console.log('WebView load end');
                   // Set a fallback timeout in case injected JS doesn't work
                   setTimeout(() => {
                     if (webViewLoading) {
@@ -558,7 +558,7 @@ export default function MapScreen() {
                 }}
                 onError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('❌ WebView error:', nativeEvent);
+                  console.error('WebView error:', nativeEvent);
                   setWebViewError(
                     nativeEvent.description || 'Failed to load weather map',
                   );
@@ -566,7 +566,7 @@ export default function MapScreen() {
                 }}
                 onHttpError={(syntheticEvent) => {
                   const { nativeEvent } = syntheticEvent;
-                  console.error('🌐 HTTP error:', nativeEvent.statusCode);
+                  console.error('HTTP error:', nativeEvent.statusCode);
                   setWebViewError(
                     `HTTP Error: ${nativeEvent.statusCode}. Please check your internet connection.`,
                   );

@@ -175,13 +175,13 @@ class WeatherService {
     const startTime = Date.now();
 
     try {
-      console.log('🌐 Loading weather data with One Call API 3.0...');
+      console.log('Loading weather data with One Call API 3.0...');
       const response = await fetch(url);
       const responseTime = Date.now() - startTime;
 
       if (!response.ok) {
         console.log(
-          `❌ Error fetching weather data: ${response.status} ${response.statusText}`,
+          `Error fetching weather data: ${response.status} ${response.statusText}`,
         );
         await apiLogger.logRequest(
           'getWeatherData (One Call 3.0)',
@@ -198,7 +198,7 @@ class WeatherService {
       }
 
       const data: OneCallResponse = await response.json();
-      console.log('✅ Got weather data successfully with One Call API 3.0');
+      console.log('Got weather data successfully with One Call API 3.0');
       await apiLogger.logRequest(
         'getWeatherData (One Call 3.0)',
         'GET',

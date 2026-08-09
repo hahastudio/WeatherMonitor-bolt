@@ -1,7 +1,10 @@
 import { describe, expect, it, beforeEach } from '@jest/globals';
 import { caiyunService } from '../../services/caiyunService';
 import type { FetchMock } from 'jest-fetch-mock';
-import type { CaiyunWeatherResponse } from '../../types/weather';
+import type {
+  CaiyunWeatherResponse,
+  CurrentWeather,
+} from '../../types/weather';
 import { setApiKeys } from '../../services/apiKeyManager';
 
 // Get the global fetch mock
@@ -153,6 +156,12 @@ describe('CaiyunService', () => {
         ),
       );
 
+      // Realtime precipitation must be requested in mm/hr (metric:v2); the
+      // default `metric` returns a 0~1 radar index that misrepresents rain.
+      expect(fetch).toHaveBeenCalledWith(
+        expect.stringContaining('unit=metric:v2'),
+      );
+
       // Verify the response
       expect(result).toEqual(mockWeatherResponse);
     });
@@ -245,6 +254,57 @@ describe('CaiyunService', () => {
 
       // Should preserve sys from base
       expect(result.sys).toEqual(baseWeather.sys);
+    });
+
+    it('should overwrite rain amount with Caiyun realtime precipitation (mm/hr)', () => {
+      const baseWeather: CurrentWeather = {
+        coord: { lon: 116.4074, lat: 39.9042 },
+        weather: [
+          { id: 800, main: 'Clear', description: 'clear', icon: '01d' },
+        ],
+        base: 'stations',
+        main: {
+          temp: 20,
+          temp_min: 18,
+          temp_max: 22,
+          feels_like: 20,
+          pressure: 1013,
+          humidity: 50,
+        },
+        visibility: 10000,
+        wind: { speed: 10, deg: 180 },
+        clouds: { all: 0 },
+        dt: 1630000000,
+        rain: { '1h': 2 },
+        sys: { country: 'CN', sunrise: 0, sunset: 0 },
+        timezone: 28800,
+        id: 1816670,
+        name: 'Beijing',
+        cod: 200,
+      };
+
+      const rainingResponse: CaiyunWeatherResponse = {
+        ...mockWeatherResponse,
+        result: {
+          ...mockWeatherResponse.result,
+          realtime: {
+            ...mockWeatherResponse.result!.realtime!,
+            skycon: 'HEAVY_RAIN',
+            precipitation: {
+              local: { status: 'ok', datasource: 'radar', intensity: 25.3903 },
+              nearest: { status: 'ok', distance: 0, intensity: 132.9495 },
+            },
+          },
+        },
+      };
+
+      const result = caiyunService.mergeCaiyunCurrentWeather(
+        baseWeather,
+        rainingResponse,
+      );
+
+      expect(result.rain?.['1h']).toBeCloseTo(25.3903);
+      expect(result.snow).toBeUndefined();
     });
   });
 

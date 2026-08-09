@@ -44,3 +44,7 @@ google-services.json
 
 # build
 *.apk
+
+# AI
+.agents/
+.opencode/

@@ -22,31 +22,31 @@ import {
 import { setApiKeys } from './apiKeyManager';
 
 export async function weatherTask(taskId: string) {
-  console.log('🔄 Background weather fetch event triggered:', taskId);
+  console.log('Background weather fetch event triggered:', taskId);
 
   if (Platform.OS !== 'web' && AppState.currentState === 'active') {
     console.log(
-      '⏭️ BackgroundFetch: App is currently in the foreground, skipping background task',
+      'BackgroundFetch: App is currently in the foreground, skipping background task',
     );
     BackgroundFetch.finish(taskId);
     return;
   }
 
-  console.log('🔄 BackgroundFetch: app is not in foreground, continue.');
+  console.log('BackgroundFetch: app is not in foreground, continue.');
 
   const acquired = await acquireFetchLock('background');
   if (!acquired) {
     console.log(
-      '⏭️ BackgroundFetch: Fetch lock is currently held, skipping background fetch',
+      'BackgroundFetch: Fetch lock is currently held, skipping background fetch',
     );
     BackgroundFetch.finish(taskId);
     return;
   }
 
-  console.log('🔄 BackgroundFetch: got fetch lock, continue.');
+  console.log('BackgroundFetch: got fetch lock, continue.');
 
   try {
-    console.log('🔄 BackgroundFetch: processing...');
+    console.log('BackgroundFetch: processing...');
     // Get refresh rate from storage
     let refreshRate = 15;
     const storedRefreshRate = await loadRefreshRate();
@@ -62,7 +62,7 @@ export async function weatherTask(taskId: string) {
 
     const now = Date.now();
     if (now - lastUpdated < refreshRate * 60 * 1000 * 0.9) {
-      console.log('⏭️ BackgroundFetch: Data is still fresh, skipping refresh');
+      console.log('BackgroundFetch: Data is still fresh, skipping refresh');
       BackgroundFetch.finish(taskId);
       return;
     }
@@ -74,7 +74,7 @@ export async function weatherTask(taskId: string) {
     }
 
     if (!coords) {
-      console.log('❌ BackgroundFetch: No location available');
+      console.log('BackgroundFetch: No location available');
       BackgroundFetch.finish(taskId);
       return;
     }
@@ -96,14 +96,14 @@ export async function weatherTask(taskId: string) {
       saveLastUpdated(now),
     ]);
 
-    console.log('✅ BackgroundFetch: Weather data updated successfully');
+    console.log('BackgroundFetch: Weather data updated successfully');
 
     // Fetch weather alerts and data from Caiyun
     try {
       const caiyunResponse = await caiyunService.getWeatherData(coords, 'auto');
 
       // Merge Caiyun Current Weather
-      console.log('✅ BackgroundFetch: Merging Caiyun current weather data');
+      console.log('BackgroundFetch: Merging Caiyun current weather data');
       const mergedWeather = caiyunService.mergeCaiyunCurrentWeather(
         weatherData,
         caiyunResponse,
@@ -113,7 +113,7 @@ export async function weatherTask(taskId: string) {
 
       // Merge Caiyun Hourly Forecast (Next 4 hours)
       if (forecastData.hourly.length > 0) {
-        console.log('✅ BackgroundFetch: Merging Caiyun hourly forecast data');
+        console.log('BackgroundFetch: Merging Caiyun hourly forecast data');
         const mergedForecastHourly = caiyunService.mergeCaiyunHourlyForecast(
           forecastData.hourly,
           caiyunResponse,
@@ -151,17 +151,17 @@ export async function weatherTask(taskId: string) {
         await saveWeatherAirQuality(caiyunResponse.result.realtime.air_quality);
       }
 
-      console.log('✅ BackgroundFetch: Weather alerts fetched successfully');
+      console.log('BackgroundFetch: Weather alerts fetched successfully');
     } catch (e) {
       // Ignore alert errors in background
       console.log(
-        '⚠️ BackgroundFetch: Alert fetch failed, continuing without alerts',
+        'BackgroundFetch: Alert fetch failed, continuing without alerts',
       );
     }
 
-    console.log('✅ BackgroundFetch event completed');
+    console.log('BackgroundFetch event completed');
   } catch (e) {
-    console.error('❌ BackgroundFetch event failed:', e);
+    console.error('BackgroundFetch event failed:', e);
   } finally {
     await releaseFetchLock();
     BackgroundFetch.finish(taskId);
@@ -171,7 +171,7 @@ export async function weatherTask(taskId: string) {
 export async function initBackgroundFetch() {
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
     console.log(
-      '⏭️ BackgroundFetch is not supported on this platform, skipping init.',
+      'BackgroundFetch is not supported on this platform, skipping init.',
     );
     return;
   }
@@ -185,7 +185,7 @@ export async function initBackgroundFetch() {
     },
     weatherTask,
     (taskId) => {
-      console.warn('❌ BackgroundFetch failed to start:', taskId);
+      console.warn('BackgroundFetch failed to start:', taskId);
       BackgroundFetch.finish(taskId);
     },
   );

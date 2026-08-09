@@ -22,17 +22,19 @@ export class CaiyunService {
       );
     }
 
-    const url = `${BASE_URL}/${apiKey}/${coords.longitude},${coords.latitude}/weather?alert=true&dailysteps=1&hourlysteps=48&lang=zh_CN&unit=metric`;
+    // unit=metric:v2 returns realtime precipitation in mm/hr (metric returns a
+    // 0~1 radar index instead); hourly precipitation is mm/hr under both.
+    const url = `${BASE_URL}/${apiKey}/${coords.longitude},${coords.latitude}/weather?alert=true&dailysteps=1&hourlysteps=48&lang=zh_CN&unit=metric:v2`;
     const startTime = Date.now();
 
     try {
-      console.log('🌐 Loading weather alerts...');
+      console.log('Loading weather alerts...');
       const response = await fetch(url);
       const responseTime = Date.now() - startTime;
 
       if (!response.ok) {
         console.log(
-          `❌ Error fetching weather alerts: ${response.status} ${response.statusText}`,
+          `Error fetching weather alerts: ${response.status} ${response.statusText}`,
         );
         await apiLogger.logRequest(
           'getWeatherAlerts (Caiyun)',
@@ -49,7 +51,7 @@ export class CaiyunService {
       }
 
       const data = await response.json();
-      console.log('✅ Got weather alerts successfully');
+      console.log('Got weather alerts successfully');
       await apiLogger.logRequest(
         'getWeatherAlerts (Caiyun)',
         'GET',
@@ -76,7 +78,7 @@ export class CaiyunService {
   }
 
   async validateApiKey(apiKey: string): Promise<boolean> {
-    const url = `${BASE_URL}/${apiKey}/0,0/weather?alert=true&lang=zh_CN&unit=metric`;
+    const url = `${BASE_URL}/${apiKey}/0,0/weather?alert=true&lang=zh_CN&unit=metric:v2`;
     try {
       const response = await fetch(url, {
         headers: {

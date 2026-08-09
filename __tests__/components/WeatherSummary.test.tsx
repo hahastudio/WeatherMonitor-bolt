@@ -162,7 +162,7 @@ describe('WeatherSummary', () => {
 
     const { getByText } = render(<WeatherSummary />);
     expect(getByText(summaryWithAlerts.todayOverview)).toBeTruthy();
-    expect(getByText('⚠️ Active Weather Alerts')).toBeTruthy();
+    expect(getByText('Active Weather Alerts')).toBeTruthy();
     expect(getByText(summaryWithAlerts.alertSummary)).toBeTruthy();
     expect(getByText('positive')).toBeTruthy();
     expect(getByText('Just now')).toBeTruthy();

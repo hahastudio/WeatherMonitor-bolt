@@ -118,20 +118,23 @@ export default function HomeScreen() {
     },
     gradient: {
       flex: 1,
-      paddingTop: 60,
+      paddingTop: 40,
     },
     header: {
       alignItems: 'center',
       paddingHorizontal: 20,
-      marginBottom: 30,
+      marginBottom: 18,
     },
     refreshButton: {
       position: 'absolute',
-      top: 20,
+      top: 10,
       right: 20,
-      backgroundColor: theme.surface + '80',
+      backgroundColor: theme.surface + 'CC',
       borderRadius: 25,
       padding: 10,
+      borderWidth: 1,
+      borderColor: theme.textSecondary + '25',
+      zIndex: 1,
     },
     locationContainer: {
       flexDirection: 'row',
@@ -156,30 +159,64 @@ export default function HomeScreen() {
       marginLeft: 6,
     },
     mainWeatherContainer: {
+      width: '100%',
+      paddingTop: 8,
+      paddingBottom: 12,
+    },
+    weatherHeroRow: {
+      flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 20,
+      justifyContent: 'center',
+      gap: 20,
+    },
+    temperatureBlock: {
+      alignItems: 'flex-start',
     },
     temperature: {
       color: theme.text,
-      fontSize: 72,
+      fontSize: 78,
       fontWeight: '300',
-      marginVertical: 16,
+      lineHeight: 86,
+      letterSpacing: -4,
     },
     description: {
-      color: theme.textSecondary,
+      color: theme.primary,
       fontSize: 20,
-      fontWeight: '500',
-      textAlign: 'center',
+      fontWeight: '600',
       marginBottom: 8,
     },
     feelsLike: {
       color: theme.textSecondary,
       fontSize: 16,
     },
-    tempRange: {
+    currentIconWrap: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 118,
+      height: 118,
+      borderRadius: 59,
+      backgroundColor: theme.background + '66',
+    },
+    observationRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 12,
+    },
+    observationLabel: {
       color: theme.textSecondary,
-      fontSize: 16,
-      marginTop: 4,
+      fontSize: 15,
+    },
+    observationValue: {
+      color: theme.text,
+      fontSize: 15,
+      fontWeight: '700',
+      marginLeft: 4,
+    },
+    observationSeparator: {
+      color: theme.textSecondary,
+      fontSize: 15,
+      marginHorizontal: 8,
     },
     content: {
       paddingHorizontal: 20,
@@ -199,27 +236,34 @@ export default function HomeScreen() {
       marginTop: 10,
     },
     detailCard: {
-      backgroundColor: theme.surface + '80',
+      backgroundColor: theme.surface + 'CC',
       borderRadius: 12,
-      padding: 16,
+      borderWidth: 1,
+      borderColor: theme.textSecondary + '20',
+      padding: 14,
       width: '48%',
       marginBottom: 12,
-      alignItems: 'center',
+      minHeight: 104,
+      justifyContent: 'space-between',
     },
     detailLabel: {
       color: theme.textSecondary,
-      fontSize: 14,
-      marginBottom: 8,
-      textAlign: 'center',
+      fontSize: 13,
+      fontWeight: '500',
     },
     detailValue: {
       color: theme.text,
       fontSize: 18,
-      fontWeight: '600',
-      textAlign: 'center',
+      fontWeight: '700',
+      marginTop: 12,
     },
     detailIcon: {
-      marginBottom: 8,
+      marginRight: 8,
+    },
+    detailHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: 26,
     },
   });
 
@@ -229,8 +273,10 @@ export default function HomeScreen() {
     value: string,
   ) => (
     <View style={styles.detailCard}>
-      <View style={styles.detailIcon}>{icon}</View>
-      <Text style={styles.detailLabel}>{label}</Text>
+      <View style={styles.detailHeader}>
+        <View style={styles.detailIcon}>{icon}</View>
+        <Text style={styles.detailLabel}>{label}</Text>
+      </View>
       <Text style={styles.detailValue}>{value}</Text>
     </View>
   );
@@ -250,16 +296,16 @@ export default function HomeScreen() {
   // Check if there's current air quality data
   const hasAirQualityData = weatherAirQuality?.aqi?.usa !== undefined;
 
+  const isNight =
+    new Date().getTime() / 1000 < currentWeather.sys.sunrise ||
+    new Date().getTime() / 1000 > currentWeather.sys.sunset;
+
   return (
     <View style={styles.container}>
       <LinearGradient
         colors={[theme.gradientStart, theme.gradientEnd]}
         style={styles.gradient}
       >
-        <TouchableOpacity style={styles.refreshButton} onPress={refreshWeather}>
-          <RefreshCw size={20} color={theme.text} />
-        </TouchableOpacity>
-
         <ScrollView
           style={styles.scrollView}
           refreshControl={
@@ -271,6 +317,12 @@ export default function HomeScreen() {
             />
           }
         >
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={refreshWeather}
+          >
+            <RefreshCw size={20} color={theme.text} />
+          </TouchableOpacity>
           <View style={styles.header}>
             <View style={styles.locationContainer}>
               <MapPin size={20} color={theme.text} />
@@ -285,28 +337,41 @@ export default function HomeScreen() {
             </View>
 
             <View style={styles.mainWeatherContainer}>
-              <WeatherIcon
-                weatherMain={currentWeather.weather[0].main}
-                size={120}
-                color={theme.primary}
-                isNight={
-                  new Date().getTime() / 1000 < currentWeather.sys.sunrise ||
-                  new Date().getTime() / 1000 > currentWeather.sys.sunset
-                }
-              />
-              <Text style={styles.temperature}>
-                {formatTemperature(currentWeather.main.temp)}
-              </Text>
-              <Text style={styles.description}>
-                {capitalizeWords(currentWeather.weather[0].description)}
-              </Text>
-              <Text style={styles.feelsLike}>
-                Feels like {formatTemperature(currentWeather.main.feels_like)}
-              </Text>
-              <Text style={styles.tempRange}>
-                H:{formatTemperature(currentWeather.main.temp_max)} L:
-                {formatTemperature(currentWeather.main.temp_min)}
-              </Text>
+              <View style={styles.weatherHeroRow}>
+                <View style={styles.temperatureBlock}>
+                  <Text style={styles.temperature}>
+                    {formatTemperature(currentWeather.main.temp)}
+                  </Text>
+                  <Text style={styles.description}>
+                    {capitalizeWords(currentWeather.weather[0].description)}
+                  </Text>
+                  <Text style={styles.feelsLike}>
+                    Feels like{' '}
+                    {formatTemperature(currentWeather.main.feels_like)}
+                  </Text>
+                </View>
+
+                <View style={styles.currentIconWrap}>
+                  <WeatherIcon
+                    weatherMain={currentWeather.weather[0].main}
+                    size={98}
+                    color={theme.primary}
+                    isNight={isNight}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.observationRow}>
+                <Text style={styles.observationLabel}>High</Text>
+                <Text style={styles.observationValue}>
+                  {formatTemperature(currentWeather.main.temp_max)}
+                </Text>
+                <Text style={styles.observationSeparator}>/</Text>
+                <Text style={styles.observationLabel}>Low</Text>
+                <Text style={styles.observationValue}>
+                  {formatTemperature(currentWeather.main.temp_min)}
+                </Text>
+              </View>
             </View>
           </View>
 
@@ -368,10 +433,12 @@ export default function HomeScreen() {
                   style={[styles.detailCard, { width: '48%' }]}
                   onPress={() => router.push('/air-quality')}
                 >
-                  <View style={styles.detailIcon}>
-                    <AirVent size={24} color={theme.primary} />
+                  <View style={styles.detailHeader}>
+                    <View style={styles.detailIcon}>
+                      <AirVent size={24} color={theme.primary} />
+                    </View>
+                    <Text style={styles.detailLabel}>Air Quality</Text>
                   </View>
-                  <Text style={styles.detailLabel}>Air Quality</Text>
                   <Text style={styles.detailValue}>
                     AQI {weatherAirQuality.aqi.usa.toFixed(1)}
                   </Text>
@@ -422,7 +489,7 @@ export default function HomeScreen() {
             {error && (
               <View style={{ marginTop: 20 }}>
                 <Text style={[styles.sectionTitle, { color: theme.accent }]}>
-                  ⚠️ {error}
+                  {error}
                 </Text>
               </View>
             )}

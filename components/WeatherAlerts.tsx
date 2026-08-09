@@ -1,11 +1,5 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import {
   TriangleAlert as AlertTriangle,
   MapPin,
@@ -20,12 +14,94 @@ interface WeatherAlertsProps {
   onDismiss?: (alertId: string) => void;
 }
 
-export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
-  alerts,
-  onDismiss,
-}) => {
+const extractAlertLevel = (alert: CaiyunWeatherAlert): string => {
+  // If level is provided directly, use it
+  if (alert.level) {
+    return alert.level;
+  }
+
+  // Extract level from title (e.g., "黄色预警" -> "yellow", "红色预警" -> "red")
+  const title = alert.title?.toLowerCase() || '';
+
+  if (title.includes('红色') || title.includes('red')) {
+    return 'red';
+  } else if (title.includes('橙色') || title.includes('orange')) {
+    return 'orange';
+  } else if (title.includes('黄色') || title.includes('yellow')) {
+    return 'yellow';
+  } else if (title.includes('蓝色') || title.includes('blue')) {
+    return 'blue';
+  } else if (title.includes('severe')) {
+    return 'severe';
+  } else if (title.includes('warning')) {
+    return 'warning';
+  } else if (title.includes('watch')) {
+    return 'watch';
+  } else if (title.includes('advisory')) {
+    return 'advisory';
+  }
+
+  // Default fallback
+  return 'warning';
+};
+
+const getTimestampInMs = (timestamp?: number | string): number => {
+  if (!timestamp) {
+    return 0;
+  }
+
+  if (typeof timestamp === 'number') {
+    // Caiyun uses Unix seconds, but accept milliseconds defensively.
+    return timestamp > 1000000000000 ? timestamp : timestamp * 1000;
+  }
+
+  const parsedTimestamp = new Date(timestamp).getTime();
+  return Number.isNaN(parsedTimestamp) ? 0 : parsedTimestamp;
+};
+
+const getAlertTimestamp = (alert: CaiyunWeatherAlert): number =>
+  getTimestampInMs(alert.pubtimestamp) ||
+  getTimestampInMs(alert.publishTime) ||
+  getTimestampInMs(alert.startTime) ||
+  getTimestampInMs(alert.endTime);
+
+const formatTime = (timestamp: number | string) => {
+  try {
+    const timestampInMs = getTimestampInMs(timestamp);
+
+    if (!timestampInMs) {
+      return String(timestamp);
+    }
+
+    const date = new Date(timestampInMs);
+
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    return String(timestamp);
+  }
+};
+
+const formatLevelLabel = (level: string) => level.replace(/_/g, ' ');
+
+const getBadgeTextColor = (level: string) =>
+  ['yellow', 'watch'].includes(level.toLowerCase()) ? '#2A2100' : '#FFFFFF';
+
+export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts }) => {
   const { theme } = useWeather();
   const [expandedAlerts, setExpandedAlerts] = useState<Set<string>>(new Set());
+  const sortedAlerts = useMemo(
+    () =>
+      [...(alerts || [])].sort(
+        (a, b) => getAlertTimestamp(b) - getAlertTimestamp(a),
+      ),
+    [alerts],
+  );
 
   if (!alerts || alerts.length === 0) {
     return null;
@@ -39,37 +115,6 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
       newExpanded.add(alertId);
     }
     setExpandedAlerts(newExpanded);
-  };
-
-  const extractAlertLevel = (alert: CaiyunWeatherAlert): string => {
-    // If level is provided directly, use it
-    if (alert.level) {
-      return alert.level;
-    }
-
-    // Extract level from title (e.g., "黄色预警" -> "yellow", "红色预警" -> "red")
-    const title = alert.title?.toLowerCase() || '';
-
-    if (title.includes('红色') || title.includes('red')) {
-      return 'red';
-    } else if (title.includes('橙色') || title.includes('orange')) {
-      return 'orange';
-    } else if (title.includes('黄色') || title.includes('yellow')) {
-      return 'yellow';
-    } else if (title.includes('蓝色') || title.includes('blue')) {
-      return 'blue';
-    } else if (title.includes('severe')) {
-      return 'severe';
-    } else if (title.includes('warning')) {
-      return 'warning';
-    } else if (title.includes('watch')) {
-      return 'watch';
-    } else if (title.includes('advisory')) {
-      return 'advisory';
-    }
-
-    // Default fallback
-    return 'warning';
   };
 
   const getAlertColor = (alert: CaiyunWeatherAlert) => {
@@ -93,113 +138,98 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
     }
   };
 
-  const formatTime = (timestamp: number | string) => {
-    try {
-      // Handle both timestamp (number) and ISO string
-      const date =
-        typeof timestamp === 'number'
-          ? new Date(timestamp * 1000) // Convert Unix timestamp to milliseconds
-          : new Date(timestamp);
-
-      return date.toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
-    } catch {
-      return String(timestamp);
-    }
-  };
-
   const styles = StyleSheet.create({
     container: {
       marginVertical: 16,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-between',
+      marginBottom: 12,
+      paddingHorizontal: 20,
     },
     sectionTitle: {
       color: theme.text,
       fontSize: 20,
       fontWeight: '600',
-      marginBottom: 12,
-      paddingHorizontal: 20,
+    },
+    sectionMeta: {
+      color: theme.textSecondary,
+      fontSize: 12,
+      fontWeight: '500',
     },
     alertsContainer: {
       paddingHorizontal: 20,
     },
     alertCard: {
-      borderRadius: 12,
+      borderRadius: 16,
       marginBottom: 12,
-      borderLeftWidth: 4,
+      borderWidth: 1,
+      borderColor: theme.textSecondary + '20',
       overflow: 'hidden',
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        },
-        android: {
-          elevation: 3,
-        },
-        web: {
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        },
-      }),
+    },
+    severityRail: {
+      bottom: 0,
+      left: 0,
+      position: 'absolute',
+      top: 0,
+      width: 5,
     },
     alertHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
-      padding: 16,
+      paddingBottom: 14,
+      paddingLeft: 16,
+      paddingRight: 12,
+      paddingTop: 14,
+    },
+    severityBadge: {
+      alignItems: 'center',
+      borderRadius: 14,
+      flexDirection: 'row',
+      marginRight: 4,
+      paddingHorizontal: 10,
+      paddingVertical: 8,
+    },
+    severityText: {
+      color: '#FFFFFF',
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 0.5,
+      marginLeft: 6,
+      textTransform: 'uppercase',
     },
     alertTitleContainer: {
       flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    alertIcon: {
-      marginRight: 8,
     },
     alertTitle: {
       fontSize: 16,
-      fontWeight: '600',
-      flex: 1,
-    },
-    alertBadges: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginRight: 8,
-    },
-    alertLevel: {
-      fontSize: 12,
       fontWeight: '700',
-      textTransform: 'uppercase',
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 4,
-      overflow: 'hidden',
+      lineHeight: 21,
     },
-    statusBadge: {
-      fontSize: 11,
-      fontWeight: '600',
-      paddingHorizontal: 6,
-      paddingVertical: 2,
-      borderRadius: 3,
-      marginLeft: 8,
+    alertPublished: {
+      fontSize: 12,
+      fontWeight: '500',
+      marginTop: 4,
     },
     collapseButton: {
-      padding: 4,
+      alignItems: 'center',
+      borderRadius: 14,
+      height: 28,
+      justifyContent: 'center',
+      marginLeft: 10,
+      width: 28,
     },
     alertContent: {
-      paddingHorizontal: 16,
       paddingBottom: 16,
+      paddingHorizontal: 16,
       paddingTop: 0,
+    },
+    alertContentDivider: {
       borderTopWidth: 1,
       borderTopColor: theme.textSecondary + '15',
+      paddingTop: 14,
     },
     alertDescription: {
       fontSize: 14,
@@ -224,7 +254,6 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
     },
     alertTime: {
       fontSize: 12,
-      fontStyle: 'italic',
       marginTop: 8,
       opacity: 0.7,
     },
@@ -232,12 +261,16 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>Weather Alerts</Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Weather Alerts</Text>
+      </View>
 
       <View style={styles.alertsContainer}>
-        {alerts.map((alert) => {
+        {sortedAlerts.map((alert) => {
           const alertColor = getAlertColor(alert);
-          const alertLevel = extractAlertLevel(alert);
+          const rawAlertLevel = extractAlertLevel(alert);
+          const alertLevel = formatLevelLabel(rawAlertLevel);
+          const badgeTextColor = getBadgeTextColor(rawAlertLevel);
           const isExpanded = expandedAlerts.has(alert.alertId);
 
           return (
@@ -247,7 +280,6 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
                 styles.alertCard,
                 {
                   backgroundColor: theme.surface,
-                  borderLeftColor: alertColor,
                 },
               ]}
             >
@@ -256,10 +288,25 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
                 onPress={() => toggleAlert(alert.alertId)}
                 activeOpacity={0.7}
               >
+                <View
+                  style={[
+                    styles.severityBadge,
+                    { backgroundColor: alertColor },
+                  ]}
+                >
+                  <AlertTriangle
+                    size={16}
+                    color={badgeTextColor}
+                    strokeWidth={2.8}
+                  />
+                  <Text
+                    style={[styles.severityText, { color: badgeTextColor }]}
+                  >
+                    {alertLevel}
+                  </Text>
+                </View>
+
                 <View style={styles.alertTitleContainer}>
-                  <View style={styles.alertIcon}>
-                    <AlertTriangle size={20} color={alertColor} />
-                  </View>
                   <Text
                     style={[styles.alertTitle, { color: theme.text }]}
                     numberOfLines={isExpanded ? undefined : 2}
@@ -268,67 +315,51 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({
                   </Text>
                 </View>
 
-                <View style={styles.alertBadges}>
-                  <Text
-                    style={[
-                      styles.alertLevel,
-                      {
-                        backgroundColor: alertColor + '20',
-                        color: alertColor,
-                      },
-                    ]}
-                  >
-                    {alertLevel}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  style={styles.collapseButton}
-                  onPress={() => toggleAlert(alert.alertId)}
-                >
+                <View style={styles.collapseButton}>
                   {isExpanded ? (
-                    <ChevronUp size={20} color={theme.textSecondary} />
+                    <ChevronUp size={18} color={theme.textSecondary} />
                   ) : (
-                    <ChevronDown size={20} color={theme.textSecondary} />
+                    <ChevronDown size={18} color={theme.textSecondary} />
                   )}
-                </TouchableOpacity>
+                </View>
               </TouchableOpacity>
 
               {isExpanded && (
                 <View style={styles.alertContent}>
-                  <Text
-                    style={[styles.alertDescription, { color: theme.text }]}
-                  >
-                    {alert.description}
-                  </Text>
+                  <View style={styles.alertContentDivider}>
+                    <Text
+                      style={[styles.alertDescription, { color: theme.text }]}
+                    >
+                      {alert.description}
+                    </Text>
 
-                  <View style={styles.alertMeta}>
-                    <View style={styles.metaItem}>
-                      <View style={styles.metaIcon}>
-                        <MapPin size={12} color={theme.textSecondary} />
+                    <View style={styles.alertMeta}>
+                      <View style={styles.metaItem}>
+                        <View style={styles.metaIcon}>
+                          <MapPin size={12} color={theme.textSecondary} />
+                        </View>
+                        <Text
+                          style={[
+                            styles.metaText,
+                            { color: theme.textSecondary },
+                          ]}
+                        >
+                          {alert.location || `${alert.city}, ${alert.county}`}
+                        </Text>
                       </View>
-                      <Text
-                        style={[
-                          styles.metaText,
-                          { color: theme.textSecondary },
-                        ]}
-                      >
-                        {alert.location || `${alert.city}, ${alert.county}`}
-                      </Text>
                     </View>
+
+                    <Text
+                      style={[styles.alertTime, { color: theme.textSecondary }]}
+                    >
+                      Source: {alert.source}
+                    </Text>
+                    <Text
+                      style={[styles.alertTime, { color: theme.textSecondary }]}
+                    >
+                      Published {formatTime(alert.pubtimestamp)}
+                    </Text>
                   </View>
-
-                  <Text
-                    style={[styles.alertTime, { color: theme.textSecondary }]}
-                  >
-                    Published: {formatTime(alert.pubtimestamp)}
-                  </Text>
-
-                  <Text
-                    style={[styles.alertTime, { color: theme.textSecondary }]}
-                  >
-                    Source: {alert.source}
-                  </Text>
                 </View>
               )}
             </View>

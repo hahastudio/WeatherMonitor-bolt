@@ -541,7 +541,7 @@ export default function ChartsScreen() {
             humidityStats,
           )}
 
-          {error && <Text style={styles.errorText}>⚠️ {error}</Text>}
+          {error && <Text style={styles.errorText}>{error}</Text>}
         </ScrollView>
       </LinearGradient>
     </View>

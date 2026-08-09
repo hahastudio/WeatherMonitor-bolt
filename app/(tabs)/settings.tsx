@@ -165,7 +165,7 @@ export default function SettingsScreen() {
 
     Alert.alert(
       'Weather Monitor NT',
-      `A beautiful weather app built with React Native and Expo. Weather data provided by OpenWeatherMap and ColorfulCloud.\n\nVersion ${version}`,
+      `A weather app built with React Native and Expo. Weather data provided by OpenWeatherMap and ColorfulCloud.\n\nVersion ${version}`,
       [{ text: 'OK' }],
     );
   };

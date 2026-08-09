@@ -2,7 +2,7 @@ import BackgroundFetch from 'react-native-background-fetch';
 import './node_modules/expo-router/entry';
 import { weatherTask } from './services/backgroundWeatherService';
 
-console.log('🔄 Registering headless background fetch task...');
+console.log('Registering headless background fetch task...');
 BackgroundFetch.registerHeadlessTask(async (event) => {
   // Get task id from event {}:
   let taskId = event.taskId;

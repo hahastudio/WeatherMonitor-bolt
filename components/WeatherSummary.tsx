@@ -214,17 +214,20 @@ export const WeatherSummary: React.FC = () => {
       lineHeight: 22,
     },
     alertSection: {
-      backgroundColor: '#FF8800' + '15',
+      backgroundColor: theme.textSecondary + '10',
       borderRadius: 8,
       padding: 12,
-      borderLeftWidth: 4,
-      borderLeftColor: '#FF8800',
+    },
+    sectionTitleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+      gap: 6,
     },
     alertTitle: {
       color: '#FF8800',
       fontSize: 14,
       fontWeight: '600',
-      marginBottom: 4,
     },
     alertText: {
       color: theme.text,
@@ -232,17 +235,14 @@ export const WeatherSummary: React.FC = () => {
       lineHeight: 20,
     },
     warningSection: {
-      backgroundColor: '#FF4444' + '15',
+      backgroundColor: theme.textSecondary + '10',
       borderRadius: 8,
       padding: 12,
-      borderLeftWidth: 4,
-      borderLeftColor: '#FF4444',
     },
     warningTitle: {
       color: '#FF4444',
       fontSize: 14,
       fontWeight: '600',
-      marginBottom: 4,
     },
     warningText: {
       color: theme.text,
@@ -395,9 +395,10 @@ export const WeatherSummary: React.FC = () => {
 
               {weatherSummary.alertSummary && (
                 <View style={styles.alertSection}>
-                  <Text style={styles.alertTitle}>
-                    ⚠️ Active Weather Alerts
-                  </Text>
+                  <View style={styles.sectionTitleRow}>
+                    <AlertTriangle size={16} color="#FF8800" />
+                    <Text style={styles.alertTitle}>Active Weather Alerts</Text>
+                  </View>
                   <Text style={styles.alertText}>
                     {weatherSummary.alertSummary}
                   </Text>
@@ -408,9 +409,12 @@ export const WeatherSummary: React.FC = () => {
                 <View testID="expanded-content" style={styles.content}>
                   {weatherSummary.futureWarnings && (
                     <View style={styles.warningSection}>
-                      <Text style={styles.warningTitle}>
-                        🌩️ Upcoming Weather Concerns
-                      </Text>
+                      <View style={styles.sectionTitleRow}>
+                        <Cloud size={16} color="#FF4444" />
+                        <Text style={styles.warningTitle}>
+                          Upcoming Weather Concerns
+                        </Text>
+                      </View>
                       <Text style={styles.warningText}>
                         {weatherSummary.futureWarnings}
                       </Text>

@@ -377,7 +377,7 @@ export default function ForecastScreen() {
             ))}
           </View>
 
-          {error && <Text style={styles.errorText}>⚠️ {error}</Text>}
+          {error && <Text style={styles.errorText}>{error}</Text>}
         </ScrollView>
       </LinearGradient>
     </View>
