@@ -176,7 +176,7 @@ describe('GeminiService', () => {
         ],
         thoughtsTokenCount: 1417,
       },
-      modelVersion: 'gemini-3.6-flash',
+      modelVersion: 'gemini-3.7-flash',
       responseId: 'mock_response_id_12345',
     } as GenerateContentResponse);
 
@@ -194,9 +194,9 @@ describe('GeminiService', () => {
       expect(result).toEqual(mockWeatherSummary);
     });
 
-    it('should fallback to gemini-3.5-flash if gemini-3.6-flash returns 429', async () => {
+    it('should fallback to gemini-3.6-flash if gemini-3.7-flash returns 429', async () => {
       mockGenerateContent.mockImplementation(async (args) => {
-        if (args?.model === 'gemini-3.6-flash') {
+        if (args?.model === 'gemini-3.7-flash') {
           const err = Object.assign(new Error('Rate limit exceeded'), {
             status: 429,
           });
@@ -218,7 +218,7 @@ describe('GeminiService', () => {
               index: 0,
             },
           ],
-          modelVersion: 'gemini-3.5-flash',
+          modelVersion: 'gemini-3.6-flash',
         } as GenerateContentResponse;
       });
 
@@ -226,16 +226,17 @@ describe('GeminiService', () => {
       expect(result).toEqual(mockWeatherSummary);
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
       expect(mockGenerateContent.mock.calls[0][0]).toMatchObject({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.7-flash',
       });
       expect(mockGenerateContent.mock.calls[1][0]).toMatchObject({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.6-flash',
       });
     });
 
-    it('should fallback to gemini-2.5-flash if the first three models return 429', async () => {
+    it('should fallback to gemini-2.5-flash if the first four models return 429', async () => {
       mockGenerateContent.mockImplementation(async (args) => {
         if (
+          args?.model === 'gemini-3.7-flash' ||
           args?.model === 'gemini-3.6-flash' ||
           args?.model === 'gemini-3.5-flash' ||
           args?.model === 'gemini-3-flash-preview'
@@ -265,17 +266,20 @@ describe('GeminiService', () => {
 
       const result = await geminiService.generateWeatherSummary(mockInput);
       expect(result).toEqual(mockWeatherSummary);
-      expect(mockGenerateContent).toHaveBeenCalledTimes(4);
+      expect(mockGenerateContent).toHaveBeenCalledTimes(5);
       expect(mockGenerateContent.mock.calls[0][0]).toMatchObject({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.7-flash',
       });
       expect(mockGenerateContent.mock.calls[1][0]).toMatchObject({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.6-flash',
       });
       expect(mockGenerateContent.mock.calls[2][0]).toMatchObject({
-        model: 'gemini-3-flash-preview',
+        model: 'gemini-3.5-flash',
       });
       expect(mockGenerateContent.mock.calls[3][0]).toMatchObject({
+        model: 'gemini-3-flash-preview',
+      });
+      expect(mockGenerateContent.mock.calls[4][0]).toMatchObject({
         model: 'gemini-2.5-flash',
       });
     });
@@ -291,7 +295,7 @@ describe('GeminiService', () => {
       await expect(
         geminiService.generateWeatherSummary(mockInput),
       ).rejects.toThrow('Too Many Requests');
-      expect(mockGenerateContent).toHaveBeenCalledTimes(4);
+      expect(mockGenerateContent).toHaveBeenCalledTimes(5);
     });
 
     it('should fail immediately on non-429 error', async () => {

@@ -208,8 +208,8 @@ For mobile app builds, you'll need to use EAS Build:
 
 **Models Used:**
 
-- `gemini-3.6-flash` - Primary fast, efficient model for text generation
-- `gemini-3.5-flash`, `gemini-3-flash-preview`, and `gemini-2.5-flash` - Fallback models for rate limits
+- `gemini-3.7-flash` - Primary fast, efficient model for text generation
+- `gemini-3.6-flash`, `gemini-3.5-flash`, `gemini-3-flash-preview`, and `gemini-2.5-flash` - Fallback models for rate limits
 
 **AI Features:**
 
