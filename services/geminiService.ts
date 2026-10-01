@@ -27,6 +27,7 @@ export interface WeatherSummary {
 }
 
 const MODELS = [
+  'gemini-3.8-flash',
   'gemini-3.7-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
@@ -52,82 +53,107 @@ export class GeminiService {
       this.genAI = new GoogleGenAI({ apiKey });
     }
 
-    const startTime = Date.now();
     let lastError: unknown = null;
 
     for (let i = 0; i < MODELS.length; i++) {
       const modelName = MODELS[i];
-      try {
-        const prompt = this.buildPrompt(input);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const startTime = Date.now();
+        try {
+          const prompt = this.buildPrompt(input);
 
-        const result = await this.genAI.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: 'object',
-              properties: {
-                todayOverview: { type: 'string' },
-                alertSummary: { type: 'string', nullable: true },
-                futureWarnings: { type: 'string', nullable: true },
-                recommendations: { type: 'array', items: { type: 'string' } },
-                mood: {
-                  type: 'string',
-                  enum: ['positive', 'neutral', 'warning', 'severe'],
+          const result = await this.genAI.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: 'object',
+                properties: {
+                  todayOverview: { type: 'string' },
+                  alertSummary: { type: 'string', nullable: true },
+                  futureWarnings: { type: 'string', nullable: true },
+                  recommendations: { type: 'array', items: { type: 'string' } },
+                  mood: {
+                    type: 'string',
+                    enum: ['positive', 'neutral', 'warning', 'severe'],
+                  },
                 },
+                required: ['todayOverview', 'recommendations', 'mood'],
               },
-              required: ['todayOverview', 'recommendations', 'mood'],
+              temperature: 0.55,
             },
-            temperature: 0.55,
-          },
-        });
-        const responseTime = Date.now() - startTime;
-        const text = result.text || '';
+          });
+          const responseTime = Date.now() - startTime;
+          const text = result.text || '';
 
-        await apiLogger.logRequest(
-          `generateWeatherSummary (Gemini - ${modelName})`,
-          'POST',
-          'success',
-          trigger,
-          responseTime,
-          undefined,
-          'gemini',
-        );
-
-        return this.parseResponse(text);
-      } catch (error) {
-        lastError = error;
-
-        const is429 =
-          (error &&
-            typeof error === 'object' &&
-            (('status' in error && error.status === 429) ||
-              ('statusCode' in error && error.statusCode === 429))) ||
-          (error instanceof Error &&
-            (error.message.includes('429') ||
-              error.message.includes('RESOURCE_EXHAUSTED') ||
-              error.message.toLowerCase().includes('too many requests')));
-
-        if (is429 && i < MODELS.length - 1) {
-          console.warn(
-            `Gemini model ${modelName} returned 429. Falling back to ${MODELS[i + 1]}...`,
+          await apiLogger.logRequest(
+            `generateWeatherSummary (Gemini - ${modelName})`,
+            'POST',
+            'success',
+            trigger,
+            responseTime,
+            undefined,
+            'gemini',
           );
-          continue;
-        }
 
-        // If not 429, or it is the last model, we log the failure and throw
-        const responseTime = Date.now() - startTime;
-        await apiLogger.logRequest(
-          `generateWeatherSummary (Gemini - ${modelName})`,
-          'POST',
-          'error',
-          trigger,
-          responseTime,
-          error instanceof Error ? error.message : 'Unknown error',
-          'gemini',
-        );
-        throw error;
+          return this.parseResponse(text);
+        } catch (error) {
+          lastError = error;
+
+          const is429 =
+            (error &&
+              typeof error === 'object' &&
+              (('status' in error && error.status === 429) ||
+                ('statusCode' in error && error.statusCode === 429))) ||
+            (error instanceof Error &&
+              (error.message.includes('429') ||
+                error.message.includes('RESOURCE_EXHAUSTED') ||
+                error.message.toLowerCase().includes('too many requests')));
+
+          const message =
+            error &&
+            typeof error === 'object' &&
+            'message' in error &&
+            typeof error.message === 'string'
+              ? error.message
+              : '';
+          const responseTime = Date.now() - startTime;
+          await apiLogger.logRequest(
+            `generateWeatherSummary (Gemini - ${modelName})`,
+            'POST',
+            'error',
+            trigger,
+            responseTime,
+            message || 'Unknown error',
+            'gemini',
+          );
+
+          const is503 =
+            (error &&
+              typeof error === 'object' &&
+              (('status' in error && error.status === 503) ||
+                ('statusCode' in error && error.statusCode === 503))) ||
+            /\b503\b/.test(message);
+          const isHighDemand = is503 && /high demand/i.test(message);
+
+          if (!is429 && isHighDemand && attempt === 0) {
+            console.warn(
+              `Gemini model ${modelName} returned 503 with high demand. Retrying once...`,
+            );
+            continue;
+          }
+
+          if ((is429 || isHighDemand) && i < MODELS.length - 1) {
+            console.warn(
+              `Gemini model ${modelName} returned ${is429 ? 429 : 503}. Falling back to ${MODELS[i + 1]}...`,
+            );
+            break;
+          }
+
+          // Non-retryable errors or exhaustion of the last model are terminal.
+          throw error;
+        }
       }
     }
 
