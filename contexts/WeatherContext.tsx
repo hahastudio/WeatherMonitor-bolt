@@ -350,6 +350,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
   const fetchWeatherData = async (
     coords: LocationCoords,
     trigger: 'manual' | 'auto' | 'tab_switch' | 'app_start' = 'manual',
+    options: { throwOnError?: boolean; cityName?: string } = {},
   ) => {
     // Attempt to acquire the fetch lock with retries
     const clientId = trigger === 'manual' ? 'foreground_manual' : 'foreground';
@@ -374,6 +375,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
       console.log(
         '[Context] Could not acquire fetch lock after retries, skipping fetch to prevent redundant calls.',
       );
+      if (options.throwOnError) {
+        throw new Error('Weather refresh is busy. Please try again.');
+      }
       return;
     }
 
@@ -394,6 +398,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
 
       if (loading) {
         console.log('Already fetching weather data, skipping...');
+        if (options.throwOnError) {
+          throw new Error('Weather refresh is busy. Please try again.');
+        }
         return;
       }
       console.log(`Fetching weather data (trigger: ${trigger})...`);
@@ -516,7 +523,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
               forecast: forecastData,
               alerts: alerts,
               airQuality: weatherAirQuality,
-              cityName: cityName,
+              cityName: options.cityName ?? cityName,
             },
             trigger,
           );
@@ -534,6 +541,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
         err instanceof Error ? err.message : 'Failed to fetch weather data';
       console.error('Weather data fetch failed:', errorMessage);
       setError(errorMessage);
+      if (options.throwOnError) throw err;
     } finally {
       setLoading(false);
       await releaseFetchLock();
@@ -543,7 +551,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
   const getCurrentLocation = async () => {
     try {
       console.log('Getting current location...');
-      const coords = await locationService.getCurrentLocation();
+      const coords = await locationService.getCurrentLocation({ fresh: true });
       console.log('Location obtained:', coords);
       return coords;
     } catch (err) {
@@ -555,24 +563,32 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     }
   };
 
-  const refreshLocation = async () => {
+  const updateLocation = async () => {
     try {
       console.log('Refreshing location...');
       const coords = await getCurrentLocation();
-      if (coords) {
-        await saveDataToStorage({ location: coords });
-        setLocation(coords);
-        const city = await locationService.getCityName(coords);
-        await saveDataToStorage({ cityName: city });
-        setCityName(city);
-        console.log('Location refreshed successfully');
-      } else {
-        console.log('No location available to refresh');
-      }
+      const city = await locationService.getCityName(coords);
+      await saveDataToStorage({ location: coords, cityName: city });
+      console.log('Location refreshed successfully');
+      return { coords, city };
     } catch (error) {
       console.error('Failed to refresh location:', error);
-      setError('Failed to refresh location');
+      setError(
+        error instanceof Error ? error.message : 'Failed to refresh location',
+      );
+      throw error;
     }
+  };
+
+  const refreshLocation = async () => {
+    setError(null);
+    const { coords, city } = await updateLocation();
+    // Use the returned coordinates directly; React state may still contain
+    // the previous location in the caller's render.
+    await fetchWeatherData(coords, 'manual', {
+      throwOnError: true,
+      cityName: city,
+    });
   };
 
   const refreshWeather = async () => {
@@ -619,8 +635,12 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     // Step 2: Get current location
     let coords = storageData.location;
     if (!coords) {
-      await refreshLocation();
-      coords = await loadLocation();
+      try {
+        coords = (await updateLocation()).coords;
+      } catch {
+        setLoading(false);
+        return;
+      }
     }
 
     // Step 3: Check if we need to refresh data

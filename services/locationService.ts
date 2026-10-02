@@ -6,8 +6,10 @@ import { apiLogger } from './apiLogger';
 import { getApiKey } from './apiKeyManager';
 
 class LocationService {
-  async getCurrentLocation(): Promise<LocationCoords> {
+  async getCurrentLocation({ fresh = false } = {}): Promise<LocationCoords> {
     try {
+      if (fresh && Platform.OS === 'web') return await this.getWebLocation();
+
       // Request permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
 
@@ -15,23 +17,77 @@ class LocationService {
         throw new Error('Location permission denied');
       }
 
-      // Get current location
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      });
+      // Android's one-shot provider can reuse a cached fix. Actively subscribe
+      // until a fix taken after this request arrives, then stop the subscription.
+      const location =
+        fresh && Platform.OS === 'android'
+          ? await this.getFreshAndroidLocation()
+          : await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.High,
+            });
 
       return {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       };
     } catch (error) {
-      // Fallback to a default location (New York) if location services fail
-      if (Platform.OS === 'web') {
+      if (Platform.OS === 'web' && !fresh) {
         // Try HTML5 geolocation on web
         return this.getWebLocation();
       }
       throw error;
     }
+  }
+
+  private getFreshAndroidLocation(): Promise<Location.LocationObject> {
+    const requestedAt = Date.now();
+
+    return new Promise((resolve, reject) => {
+      let subscription: Location.LocationSubscription | undefined;
+      let settled = false;
+
+      const finish = (location?: Location.LocationObject, error?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        subscription?.remove();
+        if (location) {
+          resolve(location);
+        } else {
+          reject(error);
+        }
+      };
+
+      const timeout = setTimeout(
+        () =>
+          finish(
+            undefined,
+            new Error(
+              'Could not get a fresh location. Check that location services are enabled and try again.',
+            ),
+          ),
+        30000,
+      );
+
+      Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 1000,
+          distanceInterval: 0,
+          mayShowUserSettingsDialog: true,
+        },
+        (location) => {
+          if (location.timestamp >= requestedAt) finish(location);
+        },
+        (reason) => finish(undefined, new Error(reason)),
+      )
+        .then((watch) => {
+          subscription = watch;
+          // A fix or timeout can arrive before native subscription setup ends.
+          if (settled) watch.remove();
+        })
+        .catch((error) => finish(undefined, error));
+    });
   }
 
   private getWebLocation(): Promise<LocationCoords> {
@@ -48,17 +104,11 @@ class LocationService {
             longitude: position.coords.longitude,
           });
         },
-        (error) => {
-          // Fallback to default location (New York)
-          resolve({
-            latitude: 40.7128,
-            longitude: -74.006,
-          });
-        },
+        (error) => reject(new Error(error.message)),
         {
           enableHighAccuracy: true,
           timeout: 10000,
-          maximumAge: 300000, // 5 minutes
+          maximumAge: 0,
         },
       );
     });

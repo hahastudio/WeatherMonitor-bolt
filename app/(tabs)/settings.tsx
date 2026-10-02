@@ -58,6 +58,7 @@ export default function SettingsScreen() {
   } = useWeather();
 
   const [showRefreshRateModal, setShowRefreshRateModal] = useState(false);
+  const [isRefreshingLocation, setIsRefreshingLocation] = useState(false);
   const [showApiLogModal, setShowApiLogModal] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
@@ -91,16 +92,23 @@ export default function SettingsScreen() {
         {
           text: 'Refresh',
           onPress: async () => {
+            setIsRefreshingLocation(true);
             try {
               await refreshLocation();
-              await refreshWeather();
               Alert.alert(
                 'Success',
                 'Location and weather data updated successfully',
               );
             } catch (error) {
               console.log(error);
-              Alert.alert('Error', 'Failed to refresh location');
+              Alert.alert(
+                'Error',
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to refresh location',
+              );
+            } finally {
+              setIsRefreshingLocation(false);
             }
           },
         },
@@ -703,13 +711,19 @@ export default function SettingsScreen() {
             <TouchableOpacity
               style={styles.settingItem}
               onPress={handleLocationRefresh}
+              disabled={isRefreshingLocation}
+              accessibilityState={{ busy: isRefreshingLocation }}
             >
               <View style={styles.settingLeft}>
                 <View style={styles.settingIcon}>
                   <MapPin size={24} color={theme.primary} />
                 </View>
                 <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Refresh Location</Text>
+                  <Text style={styles.settingTitle}>
+                    {isRefreshingLocation
+                      ? 'Refreshing Location…'
+                      : 'Refresh Location'}
+                  </Text>
                   <Text style={styles.settingDescription}>
                     Update your current location
                   </Text>

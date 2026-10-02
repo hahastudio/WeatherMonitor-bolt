@@ -9,9 +9,11 @@ import { apiLogger } from '../../services/apiLogger';
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
+  watchPositionAsync: jest.fn(),
   reverseGeocodeAsync: jest.fn(),
   Accuracy: {
     Balanced: 4,
+    High: 5,
   },
 }));
 jest.mock('expo/fetch');
@@ -25,6 +27,7 @@ describe('LocationService', () => {
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks();
+    Platform.OS = 'ios';
     // Mock global navigator
     Object.defineProperty(global.navigator, 'geolocation', {
       value: {
@@ -104,7 +107,7 @@ describe('LocationService', () => {
       );
     });
 
-    it('should fallback to default location on web when geolocation fails', async () => {
+    it('should reject on web when geolocation fails', async () => {
       Platform.OS = 'web';
       (
         Location.requestForegroundPermissionsAsync as jest.Mock
@@ -122,8 +125,9 @@ describe('LocationService', () => {
         error({ code: 1, message: 'User denied Geolocation' }),
       );
 
-      const location = await locationService.getCurrentLocation();
-      expect(location).toEqual({ latitude: 40.7128, longitude: -74.006 });
+      await expect(locationService.getCurrentLocation()).rejects.toThrow(
+        'User denied Geolocation',
+      );
     });
 
     it('should reject if geolocation is not supported on web', async () => {
@@ -144,6 +148,159 @@ describe('LocationService', () => {
 
       await expect(locationService.getCurrentLocation()).rejects.toThrow(
         'Geolocation not supported',
+      );
+    });
+  });
+
+  describe('fresh location', () => {
+    const coords = { latitude: 34.0522, longitude: -118.2437 };
+    let onLocation: Location.LocationCallback;
+    let onError: Location.LocationErrorCallback;
+    let remove: jest.Mock;
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      Platform.OS = 'android';
+      remove = jest.fn();
+      (
+        Location.requestForegroundPermissionsAsync as jest.Mock
+      ).mockResolvedValue({
+        status: 'granted',
+      });
+      (Location.watchPositionAsync as jest.Mock).mockImplementation(
+        async (options, callback, errorCallback) => {
+          onLocation = callback;
+          onError = errorCallback;
+          return { remove };
+        },
+      );
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+      Platform.OS = 'ios';
+    });
+
+    const startRequest = async () => {
+      const request = locationService.getCurrentLocation({ fresh: true });
+      // Flush permission and subscription setup promises.
+      await Promise.resolve();
+      await Promise.resolve();
+      return { request };
+    };
+
+    const position = (timestamp: number) =>
+      ({ coords, timestamp }) as Location.LocationObject;
+
+    it('ignores cached Android fixes and stops after a fresh fix', async () => {
+      const { request } = await startRequest();
+      onLocation(position(Date.now() - 60000));
+      expect(remove).not.toHaveBeenCalled();
+
+      onLocation(position(Date.now()));
+      await expect(request).resolves.toEqual(coords);
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBe(0);
+      expect(Location.getCurrentPositionAsync).not.toHaveBeenCalled();
+      expect(Location.watchPositionAsync).toHaveBeenCalledWith(
+        {
+          accuracy: Location.Accuracy.High,
+          timeInterval: 1000,
+          distanceInterval: 0,
+          mayShowUserSettingsDialog: true,
+        },
+        expect.any(Function),
+        expect.any(Function),
+      );
+    });
+
+    it('times out and removes the Android watch if no fresh fix arrives', async () => {
+      const { request } = await startRequest();
+      const rejection = expect(request).rejects.toThrow(
+        'Could not get a fresh location',
+      );
+      onLocation(position(Date.now() - 60000));
+      jest.advanceTimersByTime(30000);
+      await rejection;
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('propagates provider errors and removes the Android watch', async () => {
+      const { request } = await startRequest();
+      onError('Location services disabled');
+      await expect(request).rejects.toThrow('Location services disabled');
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('propagates subscription setup failures without leaving a timeout', async () => {
+      (Location.watchPositionAsync as jest.Mock).mockRejectedValueOnce(
+        new Error('Location settings request denied'),
+      );
+      await expect(
+        locationService.getCurrentLocation({ fresh: true }),
+      ).rejects.toThrow('Location settings request denied');
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('removes a subscription that resolves after the request times out', async () => {
+      let resolveWatch!: (watch: Location.LocationSubscription) => void;
+      (Location.watchPositionAsync as jest.Mock).mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveWatch = resolve;
+          }),
+      );
+      const { request } = await startRequest();
+      const rejection = expect(request).rejects.toThrow(
+        'Could not get a fresh location',
+      );
+      jest.advanceTimersByTime(30000);
+      await rejection;
+      resolveWatch({ remove });
+      await Promise.resolve();
+      expect(remove).toHaveBeenCalledTimes(1);
+    });
+
+    it('removes the watch if a fresh fix arrives before subscription setup resolves', async () => {
+      (Location.watchPositionAsync as jest.Mock).mockImplementationOnce(
+        async (options, callback) => {
+          callback(position(Date.now()));
+          return { remove };
+        },
+      );
+      await expect(
+        locationService.getCurrentLocation({ fresh: true }),
+      ).resolves.toEqual(coords);
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(jest.getTimerCount()).toBe(0);
+    });
+
+    it('does not start an Android watch when permission is denied', async () => {
+      (
+        Location.requestForegroundPermissionsAsync as jest.Mock
+      ).mockResolvedValueOnce({
+        status: 'denied',
+      });
+      await expect(
+        locationService.getCurrentLocation({ fresh: true }),
+      ).rejects.toThrow('Location permission denied');
+      expect(Location.watchPositionAsync).not.toHaveBeenCalled();
+    });
+
+    it('requests an uncached web position for a fresh refresh', async () => {
+      Platform.OS = 'web';
+      (
+        navigator.geolocation.getCurrentPosition as jest.Mock
+      ).mockImplementationOnce((success) => success({ coords }));
+      await expect(
+        locationService.getCurrentLocation({ fresh: true }),
+      ).resolves.toEqual(coords);
+      expect(navigator.geolocation.getCurrentPosition).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.any(Function),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
       );
     });
   });
