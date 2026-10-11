@@ -1,6 +1,22 @@
 import '@testing-library/jest-native/extend-expect';
+
+jest.mock('expo-blur', () => ({
+  BlurView: require('react-native').View,
+  BlurTargetView: require('react-native').View,
+}));
 import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
 import fetchMock from 'jest-fetch-mock';
+
+jest.mock('react-native-reanimated', () => ({
+  ...require('react-native-reanimated/mock'),
+  useReducedMotion: jest.fn(() => false),
+}));
+
+jest.mock('react-native-worklets', () => ({
+  ...require('react-native-worklets/src/mock'),
+  scheduleOnRN: (callback: (...args: unknown[]) => void, ...args: unknown[]) =>
+    callback(...args),
+}));
 
 // Mock AsyncStorage
 jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);

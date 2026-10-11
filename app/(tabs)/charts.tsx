@@ -1,13 +1,5 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  RefreshControl,
-  Platform,
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import {
   Thermometer,
   CloudRain,
@@ -19,6 +11,7 @@ import {
   Clock,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
+import { ScrollingScreen } from '../../components/ScrollingScreen';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { CustomChart, DataPoint } from '../../components/CustomChart';
@@ -47,34 +40,18 @@ export default function ChartsScreen() {
   }
 
   const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    gradient: {
-      flex: 1,
-      paddingTop: 60,
-    },
-    header: {
-      paddingHorizontal: 20,
-      marginBottom: 20,
-    },
-    title: {
-      color: theme.text,
-      fontSize: 28,
-      fontWeight: '700',
-      textAlign: 'center',
-    },
     timeRange: {
-      color: theme.textSecondary,
-      fontSize: 14,
-      textAlign: 'center',
-      marginTop: 4,
+      marginTop: 6,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
     },
+    timeRangeText: {
+      color: theme.textSecondary,
+      fontSize: 14,
+      marginLeft: 6,
+    },
     content: {
-      paddingHorizontal: 20,
       paddingBottom: 20,
     },
     chartCard: {
@@ -175,21 +152,13 @@ export default function ChartsScreen() {
   // Ensure we have data to work with
   if (next48Hours.length === 0) {
     return (
-      <View style={styles.container}>
-        <LinearGradient
-          colors={[theme.gradientStart, theme.gradientEnd]}
-          style={styles.gradient}
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>Weather Charts</Text>
-          </View>
-          <View style={styles.content}>
-            <Text style={[styles.subtitle, { textAlign: 'center' }]}>
-              No forecast data available
-            </Text>
-          </View>
-        </LinearGradient>
-      </View>
+      <ScrollingScreen theme={theme} title="Weather Charts">
+        <View style={styles.content}>
+          <Text style={[styles.subtitle, { textAlign: 'center' }]}>
+            No forecast data available
+          </Text>
+        </View>
+      </ScrollingScreen>
     );
   }
 
@@ -441,109 +410,96 @@ export default function ChartsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[theme.gradientStart, theme.gradientEnd]}
-        style={styles.gradient}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Weather Charts</Text>
-          <View style={styles.timeRange}>
-            <Clock size={14} color={theme.textSecondary} />
-            <Text style={[styles.timeRange, { marginLeft: 6 }]}>
-              Next 48 Hours Forecast
-            </Text>
-          </View>
+    <ScrollingScreen
+      theme={theme}
+      title="Weather Charts"
+      compactTitle="Charts"
+      onRefresh={refreshWeather}
+      refreshBusy={loading}
+      subtitle={
+        <View style={styles.timeRange}>
+          <Clock size={14} color={theme.textSecondary} />
+          <Text style={styles.timeRangeText}>Next 48 Hours Forecast</Text>
         </View>
+      }
+    >
+      <View style={styles.content}>
+        {renderChart(
+          'Temperature',
+          <Thermometer size={24} color={theme.primary} />,
+          temperatureData,
+          theme.primary,
+          '°C',
+          'line',
+          tempStats,
+          feelsLikeData,
+          '#FF9F1C', // Orange for feels like
+          feelsLikeStats,
+          'FEELS LIKE',
+        )}
 
-        <ScrollView
-          style={styles.content}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={refreshWeather}
-              tintColor={theme.primary}
-              colors={[theme.primary]}
-            />
-          }
-        >
-          {renderChart(
-            'Temperature',
-            <Thermometer size={24} color={theme.primary} />,
-            temperatureData,
-            theme.primary,
-            '°C',
+        {renderChart(
+          'Precipitation',
+          <CloudRain size={24} color="#4A90E2" />,
+          precipitationData,
+          '#4A90E2',
+          'mm',
+          'bar',
+          precipStats,
+        )}
+
+        {renderChart(
+          'Wind Speed',
+          <Wind size={24} color="#50C878" />,
+          windData,
+          '#50C878',
+          ' km/h',
+          'line',
+          windStats,
+          windGustData,
+          '#8A2BE2', // BlueViolet for wind gust
+          windGustStats,
+          'GUST',
+        )}
+
+        {renderChart(
+          'Atmospheric Pressure',
+          <Gauge size={24} color="#FF6B6B" />,
+          pressureData,
+          '#FF6B6B',
+          ' hPa',
+          'line',
+          pressureStats,
+        )}
+
+        {hasAqiData &&
+          renderChart(
+            'Air Quality Index',
+            <AirVent size={24} color="#00CED1" />,
+            aqiChnData,
+            '#00CED1', // DarkTurquoise for China AQI
+            '',
             'line',
-            tempStats,
-            feelsLikeData,
-            '#FF9F1C', // Orange for feels like
-            feelsLikeStats,
-            'FEELS LIKE',
+            aqiChnStats,
+            aqiUsaData,
+            '#FF6347', // Tomato for USA AQI
+            aqiUsaStats,
+            'USA AQI',
+            'CHINA AQI',
           )}
 
-          {renderChart(
-            'Precipitation',
-            <CloudRain size={24} color="#4A90E2" />,
-            precipitationData,
-            '#4A90E2',
-            'mm',
-            'bar',
-            precipStats,
-          )}
+        {renderChart(
+          'Humidity',
+          <Droplets size={24} color="#20B2AA" />,
+          humidityData,
+          '#20B2AA',
+          '%',
+          'line',
+          humidityStats,
+        )}
 
-          {renderChart(
-            'Wind Speed',
-            <Wind size={24} color="#50C878" />,
-            windData,
-            '#50C878',
-            ' km/h',
-            'line',
-            windStats,
-            windGustData,
-            '#8A2BE2', // BlueViolet for wind gust
-            windGustStats,
-            'GUST',
-          )}
-
-          {renderChart(
-            'Atmospheric Pressure',
-            <Gauge size={24} color="#FF6B6B" />,
-            pressureData,
-            '#FF6B6B',
-            ' hPa',
-            'line',
-            pressureStats,
-          )}
-
-          {hasAqiData &&
-            renderChart(
-              'Air Quality Index',
-              <AirVent size={24} color="#00CED1" />,
-              aqiChnData,
-              '#00CED1', // DarkTurquoise for China AQI
-              '',
-              'line',
-              aqiChnStats,
-              aqiUsaData,
-              '#FF6347', // Tomato for USA AQI
-              aqiUsaStats,
-              'USA AQI',
-              'CHINA AQI',
-            )}
-
-          {renderChart(
-            'Humidity',
-            <Droplets size={24} color="#20B2AA" />,
-            humidityData,
-            '#20B2AA',
-            '%',
-            'line',
-            humidityStats,
-          )}
-
-          {error && <Text style={styles.errorText}>{error}</Text>}
-        </ScrollView>
-      </LinearGradient>
-    </View>
+        {error && <Text style={styles.errorText}>{error}</Text>}
+      </View>
+    </ScrollingScreen>
   );
 }

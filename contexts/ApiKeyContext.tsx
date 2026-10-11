@@ -12,6 +12,7 @@ import { setApiKeys as setGlobalApiKeys } from '../services/apiKeyManager';
 interface ApiKeyContextType {
   apiKeys: ApiKeys | null;
   areKeysSet: boolean;
+  isLoading: boolean;
   updateApiKeys: (newKeys: ApiKeys) => Promise<void>;
   getApiKey: (service: keyof ApiKeys) => string | undefined;
 }
@@ -23,17 +24,29 @@ export const ApiKeyContext = createContext<ApiKeyContextType | undefined>(
 export const ApiKeyProvider = ({ children }: { children: ReactNode }) => {
   const [apiKeys, setApiKeys] = useState<ApiKeys | null>(null);
   const [areKeysSet, setAreKeysSet] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
     const fetchKeys = async () => {
-      const storedKeys = await loadApiKeys();
-      if (storedKeys) {
-        setApiKeys(storedKeys);
-        setGlobalApiKeys(storedKeys); // Set keys for services
-        checkIfKeysAreSet(storedKeys);
+      try {
+        const storedKeys = await loadApiKeys();
+        if (!active) return;
+        if (storedKeys) {
+          setApiKeys(storedKeys);
+          setGlobalApiKeys(storedKeys);
+          checkIfKeysAreSet(storedKeys);
+        }
+      } catch (error) {
+        console.error('Failed to load API keys:', error);
+      } finally {
+        if (active) setIsLoading(false);
       }
     };
     fetchKeys();
+    return () => {
+      active = false;
+    };
   }, []);
 
   const checkIfKeysAreSet = (keys: ApiKeys | null) => {
@@ -45,10 +58,15 @@ export const ApiKeyProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateApiKeys = async (newKeys: ApiKeys) => {
-    setApiKeys(newKeys);
-    setGlobalApiKeys(newKeys); // Update keys for services
-    await saveApiKeys(newKeys);
-    checkIfKeysAreSet(newKeys);
+    try {
+      await saveApiKeys(newKeys);
+      setApiKeys(newKeys);
+      setGlobalApiKeys(newKeys);
+      checkIfKeysAreSet(newKeys);
+    } catch (error) {
+      console.error('Failed to save API keys:', error);
+      throw error;
+    }
   };
 
   const getApiKey = (service: keyof ApiKeys) => {
@@ -57,7 +75,7 @@ export const ApiKeyProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <ApiKeyContext.Provider
-      value={{ apiKeys, areKeysSet, updateApiKeys, getApiKey }}
+      value={{ apiKeys, areKeysSet, isLoading, updateApiKeys, getApiKey }}
     >
       {children}
     </ApiKeyContext.Provider>

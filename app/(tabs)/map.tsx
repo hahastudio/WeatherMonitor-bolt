@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
 import {
   Map as MapIcon,
@@ -34,6 +35,7 @@ interface MapSettings {
 
 export default function MapScreen() {
   const { location, theme, loading: weatherLoading } = useWeather();
+  const insets = useSafeAreaInsets();
 
   const webViewRef = useRef<WebView>(null);
   const [mapSettings, setMapSettings] = useState<MapSettings>({
@@ -258,36 +260,42 @@ export default function MapScreen() {
     },
     gradient: {
       flex: 1,
-      paddingTop: 60,
+      paddingTop: insets.top + 4,
+      paddingLeft: insets.left,
+      paddingRight: insets.right,
     },
     header: {
       paddingHorizontal: 20,
-      marginBottom: 16,
+      marginBottom: 8,
     },
     headerTop: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: 12,
+      minHeight: 48,
+      marginBottom: 4,
+      gap: 12,
     },
     title: {
       color: theme.text,
-      fontSize: 28,
-      fontWeight: '700',
+      fontSize: 18,
+      fontWeight: '600',
+      flex: 1,
     },
     headerActions: {
       flexDirection: 'row',
-      gap: 8,
+      gap: 4,
     },
     actionButton: {
       backgroundColor: theme.surface + '80',
-      borderRadius: 20,
-      padding: 8,
+      borderRadius: 22,
+      width: 44,
+      height: 44,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     layerSelector: {
       flexDirection: 'row',
-      gap: 8,
-      flexWrap: 'wrap',
     },
     layerButton: {
       flexDirection: 'row',
@@ -296,7 +304,8 @@ export default function MapScreen() {
       borderRadius: 20,
       paddingHorizontal: 12,
       marginHorizontal: 4,
-      paddingVertical: 8,
+      paddingVertical: 10,
+      minHeight: 44,
       borderWidth: 1,
       borderColor: 'transparent',
     },
@@ -450,16 +459,26 @@ export default function MapScreen() {
       >
         <View style={styles.header}>
           <View style={styles.headerTop}>
-            <Text style={styles.title}>Weather Map</Text>
+            <Text
+              style={styles.title}
+              numberOfLines={1}
+              accessibilityRole="header"
+            >
+              Weather Map
+            </Text>
             <View style={styles.headerActions}>
               <TouchableOpacity
                 style={styles.actionButton}
+                accessibilityRole="button"
+                accessibilityLabel="Refresh map"
                 onPress={handleRefresh}
               >
                 <RefreshCw size={20} color={theme.text} />
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.actionButton}
+                accessibilityRole="button"
+                accessibilityLabel="Open map in browser"
                 onPress={handleFullscreen}
               >
                 <Maximize2 size={20} color={theme.text} />
@@ -472,6 +491,10 @@ export default function MapScreen() {
               {layerOptions.map((option) => (
                 <TouchableOpacity
                   key={option.key}
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    selected: mapSettings.layer === option.key,
+                  }}
                   style={[
                     styles.layerButton,
                     mapSettings.layer === option.key &&

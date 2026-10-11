@@ -63,6 +63,20 @@ describe('AirQualityScreen', () => {
     expect(screen.getByText('No air quality data available')).toBeTruthy();
   });
 
+  it.each([true, false])(
+    'keeps back navigation available without data (loading: %s)',
+    (loading) => {
+      (useWeather as jest.Mock).mockReturnValue({
+        weatherAirQuality: null,
+        theme: defaultTheme,
+        loading,
+      });
+      render(<AirQualityScreen />);
+      fireEvent.press(screen.getByRole('button', { name: 'Go back' }));
+      expect(mockRouter.back).toHaveBeenCalledTimes(1);
+    },
+  );
+
   it('renders air quality data correctly', () => {
     const mockData = {
       aqi: { usa: 75, chn: 60 },

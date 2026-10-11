@@ -1,54 +1,43 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import {
-  ArrowLeft,
-  Activity,
-  AlertTriangle,
-  CloudFog,
-} from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Activity, AlertTriangle, CloudFog } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
+import { ScrollingScreen } from '../components/ScrollingScreen';
 import { getAqiDescription } from '../utils/aqiUtils';
 
 export default function AirQualityScreen() {
   const router = useRouter();
   const { weatherAirQuality, theme, loading } = useWeather();
-  const insets = useSafeAreaInsets();
 
   if (loading && !weatherAirQuality) {
-    return <LoadingSpinner message="Loading air quality data..." />;
+    return (
+      <ScrollingScreen
+        theme={theme}
+        title="Air Quality"
+        onBack={() => router.back()}
+        bottomInset
+      >
+        <LoadingSpinner message="Loading air quality data..." />
+      </ScrollingScreen>
+    );
   }
 
   if (!weatherAirQuality) {
     return (
-      <View
-        style={[styles.container, { backgroundColor: theme.gradientStart }]}
+      <ScrollingScreen
+        theme={theme}
+        title="Air Quality"
+        onBack={() => router.back()}
+        bottomInset
       >
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.text }]}>Air Quality</Text>
-        </View>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: theme.textSecondary }]}>
             No air quality data available
           </Text>
         </View>
-      </View>
+      </ScrollingScreen>
     );
   }
 
@@ -96,134 +85,76 @@ export default function AirQualityScreen() {
   ].filter((item) => item.value !== undefined);
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.gradientStart }]}>
-      <LinearGradient
-        colors={[theme.gradientStart, theme.gradientEnd]}
-        style={[styles.gradient, { paddingTop: insets.top + 10 }]}
-      >
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => router.back()}
-            accessibilityLabel="Go back"
-            style={styles.backButton}
-          >
-            <ArrowLeft size={24} color={theme.text} />
-          </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.text }]}>
-            Air Quality Details
+    <ScrollingScreen
+      theme={theme}
+      title="Air Quality Details"
+      compactTitle="Air Quality"
+      onBack={() => router.back()}
+      bottomInset
+    >
+      <View style={styles.mainCard}>
+        <View style={[styles.aqiCircle, { borderColor: status.color }]}>
+          <Text style={[styles.aqiValue, { color: theme.text }]}>
+            {Math.round(aqiValue)}
+          </Text>
+          <Text style={[styles.aqiLabel, { color: theme.textSecondary }]}>
+            US AQI
           </Text>
         </View>
-
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={{ paddingBottom: insets.bottom + 20 }}
+        <View
+          style={[styles.statusContainer, { backgroundColor: status.color }]}
         >
-          <View style={styles.mainCard}>
-            <View style={[styles.aqiCircle, { borderColor: status.color }]}>
-              <Text style={[styles.aqiValue, { color: theme.text }]}>
-                {Math.round(aqiValue)}
-              </Text>
-              <Text style={[styles.aqiLabel, { color: theme.textSecondary }]}>
-                US AQI
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.statusContainer,
-                { backgroundColor: status.color },
-              ]}
-            >
-              <Text style={styles.statusText}>{status.label}</Text>
-            </View>
-            <Text style={[styles.description, { color: theme.text }]}>
-              {status.description}
-            </Text>
-          </View>
+          <Text style={styles.statusText}>{status.label}</Text>
+        </View>
+        <Text style={[styles.description, { color: theme.text }]}>
+          {status.description}
+        </Text>
+      </View>
 
+      <View
+        style={[styles.chinaAqiCard, { backgroundColor: theme.surface + '60' }]}
+      >
+        <Text style={[styles.chinaAqiLabel, { color: theme.textSecondary }]}>
+          China AQI
+        </Text>
+        <Text style={[styles.chinaAqiValue, { color: theme.text }]}>
+          {aqi.chn}
+        </Text>
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: theme.text }]}>
+        Pollutants
+      </Text>
+
+      <View style={styles.grid}>
+        {pollutants.map((item, index) => (
           <View
-            style={[
-              styles.chinaAqiCard,
-              { backgroundColor: theme.surface + '60' },
-            ]}
+            key={index}
+            style={[styles.gridItem, { backgroundColor: theme.surface + '80' }]}
           >
-            <Text
-              style={[styles.chinaAqiLabel, { color: theme.textSecondary }]}
-            >
-              China AQI
-            </Text>
-            <Text style={[styles.chinaAqiValue, { color: theme.text }]}>
-              {aqi.chn}
-            </Text>
-          </View>
-
-          <Text style={[styles.sectionTitle, { color: theme.text }]}>
-            Pollutants
-          </Text>
-
-          <View style={styles.grid}>
-            {pollutants.map((item, index) => (
-              <View
-                key={index}
-                style={[
-                  styles.gridItem,
-                  { backgroundColor: theme.surface + '80' },
-                ]}
+            <View style={styles.pollutantHeader}>
+              {item.icon}
+              <Text
+                style={[styles.pollutantLabel, { color: theme.textSecondary }]}
               >
-                <View style={styles.pollutantHeader}>
-                  {item.icon}
-                  <Text
-                    style={[
-                      styles.pollutantLabel,
-                      { color: theme.textSecondary },
-                    ]}
-                  >
-                    {item.label}
-                  </Text>
-                </View>
-                <Text style={[styles.pollutantValue, { color: theme.text }]}>
-                  {item.value}
-                  <Text style={{ fontSize: 12, color: theme.textSecondary }}>
-                    {' '}
-                    {item.unit}
-                  </Text>
-                </Text>
-              </View>
-            ))}
+                {item.label}
+              </Text>
+            </View>
+            <Text style={[styles.pollutantValue, { color: theme.text }]}>
+              {item.value}
+              <Text style={{ fontSize: 12, color: theme.textSecondary }}>
+                {' '}
+                {item.unit}
+              </Text>
+            </Text>
           </View>
-        </ScrollView>
-      </LinearGradient>
-    </View>
+        ))}
+      </View>
+    </ScrollingScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    // paddingTop is now handled dynamically in the component style prop if needed,
-    // or we can remove it here and add it to the View/SafeAreaView.
-    // But since we have `useSafeAreaInsets` hook, let's use style prop on LinearGradient.
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 20,
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
   mainCard: {
     alignItems: 'center',
     marginBottom: 30,

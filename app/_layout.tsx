@@ -7,22 +7,22 @@ import { useFrameworkReady } from '../hooks/useFrameworkReady';
 import { WeatherProvider, useWeather } from '../contexts/WeatherContext';
 
 function RootLayoutNav() {
-  const { areKeysSet } = useApiKeys();
+  const { areKeysSet, isLoading } = useApiKeys();
   const router = useRouter();
   const navigationState = useRootNavigationState();
   const { theme } = useWeather();
 
   useEffect(() => {
-    if (!navigationState?.key) {
+    if (isLoading || !navigationState?.key) {
       return;
     }
     const targetRoute = areKeysSet ? '/(tabs)' : '/welcome';
     const timer = setTimeout(() => router.replace(targetRoute), 1);
 
     return () => clearTimeout(timer);
-  }, [areKeysSet, navigationState?.key, router]);
+  }, [areKeysSet, isLoading, navigationState?.key, router]);
 
-  if (!navigationState?.key) {
+  if (isLoading || !navigationState?.key) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" />
@@ -32,6 +32,7 @@ function RootLayoutNav() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.gradientStart }}>
+      <StatusBar style={theme.text === '#FFFFFF' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
           headerShown: false,
@@ -61,7 +62,6 @@ export default function RootLayout() {
     <ApiKeyProvider>
       <WeatherProvider>
         <RootLayoutNav />
-        <StatusBar style="auto" />
       </WeatherProvider>
     </ApiKeyProvider>
   );

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   StyleSheet,
   TouchableOpacity,
   Switch,
@@ -10,7 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import * as Application from 'expo-application';
-import { LinearGradient } from 'expo-linear-gradient';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import {
   Moon,
   Sun,
@@ -35,6 +34,8 @@ import { ApiLogViewer } from '../../components/ApiLogViewer';
 import ApiKeySettingsScreen from '../../components/ApiKeySettings';
 import { apiLogger } from '../../services/apiLogger';
 import { useNow } from '../../hooks/useNow';
+import { ScrollingScreen } from '../../components/ScrollingScreen';
+import { FullScreenModal } from '../../components/FullScreenModal';
 
 const REFRESH_RATE_OPTIONS = [
   { label: '15 minutes', value: 15 },
@@ -239,24 +240,6 @@ export default function SettingsScreen() {
     container: {
       flex: 1,
     },
-    gradient: {
-      flex: 1,
-      paddingTop: 60,
-    },
-    header: {
-      paddingHorizontal: 20,
-      marginBottom: 20,
-    },
-    title: {
-      color: theme.text,
-      fontSize: 28,
-      fontWeight: '700',
-      textAlign: 'center',
-    },
-    content: {
-      paddingHorizontal: 20,
-      paddingBottom: 100,
-    },
     section: {
       marginBottom: 32,
     },
@@ -435,21 +418,6 @@ export default function SettingsScreen() {
       color: theme.primary,
       fontWeight: '600',
     },
-    // API Log Modal styles
-    apiLogModal: {
-      flex: 1,
-      backgroundColor: theme.background,
-      marginTop: 0, // Remove top margin to eliminate white padding
-    },
-    apiLogModalHeader: {
-      position: 'absolute',
-      top: 16,
-      right: 20,
-      zIndex: 1000,
-      backgroundColor: theme.surface,
-      borderRadius: 20,
-      padding: 8,
-    },
   });
 
   const refreshRateModal = (
@@ -459,61 +427,58 @@ export default function SettingsScreen() {
       animationType="fade"
       onRequestClose={() => setShowRefreshRateModal(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Auto Refresh Rate</Text>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setShowRefreshRateModal(false)}
-            >
-              <X size={24} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {REFRESH_RATE_OPTIONS.map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={[
-                styles.optionItem,
-                refreshRate === option.value && styles.optionItemActive,
-              ]}
-              onPress={() => handleRefreshRateChange(option.value)}
-            >
-              <Text
-                style={[
-                  styles.optionText,
-                  refreshRate === option.value && styles.optionTextActive,
-                ]}
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Auto Refresh Rate</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close auto refresh settings"
+                onPress={() => setShowRefreshRateModal(false)}
               >
-                {option.label}
-              </Text>
-              {refreshRate === option.value && (
-                <Check size={20} color={theme.primary} />
-              )}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+                <X size={24} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {REFRESH_RATE_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.optionItem,
+                  refreshRate === option.value && styles.optionItemActive,
+                ]}
+                onPress={() => handleRefreshRateChange(option.value)}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    refreshRate === option.value && styles.optionTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+                {refreshRate === option.value && (
+                  <Check size={20} color={theme.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 
   const apiLogModal = (
-    <Modal
+    <FullScreenModal
       visible={showApiLogModal}
-      animationType="slide"
-      onRequestClose={() => setShowApiLogModal(false)}
+      theme={theme}
+      closeLabel="Close API request log"
+      onClose={() => setShowApiLogModal(false)}
     >
-      <View style={styles.apiLogModal}>
-        <ApiLogViewer onClear={handleClearApiLogs} logVersion={logVersion} />
-        <TouchableOpacity
-          style={styles.apiLogModalHeader}
-          onPress={() => setShowApiLogModal(false)}
-        >
-          <X size={24} color={theme.text} />
-        </TouchableOpacity>
-      </View>
-    </Modal>
+      <ApiLogViewer onClear={handleClearApiLogs} logVersion={logVersion} />
+    </FullScreenModal>
   );
 
   const clearConfirmModal = (
@@ -523,346 +488,331 @@ export default function SettingsScreen() {
       animationType="fade"
       onRequestClose={() => setShowClearConfirmModal(false)}
     >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Clear API Logs</Text>
-          <Text style={styles.modalMessage}>
-            Are you sure you want to clear all API request logs? This action
-            cannot be undone.
-          </Text>
-          <View style={styles.modalButtonContainer}>
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => setShowClearConfirmModal(false)}
-            >
-              <Text style={styles.buttonText}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.modalButton, styles.confirmButton]}
-              onPress={onConfirmClearLogs}
-            >
-              <Text style={[styles.buttonText, { color: '#000' }]}>Clear</Text>
-            </TouchableOpacity>
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Clear API Logs</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to clear all API request logs? This action
+              cannot be undone.
+            </Text>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setShowClearConfirmModal(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={onConfirmClearLogs}
+              >
+                <Text style={[styles.buttonText, { color: '#000' }]}>
+                  Clear
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[theme.gradientStart, theme.gradientEnd]}
-        style={styles.gradient}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
+      <ScrollingScreen theme={theme} title="Settings">
+        {/* Current Weather Info */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Current Status</Text>
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>Location</Text>
+            <Text style={styles.infoText}>{cityName}</Text>
+            {currentWeather && (
+              <View style={styles.currentWeatherInfo}>
+                <Thermometer size={16} color={theme.primary} />
+                <Text style={styles.weatherTemp}>
+                  {Math.round(currentWeather.main.temp)}°C
+                </Text>
+                <Text style={[styles.infoText, { marginLeft: 8 }]}>
+                  {currentWeather.weather[0].description}
+                </Text>
+              </View>
+            )}
+            <View style={styles.lastUpdatedInfo}>
+              <Clock size={16} color={theme.textSecondary} />
+              <Text style={styles.lastUpdatedText}>
+                Last updated {formatLastUpdated(lastUpdated)}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        <ScrollView style={styles.content}>
-          {/* Current Weather Info */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Current Status</Text>
-            <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Location</Text>
-              <Text style={styles.infoText}>{cityName}</Text>
-              {currentWeather && (
-                <View style={styles.currentWeatherInfo}>
-                  <Thermometer size={16} color={theme.primary} />
-                  <Text style={styles.weatherTemp}>
-                    {Math.round(currentWeather.main.temp)}°C
-                  </Text>
-                  <Text style={[styles.infoText, { marginLeft: 8 }]}>
-                    {currentWeather.weather[0].description}
-                  </Text>
-                </View>
-              )}
-              <View style={styles.lastUpdatedInfo}>
-                <Clock size={16} color={theme.textSecondary} />
-                <Text style={styles.lastUpdatedText}>
-                  Last updated {formatLastUpdated(lastUpdated)}
+        {/* Appearance Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                {isDarkMode ? (
+                  <Moon size={24} color={theme.primary} />
+                ) : (
+                  <Sun size={24} color={theme.primary} />
+                )}
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Dark Mode</Text>
+                <Text style={styles.settingDescription}>
+                  Toggle between light and dark themes
                 </Text>
               </View>
             </View>
-          </View>
+            <Switch
+              value={isDarkMode}
+              onValueChange={toggleDarkMode}
+              trackColor={{
+                false: theme.textSecondary + '40',
+                true: theme.primary + '40',
+              }}
+              thumbColor={isDarkMode ? theme.primary : theme.textSecondary}
+            />
+          </TouchableOpacity>
+        </View>
 
-          {/* Appearance Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Appearance</Text>
-
-            <TouchableOpacity style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  {isDarkMode ? (
-                    <Moon size={24} color={theme.primary} />
-                  ) : (
-                    <Sun size={24} color={theme.primary} />
-                  )}
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Dark Mode</Text>
-                  <Text style={styles.settingDescription}>
-                    Toggle between light and dark themes
-                  </Text>
-                </View>
+        {/* API Keys Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>API Keys</Text>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => setShowApiKeyModal(true)}
+          >
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <KeyRound size={24} color={theme.primary} />
               </View>
-              <Switch
-                value={isDarkMode}
-                onValueChange={toggleDarkMode}
-                trackColor={{
-                  false: theme.textSecondary + '40',
-                  true: theme.primary + '40',
-                }}
-                thumbColor={isDarkMode ? theme.primary : theme.textSecondary}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* API Keys Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>API Keys</Text>
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => setShowApiKeyModal(true)}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <KeyRound size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Configure API Keys</Text>
-                  <Text style={styles.settingDescription}>
-                    Set your own API keys for weather services
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Data Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Data</Text>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => setShowRefreshRateModal(true)}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <Clock size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Auto Refresh Rate</Text>
-                  <Text style={styles.settingDescription}>
-                    How often to update weather data automatically
-                  </Text>
-                </View>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={styles.settingValue}>
-                  {getRefreshRateLabel(refreshRate)}
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Configure API Keys</Text>
+                <Text style={styles.settingDescription}>
+                  Set your own API keys for weather services
                 </Text>
-                <ChevronRight size={20} color={theme.textSecondary} />
               </View>
-            </TouchableOpacity>
+            </View>
+            <ChevronRight size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={refreshWeather}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <RefreshCw size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Refresh Weather</Text>
-                  <Text style={styles.settingDescription}>
-                    Manually update weather data now
-                  </Text>
-                </View>
+        {/* Data Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Data</Text>
+
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => setShowRefreshRateModal(true)}
+          >
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Clock size={24} color={theme.primary} />
               </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => setShowApiLogModal(true)}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <Activity size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>API Request Log</Text>
-                  <Text style={styles.settingDescription}>
-                    View API usage and request history (48h)
-                  </Text>
-                </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Auto Refresh Rate</Text>
+                <Text style={styles.settingDescription}>
+                  How often to update weather data automatically
+                </Text>
               </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Location Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Location</Text>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleLocationRefresh}
-              disabled={isRefreshingLocation}
-              accessibilityState={{ busy: isRefreshingLocation }}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <MapPin size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>
-                    {isRefreshingLocation
-                      ? 'Refreshing Location…'
-                      : 'Refresh Location'}
-                  </Text>
-                  <Text style={styles.settingDescription}>
-                    Update your current location
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Notification Settings */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Notifications</Text>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleNotificationTest}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <Bell size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Test Notifications</Text>
-                  <Text style={styles.settingDescription}>
-                    Send a test notification
-                  </Text>
-                </View>
-              </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Alert Management */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Alert Management</Text>
-
-            <View style={styles.infoCard}>
-              <Text style={styles.infoTitle}>Alert Duplicate Prevention</Text>
-              <Text style={styles.infoText}>
-                The app tracks recent weather alerts to prevent duplicate
-                notifications. Up to 100 recent alert IDs are stored locally.
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={styles.settingValue}>
+                {getRefreshRateLabel(refreshRate)}
               </Text>
-
-              {alertTrackerStats && (
-                <View style={styles.alertStatsContainer}>
-                  <View style={styles.alertStatRow}>
-                    <Text style={styles.alertStatLabel}>Tracked Alerts:</Text>
-                    <Text style={styles.alertStatValue}>
-                      {alertTrackerStats.totalTrackedAlerts}
-                    </Text>
-                  </View>
-                  <View style={styles.alertStatRow}>
-                    <Text style={styles.alertStatLabel}>Last Updated:</Text>
-                    <Text style={styles.alertStatValue}>
-                      {formatAlertAge(alertTrackerStats.newestAlertAge)}
-                    </Text>
-                  </View>
-                </View>
-              )}
+              <ChevronRight size={20} color={theme.textSecondary} />
             </View>
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleClearAlertHistory}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <Shield size={24} color={theme.accent} />
+          <TouchableOpacity style={styles.settingItem} onPress={refreshWeather}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <RefreshCw size={24} color={theme.primary} />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Refresh Weather</Text>
+                <Text style={styles.settingDescription}>
+                  Manually update weather data now
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => setShowApiLogModal(true)}
+          >
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Activity size={24} color={theme.primary} />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>API Request Log</Text>
+                <Text style={styles.settingDescription}>
+                  View API usage and request history (48h)
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Location Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Location</Text>
+
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={handleLocationRefresh}
+            disabled={isRefreshingLocation}
+            accessibilityState={{ busy: isRefreshingLocation }}
+          >
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <MapPin size={24} color={theme.primary} />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>
+                  {isRefreshingLocation
+                    ? 'Refreshing Location…'
+                    : 'Refresh Location'}
+                </Text>
+                <Text style={styles.settingDescription}>
+                  Update your current location
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Notification Settings */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={handleNotificationTest}
+          >
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Bell size={24} color={theme.primary} />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Test Notifications</Text>
+                <Text style={styles.settingDescription}>
+                  Send a test notification
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Alert Management */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Alert Management</Text>
+
+          <View style={styles.infoCard}>
+            <Text style={styles.infoTitle}>Alert Duplicate Prevention</Text>
+            <Text style={styles.infoText}>
+              The app tracks recent weather alerts to prevent duplicate
+              notifications. Up to 100 recent alert IDs are stored locally.
+            </Text>
+
+            {alertTrackerStats && (
+              <View style={styles.alertStatsContainer}>
+                <View style={styles.alertStatRow}>
+                  <Text style={styles.alertStatLabel}>Tracked Alerts:</Text>
+                  <Text style={styles.alertStatValue}>
+                    {alertTrackerStats.totalTrackedAlerts}
+                  </Text>
                 </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Clear Alert History</Text>
-                  <Text style={styles.settingDescription}>
-                    Reset duplicate alert prevention
+                <View style={styles.alertStatRow}>
+                  <Text style={styles.alertStatLabel}>Last Updated:</Text>
+                  <Text style={styles.alertStatValue}>
+                    {formatAlertAge(alertTrackerStats.newestAlertAge)}
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
+            )}
+          </View>
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={loadAlertTrackerStats}
-            >
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <Database size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>Refresh Alert Stats</Text>
-                  <Text style={styles.settingDescription}>
-                    Update alert tracking statistics
-                  </Text>
-                </View>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={handleClearAlertHistory}
+          >
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Shield size={24} color={theme.accent} />
               </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-
-          {/* About */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>About</Text>
-
-            <TouchableOpacity style={styles.settingItem} onPress={showAbout}>
-              <View style={styles.settingLeft}>
-                <View style={styles.settingIcon}>
-                  <Info size={24} color={theme.primary} />
-                </View>
-                <View style={styles.settingInfo}>
-                  <Text style={styles.settingTitle}>About Weather App</Text>
-                  <Text style={styles.settingDescription}>
-                    Version information and credits
-                  </Text>
-                </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Clear Alert History</Text>
+                <Text style={styles.settingDescription}>
+                  Reset duplicate alert prevention
+                </Text>
               </View>
-              <ChevronRight size={20} color={theme.textSecondary} />
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+            </View>
+            <ChevronRight size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
 
-        <Modal
-          visible={showApiKeyModal}
-          animationType="slide"
-          onRequestClose={() => setShowApiKeyModal(false)}
-        >
-          <View style={styles.apiLogModal}>
-            <ApiKeySettingsScreen />
-            <TouchableOpacity
-              style={styles.apiLogModalHeader}
-              onPress={() => setShowApiKeyModal(false)}
-            >
-              <X size={24} color={theme.text} />
-            </TouchableOpacity>
-          </View>
-        </Modal>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={loadAlertTrackerStats}
+          >
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Database size={24} color={theme.primary} />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>Refresh Alert Stats</Text>
+                <Text style={styles.settingDescription}>
+                  Update alert tracking statistics
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-        {refreshRateModal}
-        {apiLogModal}
-        {clearConfirmModal}
-      </LinearGradient>
+        {/* About */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About</Text>
+
+          <TouchableOpacity style={styles.settingItem} onPress={showAbout}>
+            <View style={styles.settingLeft}>
+              <View style={styles.settingIcon}>
+                <Info size={24} color={theme.primary} />
+              </View>
+              <View style={styles.settingInfo}>
+                <Text style={styles.settingTitle}>About Weather App</Text>
+                <Text style={styles.settingDescription}>
+                  Version information and credits
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color={theme.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      </ScrollingScreen>
+
+      <FullScreenModal
+        visible={showApiKeyModal}
+        theme={theme}
+        closeLabel="Close API key settings"
+        onClose={() => setShowApiKeyModal(false)}
+      >
+        <ApiKeySettingsScreen />
+      </FullScreenModal>
+
+      {refreshRateModal}
+      {apiLogModal}
+      {clearConfirmModal}
     </View>
   );
 }

@@ -1,21 +1,12 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  RefreshControl,
-  TouchableOpacity,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   MapPin,
   Eye,
   Droplets,
   Sunrise,
   Sunset,
-  RefreshCw,
   CloudRain,
   CloudSnow,
   Clock,
@@ -36,6 +27,7 @@ import {
   capitalizeWords,
 } from '../../utils/weatherTheme';
 import { useNow } from '../../hooks/useNow';
+import { ScrollingScreen } from '../../components/ScrollingScreen';
 
 const windSectors = [
   'N',
@@ -110,47 +102,15 @@ export default function HomeScreen() {
   };
 
   const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    gradient: {
-      flex: 1,
-      paddingTop: 40,
-    },
     header: {
       alignItems: 'center',
-      paddingHorizontal: 20,
       marginBottom: 18,
-    },
-    refreshButton: {
-      position: 'absolute',
-      top: 10,
-      right: 20,
-      backgroundColor: theme.surface + 'CC',
-      borderRadius: 25,
-      padding: 10,
-      borderWidth: 1,
-      borderColor: theme.textSecondary + '25',
-      zIndex: 1,
-    },
-    locationContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 8,
-    },
-    locationText: {
-      color: theme.text,
-      fontSize: 18,
-      fontWeight: '600',
-      marginLeft: 8,
     },
     lastUpdatedContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: 20,
+      justifyContent: 'center',
+      marginTop: 6,
       opacity: 0.8,
     },
     lastUpdatedText: {
@@ -160,7 +120,6 @@ export default function HomeScreen() {
     },
     mainWeatherContainer: {
       width: '100%',
-      paddingTop: 8,
       paddingBottom: 12,
     },
     weatherHeroRow: {
@@ -219,8 +178,7 @@ export default function HomeScreen() {
       marginHorizontal: 8,
     },
     content: {
-      paddingHorizontal: 20,
-      paddingBottom: 100,
+      paddingBottom: 0,
     },
     sectionTitle: {
       color: theme.text,
@@ -301,201 +259,177 @@ export default function HomeScreen() {
     new Date().getTime() / 1000 > currentWeather.sys.sunset;
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={[theme.gradientStart, theme.gradientEnd]}
-        style={styles.gradient}
-      >
-        <ScrollView
-          style={styles.scrollView}
-          refreshControl={
-            <RefreshControl
-              refreshing={loading}
-              onRefresh={refreshWeather}
-              tintColor={theme.primary}
-              colors={[theme.primary]}
-            />
-          }
-        >
-          <TouchableOpacity
-            style={styles.refreshButton}
-            onPress={refreshWeather}
-          >
-            <RefreshCw size={20} color={theme.text} />
-          </TouchableOpacity>
-          <View style={styles.header}>
-            <View style={styles.locationContainer}>
-              <MapPin size={20} color={theme.text} />
-              <Text style={styles.locationText}>{cityName}</Text>
-            </View>
-
-            <View style={styles.lastUpdatedContainer}>
-              <Clock size={14} color={theme.textSecondary} />
-              <Text style={styles.lastUpdatedText}>
-                Updated {formatLastUpdated(lastUpdated)}
+    <ScrollingScreen
+      theme={theme}
+      title={cityName}
+      compactTitle={`${cityName} · ${formatTemperature(currentWeather.main.temp)}`}
+      titleIcon={<MapPin size={20} color={theme.text} />}
+      titleStyle={{ fontSize: 18, fontWeight: '600' }}
+      onRefresh={refreshWeather}
+      refreshBusy={loading}
+      subtitle={
+        <View style={styles.lastUpdatedContainer}>
+          <Clock size={14} color={theme.textSecondary} />
+          <Text style={styles.lastUpdatedText}>
+            Updated {formatLastUpdated(lastUpdated)}
+          </Text>
+        </View>
+      }
+    >
+      <View style={styles.header}>
+        <View style={styles.mainWeatherContainer}>
+          <View style={styles.weatherHeroRow}>
+            <View style={styles.temperatureBlock}>
+              <Text style={styles.temperature}>
+                {formatTemperature(currentWeather.main.temp)}
+              </Text>
+              <Text style={styles.description}>
+                {capitalizeWords(currentWeather.weather[0].description)}
+              </Text>
+              <Text style={styles.feelsLike}>
+                Feels like {formatTemperature(currentWeather.main.feels_like)}
               </Text>
             </View>
 
-            <View style={styles.mainWeatherContainer}>
-              <View style={styles.weatherHeroRow}>
-                <View style={styles.temperatureBlock}>
-                  <Text style={styles.temperature}>
-                    {formatTemperature(currentWeather.main.temp)}
-                  </Text>
-                  <Text style={styles.description}>
-                    {capitalizeWords(currentWeather.weather[0].description)}
-                  </Text>
-                  <Text style={styles.feelsLike}>
-                    Feels like{' '}
-                    {formatTemperature(currentWeather.main.feels_like)}
-                  </Text>
-                </View>
-
-                <View style={styles.currentIconWrap}>
-                  <WeatherIcon
-                    weatherMain={currentWeather.weather[0].main}
-                    size={98}
-                    color={theme.primary}
-                    isNight={isNight}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.observationRow}>
-                <Text style={styles.observationLabel}>High</Text>
-                <Text style={styles.observationValue}>
-                  {formatTemperature(currentWeather.main.temp_max)}
-                </Text>
-                <Text style={styles.observationSeparator}>/</Text>
-                <Text style={styles.observationLabel}>Low</Text>
-                <Text style={styles.observationValue}>
-                  {formatTemperature(currentWeather.main.temp_min)}
-                </Text>
-              </View>
+            <View style={styles.currentIconWrap}>
+              <WeatherIcon
+                weatherMain={currentWeather.weather[0].main}
+                size={98}
+                color={theme.primary}
+                isNight={isNight}
+              />
             </View>
           </View>
 
-          <View style={styles.content}>
-            {/* AI Weather Summary */}
-            <WeatherSummary />
-
-            {/* Weather Alerts Section */}
-            {weatherAlerts.length > 0 && (
-              <WeatherAlerts alerts={weatherAlerts} />
-            )}
-
-            <Text style={styles.sectionTitle}>Details</Text>
-
-            <View style={styles.detailsGrid}>
-              {/* Show rain amount if there's current rain data */}
-              {!hasSnowData &&
-                renderDetailCard(
-                  <CloudRain size={24} color={theme.primary} />,
-                  'Rain (1h)',
-                  `${rainAmount!.toFixed(1)} mm`,
-                )}
-
-              {/* Show snow amount if there's current rain data */}
-              {!hasRainData &&
-                hasSnowData &&
-                renderDetailCard(
-                  <CloudSnow size={24} color={theme.primary} />,
-                  'Snow (1h)',
-                  `${snowAmount!.toFixed(1)} mm`,
-                )}
-
-              {/* Show rain & snow amount if there's current rain data */}
-              {hasRainData &&
-                hasSnowData &&
-                renderDetailCard(
-                  <CloudSnow size={24} color={theme.primary} />,
-                  'Rain/Snow (1h)',
-                  `${((rainAmount || 0) + (snowAmount || 0)).toFixed(1)} mm`,
-                )}
-
-              {renderDetailCard(
-                <View
-                  style={{
-                    transform: [
-                      { rotate: `${currentWeather.wind.deg + 225}deg` },
-                    ],
-                  }}
-                >
-                  <MousePointer2 size={24} color={theme.primary} />
-                </View>,
-                'Wind',
-                `${(currentWeather.wind.speed * 3.6).toFixed(1)} km/h ${windDirection}`,
-              )}
-
-              {/* Show air quality data if available */}
-              {hasAirQualityData && (
-                <TouchableOpacity
-                  style={[styles.detailCard, { width: '48%' }]}
-                  onPress={() => router.push('/air-quality')}
-                >
-                  <View style={styles.detailHeader}>
-                    <View style={styles.detailIcon}>
-                      <AirVent size={24} color={theme.primary} />
-                    </View>
-                    <Text style={styles.detailLabel}>Air Quality</Text>
-                  </View>
-                  <Text style={styles.detailValue}>
-                    AQI {weatherAirQuality.aqi.usa.toFixed(1)}
-                  </Text>
-                  <View
-                    style={{
-                      position: 'absolute',
-                      right: 8,
-                      top: '50%',
-                      marginTop: -8,
-                    }}
-                  >
-                    <ChevronRight size={16} color={theme.textSecondary} />
-                  </View>
-                </TouchableOpacity>
-              )}
-
-              {renderDetailCard(
-                <Eye size={24} color={theme.primary} />,
-                'Visibility',
-                `${(currentWeather.visibility / 1000).toFixed(1)} km`,
-              )}
-
-              {renderDetailCard(
-                <Droplets size={24} color={theme.primary} />,
-                'Humidity',
-                `${currentWeather.main.humidity.toFixed(1)}%`,
-              )}
-
-              {renderDetailCard(
-                <Gauge size={24} color={theme.primary} />,
-                'Pressure',
-                `${currentWeather.main.pressure.toFixed(1)} hPa`,
-              )}
-
-              {renderDetailCard(
-                <Sunrise size={24} color={theme.primary} />,
-                'Sunrise',
-                formatTime(currentWeather.sys.sunrise),
-              )}
-
-              {renderDetailCard(
-                <Sunset size={24} color={theme.primary} />,
-                'Sunset',
-                formatTime(currentWeather.sys.sunset),
-              )}
-            </View>
-
-            {error && (
-              <View style={{ marginTop: 20 }}>
-                <Text style={[styles.sectionTitle, { color: theme.accent }]}>
-                  {error}
-                </Text>
-              </View>
-            )}
+          <View style={styles.observationRow}>
+            <Text style={styles.observationLabel}>High</Text>
+            <Text style={styles.observationValue}>
+              {formatTemperature(currentWeather.main.temp_max)}
+            </Text>
+            <Text style={styles.observationSeparator}>/</Text>
+            <Text style={styles.observationLabel}>Low</Text>
+            <Text style={styles.observationValue}>
+              {formatTemperature(currentWeather.main.temp_min)}
+            </Text>
           </View>
-        </ScrollView>
-      </LinearGradient>
-    </View>
+        </View>
+      </View>
+
+      <View style={styles.content}>
+        {/* AI Weather Summary */}
+        <WeatherSummary />
+
+        {/* Weather Alerts Section */}
+        {weatherAlerts.length > 0 && <WeatherAlerts alerts={weatherAlerts} />}
+
+        <Text style={styles.sectionTitle}>Details</Text>
+
+        <View style={styles.detailsGrid}>
+          {/* Show rain amount if there's current rain data */}
+          {!hasSnowData &&
+            renderDetailCard(
+              <CloudRain size={24} color={theme.primary} />,
+              'Rain (1h)',
+              `${rainAmount!.toFixed(1)} mm`,
+            )}
+
+          {/* Show snow amount if there's current rain data */}
+          {!hasRainData &&
+            hasSnowData &&
+            renderDetailCard(
+              <CloudSnow size={24} color={theme.primary} />,
+              'Snow (1h)',
+              `${snowAmount!.toFixed(1)} mm`,
+            )}
+
+          {/* Show rain & snow amount if there's current rain data */}
+          {hasRainData &&
+            hasSnowData &&
+            renderDetailCard(
+              <CloudSnow size={24} color={theme.primary} />,
+              'Rain/Snow (1h)',
+              `${((rainAmount || 0) + (snowAmount || 0)).toFixed(1)} mm`,
+            )}
+
+          {renderDetailCard(
+            <View
+              style={{
+                transform: [{ rotate: `${currentWeather.wind.deg + 225}deg` }],
+              }}
+            >
+              <MousePointer2 size={24} color={theme.primary} />
+            </View>,
+            'Wind',
+            `${(currentWeather.wind.speed * 3.6).toFixed(1)} km/h ${windDirection}`,
+          )}
+
+          {/* Show air quality data if available */}
+          {hasAirQualityData && (
+            <TouchableOpacity
+              style={[styles.detailCard, { width: '48%' }]}
+              onPress={() => router.push('/air-quality')}
+            >
+              <View style={styles.detailHeader}>
+                <View style={styles.detailIcon}>
+                  <AirVent size={24} color={theme.primary} />
+                </View>
+                <Text style={styles.detailLabel}>Air Quality</Text>
+              </View>
+              <Text style={styles.detailValue}>
+                AQI {weatherAirQuality.aqi.usa.toFixed(1)}
+              </Text>
+              <View
+                style={{
+                  position: 'absolute',
+                  right: 8,
+                  top: '50%',
+                  marginTop: -8,
+                }}
+              >
+                <ChevronRight size={16} color={theme.textSecondary} />
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {renderDetailCard(
+            <Eye size={24} color={theme.primary} />,
+            'Visibility',
+            `${(currentWeather.visibility / 1000).toFixed(1)} km`,
+          )}
+
+          {renderDetailCard(
+            <Droplets size={24} color={theme.primary} />,
+            'Humidity',
+            `${currentWeather.main.humidity.toFixed(1)}%`,
+          )}
+
+          {renderDetailCard(
+            <Gauge size={24} color={theme.primary} />,
+            'Pressure',
+            `${currentWeather.main.pressure.toFixed(1)} hPa`,
+          )}
+
+          {renderDetailCard(
+            <Sunrise size={24} color={theme.primary} />,
+            'Sunrise',
+            formatTime(currentWeather.sys.sunrise),
+          )}
+
+          {renderDetailCard(
+            <Sunset size={24} color={theme.primary} />,
+            'Sunset',
+            formatTime(currentWeather.sys.sunset),
+          )}
+        </View>
+
+        {error && (
+          <View style={{ marginTop: 20 }}>
+            <Text style={[styles.sectionTitle, { color: theme.accent }]}>
+              {error}
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollingScreen>
   );
 }
