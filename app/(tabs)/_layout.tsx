@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Sun, Calendar, Settings, ChartLine, Map } from 'lucide-react-native';
+import { Sun, Calendar, SunMoon, ChartLine, Map } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 
 export default function TabLayout() {
@@ -44,19 +44,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="sky"
+        options={{
+          title: 'Sky',
+          tabBarIcon: ({ size, color }) => (
+            <SunMoon size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="map"
         options={{
           title: 'Map',
           tabBarIcon: ({ size, color }) => <Map size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: 'Settings',
-          tabBarIcon: ({ size, color }) => (
-            <Settings size={size} color={color} />
-          ),
         }}
       />
     </Tabs>

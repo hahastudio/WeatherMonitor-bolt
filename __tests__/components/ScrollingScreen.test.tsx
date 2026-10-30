@@ -12,6 +12,11 @@ import * as Reanimated from 'react-native-reanimated';
 import { ScrollingScreen } from '../../components/ScrollingScreen';
 import { defaultTheme } from '../../utils/weatherTheme';
 
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 47, bottom: 34, left: 0, right: 0 }),
 }));
@@ -148,6 +153,13 @@ describe('ScrollingScreen', () => {
     scrollTo(200);
     fireEvent.press(screen.getByRole('button', { name: 'Go back' }));
     expect(onBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps Settings available after the title collapses', () => {
+    renderScreen({ showSettings: true });
+    scrollTo(200);
+    fireEvent.press(screen.getByRole('button', { name: 'Open settings' }));
+    expect(mockPush).toHaveBeenCalledWith('/settings');
   });
 
   it('fully reveals the compact title at the end of a short page', () => {

@@ -152,7 +152,7 @@ export default function ChartsScreen() {
   // Ensure we have data to work with
   if (next48Hours.length === 0) {
     return (
-      <ScrollingScreen theme={theme} title="Weather Charts">
+      <ScrollingScreen showSettings theme={theme} title="Weather Charts">
         <View style={styles.content}>
           <Text style={[styles.subtitle, { textAlign: 'center' }]}>
             No forecast data available
@@ -411,6 +411,7 @@ export default function ChartsScreen() {
 
   return (
     <ScrollingScreen
+      showSettings
       theme={theme}
       title="Weather Charts"
       compactTitle="Charts"

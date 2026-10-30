@@ -26,7 +26,7 @@ const WelcomeScreen = () => {
   }, [fadeAnim, scaleAnim]);
 
   const goToSettings = () => {
-    router.replace('/(tabs)/settings');
+    router.replace('/settings');
   };
 
   return (

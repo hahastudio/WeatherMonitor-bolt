@@ -628,9 +628,11 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     }
   };
 
-  const initWeatherData = async () => {
+  const initWeatherData = async (
+    initialData?: Awaited<ReturnType<typeof loadDataFromStorage>>,
+  ) => {
     // Step 1: Load all data from storage first
-    const storageData = await loadDataFromStorage();
+    const storageData = initialData ?? (await loadDataFromStorage());
 
     // Step 2: Get current location
     let coords = storageData.location;
@@ -682,13 +684,14 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
         isInitializing = true;
         console.log('Initializing WeatherMonitor NT...');
 
-        // Initialize notifications
+        // Cached location/weather must render even while a permission prompt is pending.
+        const storageData = await loadDataFromStorage();
+        if (storageData.hasWeatherData) setLoading(false);
+
         await notificationService.requestPermissions();
-
-        // Register background weather fetch task
         await initBackgroundFetch();
-
-        await initWeatherData();
+        // Keep startup refresh/alert delivery after the permission decision.
+        await initWeatherData(storageData);
 
         console.log('WeatherMonitor NT initialization completed');
       } catch (error) {

@@ -255,11 +255,15 @@ export default function HomeScreen() {
   const hasAirQualityData = weatherAirQuality?.aqi?.usa !== undefined;
 
   const isNight =
-    new Date().getTime() / 1000 < currentWeather.sys.sunrise ||
-    new Date().getTime() / 1000 > currentWeather.sys.sunset;
+    currentWeather.sys.sunrise !== undefined &&
+      currentWeather.sys.sunset !== undefined
+      ? now / 1000 < currentWeather.sys.sunrise ||
+      now / 1000 >= currentWeather.sys.sunset
+      : currentWeather.weather[0].icon.endsWith('n');
 
   return (
     <ScrollingScreen
+      showSettings
       theme={theme}
       title={cityName}
       compactTitle={`${cityName} · ${formatTemperature(currentWeather.main.temp)}`}
@@ -407,18 +411,6 @@ export default function HomeScreen() {
             <Gauge size={24} color={theme.primary} />,
             'Pressure',
             `${currentWeather.main.pressure.toFixed(1)} hPa`,
-          )}
-
-          {renderDetailCard(
-            <Sunrise size={24} color={theme.primary} />,
-            'Sunrise',
-            formatTime(currentWeather.sys.sunrise),
-          )}
-
-          {renderDetailCard(
-            <Sunset size={24} color={theme.primary} />,
-            'Sunset',
-            formatTime(currentWeather.sys.sunset),
           )}
         </View>
 

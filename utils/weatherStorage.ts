@@ -1,3 +1,4 @@
+import { readAstronomySnapshot } from './astronomySnapshot';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   CurrentWeather,
@@ -107,7 +108,14 @@ export async function loadCurrentWeather(): Promise<CurrentWeather | null> {
 
 export async function loadForecast(): Promise<ForecastResponse | null> {
   const data = await AsyncStorage.getItem(STORAGE_KEYS.FORECAST);
-  return data ? JSON.parse(data) : null;
+  if (!data) return null;
+  const forecast: ForecastResponse = JSON.parse(data);
+  if (forecast?.astronomy !== undefined) {
+    const astronomy = readAstronomySnapshot(forecast.astronomy);
+    if (astronomy) forecast.astronomy = astronomy;
+    else delete forecast.astronomy;
+  }
+  return forecast;
 }
 
 export async function loadWeatherAlerts(): Promise<CaiyunWeatherAlert[]> {

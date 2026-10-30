@@ -218,6 +218,7 @@ export default function ForecastScreen() {
 
   return (
     <ScrollingScreen
+      showSettings
       theme={theme}
       title="Weather Forecast"
       compactTitle="Forecast"
@@ -247,7 +248,11 @@ export default function ForecastScreen() {
                     size={32}
                     color={theme.primary}
                     isNight={
-                      item.dt < item.sys.sunrise || item.dt > item.sys.sunset
+                      item.sys.sunrise !== undefined &&
+                      item.sys.sunset !== undefined
+                        ? item.dt < item.sys.sunrise ||
+                          item.dt >= item.sys.sunset
+                        : item.weather[0].icon.endsWith('n')
                     }
                   />
                 </View>

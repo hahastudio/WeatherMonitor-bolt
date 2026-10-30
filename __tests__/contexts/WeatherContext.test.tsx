@@ -1,7 +1,9 @@
 import React from 'react';
+import { astronomySnapshot } from '../fixtures/astronomy';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { WeatherProvider, useWeather } from '../../contexts/WeatherContext';
 import { locationService } from '../../services/locationService';
+import { notificationService } from '../../services/notificationService';
 import { weatherService } from '../../services/weatherService';
 import { geminiService } from '../../services/geminiService';
 import * as storage from '../../utils/weatherStorage';
@@ -98,6 +100,43 @@ describe('WeatherProvider location refresh', () => {
       expect.objectContaining({ cityName: 'Los Angeles' }),
       'manual',
     );
+  });
+
+  it('hydrates saved location while permission is pending, then refreshes after the decision', async () => {
+    let resolvePermission!: (granted: boolean) => void;
+    jest.mocked(storage.loadLastUpdated).mockResolvedValue(null);
+    jest.mocked(notificationService.requestPermissions).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolvePermission = resolve;
+        }),
+    );
+    const { result } = await renderWeather();
+    expect(result.current.forecast).toEqual(mockForecast);
+    expect(result.current.location).toEqual(mockLocation);
+    expect(result.current.loading).toBe(false);
+    expect(weatherService.getWeatherData).not.toHaveBeenCalled();
+    await act(async () => resolvePermission(true));
+    await waitFor(() =>
+      expect(weatherService.getWeatherData).toHaveBeenCalledTimes(1),
+    );
+  });
+
+  it('preserves astronomy through foreground refresh and the Caiyun hourly merge', async () => {
+    const { result } = await renderWeather();
+    jest.mocked(weatherService.getWeatherData).mockResolvedValueOnce({
+      currentWeather: mockCurrentWeather,
+      forecast: { ...mockForecast, astronomy: astronomySnapshot },
+    });
+    await act(async () => {
+      await result.current.refreshWeather();
+    });
+    expect(result.current.forecast?.astronomy).toEqual(astronomySnapshot);
+    const saves = jest.mocked(storage.saveForecast).mock.calls;
+    expect(saves.length).toBeGreaterThanOrEqual(2);
+    expect(
+      saves.every(([forecast]) => forecast?.astronomy === astronomySnapshot),
+    ).toBe(true);
   });
 
   it('rejects a failed location request without fetching weather or replacing the previous location', async () => {

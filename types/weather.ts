@@ -1,3 +1,5 @@
+import type { AstronomySnapshot } from './astronomy';
+
 export interface WeatherData {
   id: number;
   main: string;
@@ -40,8 +42,8 @@ export interface SysInfo {
   type?: number;
   id?: number;
   country: string;
-  sunrise: number;
-  sunset: number;
+  sunrise?: number;
+  sunset?: number;
 }
 
 export interface CurrentWeather {
@@ -75,8 +77,8 @@ export interface HourlyForecast {
   pop: number;
   dt_txt: string;
   sys: {
-    sunrise: number;
-    sunset: number;
+    sunrise?: number;
+    sunset?: number;
     country: string;
   };
   rain?: {
@@ -104,6 +106,7 @@ export interface DailyForecast {
 }
 
 export interface ForecastResponse {
+  astronomy?: AstronomySnapshot;
   cod: string;
   message: number;
   cnt: number;
@@ -119,8 +122,8 @@ export interface ForecastResponse {
     country: string;
     population: number;
     timezone: number;
-    sunrise: number;
-    sunset: number;
+    sunrise?: number;
+    sunset?: number;
   };
 }
 
@@ -131,8 +134,8 @@ export interface OneCallResponse {
   timezone_offset: number;
   current: {
     dt: number;
-    sunrise: number;
-    sunset: number;
+    sunrise?: number;
+    sunset?: number;
     temp: number;
     feels_like: number;
     pressure: number;
@@ -186,11 +189,11 @@ export interface OneCallResponse {
   }>;
   daily: Array<{
     dt: number;
-    sunrise: number;
-    sunset: number;
-    moonrise: number;
-    moonset: number;
-    moon_phase: number;
+    sunrise?: number;
+    sunset?: number;
+    moonrise?: number;
+    moonset?: number;
+    moon_phase?: number;
     summary: string;
     temp: {
       day: number;

@@ -401,7 +401,8 @@ export const formatTemperature = (temp: number): string => {
   return `${Math.round(temp)}°C`;
 };
 
-export const formatTime = (timestamp: number): string => {
+export const formatTime = (timestamp?: number): string => {
+  if (!timestamp || !Number.isFinite(timestamp)) return 'Unavailable';
   const time = new Date(timestamp * 1000);
   if (time.getHours() === 0 && time.getMinutes() === 0)
     return time.toLocaleDateString('en-US', {

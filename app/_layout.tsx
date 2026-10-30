@@ -48,6 +48,10 @@ function RootLayoutNav() {
             contentStyle: { backgroundColor: theme.gradientStart },
           }}
         />
+        <Stack.Screen
+          name="settings"
+          options={{ animation: 'slide_from_right' }}
+        />
         <Stack.Screen name="+not-found" />
         <Stack.Screen name="welcome" options={{ headerShown: false }} />
       </Stack>

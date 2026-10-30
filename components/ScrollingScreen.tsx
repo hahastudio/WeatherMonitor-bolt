@@ -23,6 +23,7 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
+import { SettingsButton } from './SettingsButton';
 import type { WeatherTheme } from '../utils/weatherTheme';
 
 interface ScrollingScreenProps {
@@ -34,6 +35,7 @@ interface ScrollingScreenProps {
   subtitle?: React.ReactNode;
   children: React.ReactNode;
   onBack?: () => void;
+  showSettings?: boolean;
   onRefresh?: () => Promise<void>;
   refreshBusy?: boolean;
   bottomInset?: boolean;
@@ -48,6 +50,7 @@ export function ScrollingScreen({
   subtitle,
   children,
   onBack,
+  showSettings = false,
   onRefresh,
   refreshBusy = false,
   bottomInset = false,
@@ -188,7 +191,7 @@ export function ScrollingScreen({
                 styles.heading,
                 {
                   minHeight: toolbarHeight,
-                  paddingHorizontal: hasBack ? 48 : 0,
+                  paddingHorizontal: hasBack || showSettings ? 48 : 0,
                 },
               ]}
             >
@@ -261,7 +264,7 @@ export function ScrollingScreen({
           importantForAccessibility={collapsed ? 'auto' : 'no-hide-descendants'}
           style={[
             styles.compactHeading,
-            { paddingHorizontal: hasBack ? 48 : 0 },
+            { paddingHorizontal: hasBack || showSettings ? 48 : 0 },
             compactStyle,
           ]}
         >
@@ -275,6 +278,19 @@ export function ScrollingScreen({
           </Text>
         </Animated.View>
       </View>
+      {showSettings && (
+        <View
+          style={[
+            styles.settingsAction,
+            {
+              top: insets.top + (toolbarHeight - 44) / 2,
+              right: insets.right + 20,
+            },
+          ]}
+        >
+          <SettingsButton theme={theme} />
+        </View>
+      )}
       {onBack && (
         <Pressable
           accessibilityRole="button"
@@ -331,6 +347,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
   },
+  settingsAction: { position: 'absolute', zIndex: 1 },
   action: {
     position: 'absolute',
     zIndex: 1,

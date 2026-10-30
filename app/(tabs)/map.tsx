@@ -24,6 +24,7 @@ import {
   ExternalLink,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
+import { SettingsButton } from '../../components/SettingsButton';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 type WeatherLayer = 'weather' | 'wind' | 'rain' | 'temp' | 'clouds';
@@ -467,6 +468,7 @@ export default function MapScreen() {
               Weather Map
             </Text>
             <View style={styles.headerActions}>
+              <SettingsButton theme={theme} />
               <TouchableOpacity
                 style={styles.actionButton}
                 accessibilityRole="button"

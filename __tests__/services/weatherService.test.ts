@@ -140,6 +140,57 @@ describe('WeatherService', () => {
   });
 
   describe('getWeatherData', () => {
+    it('preserves versioned astronomy in observer-local dates and rejects invalid events', async () => {
+      const data = JSON.parse(
+        JSON.stringify(mockOneCallResponse),
+      ) as OneCallResponse;
+      data.timezone = 'Asia/Shanghai';
+      data.timezone_offset = 28800;
+      data.lat = 31.2304;
+      data.lon = 121.4737;
+      data.daily[0].dt = Date.parse('2026-10-25T04:00Z') / 1000;
+      data.daily[0].sunrise = Date.parse('2026-10-24T22:04Z') / 1000;
+      data.daily[0].sunset = Date.parse('2026-10-25T09:12Z') / 1000;
+      data.daily[0].moonrise = 0;
+      data.daily[0].moonset = Date.parse('2026-10-26T12:00Z') / 1000;
+      data.hourly[0].dt = Date.parse('2026-10-24T23:00Z') / 1000;
+      fetch.mockResponseOnce(JSON.stringify(data));
+      const result = await weatherService.getWeatherData(mockCoords);
+      expect(result.forecast.astronomy).toMatchObject({
+        schemaVersion: 1,
+        latitude: 31.2304,
+        timeZoneId: 'Asia/Shanghai',
+        utcOffsetSeconds: 28800,
+      });
+      expect(result.forecast.astronomy!.days[0]).toMatchObject({
+        localDate: '2026-10-25',
+        sunrise: {
+          timesUtcMs: [Date.parse('2026-10-24T22:04Z')],
+          source: 'openweather',
+        },
+        moonrise: { status: 'unknown', timesUtcMs: [] },
+        moonset: { status: 'unknown', timesUtcMs: [] },
+      });
+      expect(result.forecast.hourly[0].sys.sunrise).toBe(data.daily[0].sunrise);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps missing/polar events optional in every legacy response shape', async () => {
+      const data = JSON.parse(
+        JSON.stringify(mockOneCallResponse),
+      ) as OneCallResponse;
+      delete data.current.sunrise;
+      delete data.current.sunset;
+      delete data.daily[0].sunrise;
+      delete data.daily[0].sunset;
+      fetch.mockResponseOnce(JSON.stringify(data));
+      const result = await weatherService.getWeatherData(mockCoords);
+      expect(result.currentWeather.sys.sunrise).toBeUndefined();
+      expect(result.forecast.city.sunset).toBeUndefined();
+      expect(result.forecast.hourly[0].sys.sunrise).toBeUndefined();
+      expect(result.forecast.astronomy!.days[0].sunrise.status).toBe('unknown');
+    });
+
     it('should fetch and transform weather data successfully', async () => {
       // Mock the fetch response
       fetch.mockResponseOnce(JSON.stringify(mockOneCallResponse));
@@ -177,6 +228,11 @@ describe('WeatherService', () => {
 
       // Test the basic structure
       expect(forecast).toEqual({
+        astronomy: expect.objectContaining({
+          schemaVersion: 1,
+          timeZoneId: 'America/New_York',
+          latitude: mockOneCallResponse.lat,
+        }),
         cod: '200',
         message: 0,
         cnt: forecast.hourly.length,

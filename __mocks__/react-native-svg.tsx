@@ -26,6 +26,7 @@ export const Path = createMockComponent('Path');
 export const Line = createMockComponent('Line');
 export const Circle = createMockComponent('Circle');
 export const Rect = createMockComponent('Rect');
+export const ClipPath = createMockComponent('ClipPath');
 export const Defs = createMockComponent('Defs');
 export const LinearGradient = createMockComponent('LinearGradient');
 export const Stop = createMockComponent('Stop');

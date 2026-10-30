@@ -25,6 +25,6 @@ describe('WelcomeScreen', () => {
   it('navigates to settings on button press', () => {
     const { getByText } = render(<WelcomeScreen />);
     fireEvent.press(getByText('Configure API Keys'));
-    expect(mockReplace).toHaveBeenCalledWith('/(tabs)/settings');
+    expect(mockReplace).toHaveBeenCalledWith('/settings');
   });
 });

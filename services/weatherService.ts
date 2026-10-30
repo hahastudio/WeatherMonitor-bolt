@@ -10,6 +10,12 @@ import {
 import { apiLogger } from './apiLogger';
 import { getApiKey } from './apiKeyManager';
 
+import {
+  createAstronomySnapshot,
+  validUnixSeconds,
+} from '../utils/astronomySnapshot';
+import { localDateAt, resolveZone } from '../utils/astronomyTime';
+
 const BASE_URL = 'https://api.openweathermap.org/data/3.0/onecall';
 
 class WeatherService {
@@ -45,8 +51,8 @@ class WeatherService {
       dt: data.current.dt,
       sys: {
         country: '', // Not available in One Call API
-        sunrise: data.current.sunrise,
-        sunset: data.current.sunset,
+        sunrise: validUnixSeconds(data.current.sunrise),
+        sunset: validUnixSeconds(data.current.sunset),
       },
       timezone: data.timezone_offset,
       id: 0, // Not available in One Call API
@@ -56,12 +62,16 @@ class WeatherService {
   }
 
   private transformOneCallToForecast(data: OneCallResponse): ForecastResponse {
+    const zone = resolveZone(data.timezone, data.timezone_offset);
     // Convert hourly data to match the old API format
     // First, create a map of dates to their sunrise/sunset times from daily data
     const sunriseSunsetMap = new Map(
       data.daily.map((day) => [
-        new Date(day.dt * 1000).setHours(0, 0, 0, 0) / 1000,
-        { sunrise: day.sunrise, sunset: day.sunset },
+        localDateAt(day.dt * 1000, zone),
+        {
+          sunrise: validUnixSeconds(day.sunrise),
+          sunset: validUnixSeconds(day.sunset),
+        },
       ]),
     );
 
@@ -69,14 +79,10 @@ class WeatherService {
       dt: hourly.dt,
       sys: {
         // Find the corresponding day's sunrise/sunset times
-        sunrise:
-          sunriseSunsetMap.get(
-            new Date(hourly.dt * 1000).setHours(0, 0, 0, 0) / 1000,
-          )?.sunrise || data.current.sunrise,
-        sunset:
-          sunriseSunsetMap.get(
-            new Date(hourly.dt * 1000).setHours(0, 0, 0, 0) / 1000,
-          )?.sunset || data.current.sunset,
+        sunrise: sunriseSunsetMap.get(localDateAt(hourly.dt * 1000, zone))
+          ?.sunrise,
+        sunset: sunriseSunsetMap.get(localDateAt(hourly.dt * 1000, zone))
+          ?.sunset,
         country: '',
       },
       main: {
@@ -136,6 +142,7 @@ class WeatherService {
     }));
 
     return {
+      astronomy: createAstronomySnapshot(data),
       cod: '200',
       message: 0,
       cnt: hourlyForecasts.length,
@@ -151,8 +158,8 @@ class WeatherService {
         country: '',
         population: 0,
         timezone: data.timezone_offset,
-        sunrise: data.current.sunrise,
-        sunset: data.current.sunset,
+        sunrise: validUnixSeconds(data.current.sunrise),
+        sunset: validUnixSeconds(data.current.sunset),
       },
     };
   }

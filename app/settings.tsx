@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   View,
@@ -27,15 +28,15 @@ import {
   Database,
   KeyRound,
 } from 'lucide-react-native';
-import { useWeather } from '../../contexts/WeatherContext';
-import { notificationService } from '../../services/notificationService';
-import { alertTracker } from '../../services/alertTracker';
-import { ApiLogViewer } from '../../components/ApiLogViewer';
-import ApiKeySettingsScreen from '../../components/ApiKeySettings';
-import { apiLogger } from '../../services/apiLogger';
-import { useNow } from '../../hooks/useNow';
-import { ScrollingScreen } from '../../components/ScrollingScreen';
-import { FullScreenModal } from '../../components/FullScreenModal';
+import { useWeather } from '../contexts/WeatherContext';
+import { notificationService } from '../services/notificationService';
+import { alertTracker } from '../services/alertTracker';
+import { ApiLogViewer } from '../components/ApiLogViewer';
+import ApiKeySettingsScreen from '../components/ApiKeySettings';
+import { apiLogger } from '../services/apiLogger';
+import { useNow } from '../hooks/useNow';
+import { ScrollingScreen } from '../components/ScrollingScreen';
+import { FullScreenModal } from '../components/FullScreenModal';
 
 const REFRESH_RATE_OPTIONS = [
   { label: '15 minutes', value: 15 },
@@ -45,6 +46,7 @@ const REFRESH_RATE_OPTIONS = [
 ];
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const {
     theme,
     isDarkMode,
@@ -520,7 +522,14 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollingScreen theme={theme} title="Settings">
+      <ScrollingScreen
+        theme={theme}
+        title="Settings"
+        bottomInset
+        onBack={() =>
+          router.canGoBack() ? router.back() : router.replace('/(tabs)')
+        }
+      >
         {/* Current Weather Info */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Current Status</Text>
