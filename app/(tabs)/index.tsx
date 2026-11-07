@@ -1,427 +1,339 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type RefreshControlProps,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import {
-  MapPin,
-  Eye,
-  Droplets,
-  Sunrise,
-  Sunset,
-  CloudRain,
-  CloudSnow,
-  Clock,
-  Gauge,
-  AirVent,
-  MousePointer2,
-  ChevronRight,
-} from 'lucide-react-native';
+import { Clock, MapPin } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorDisplay } from '../../components/ErrorDisplay';
-import { WeatherIcon } from '../../components/WeatherIcon';
-import { WeatherAlerts } from '../../components/WeatherAlerts';
-import { WeatherSummary } from '../../components/WeatherSummary';
-import {
-  formatTemperature,
-  formatTime,
-  capitalizeWords,
-} from '../../utils/weatherTheme';
+import { useWeatherPane } from '../../contexts/WeatherPaneContext';
+import { useAdaptiveLayout } from '../../hooks/useAdaptiveLayout';
 import { useNow } from '../../hooks/useNow';
 import { ScrollingScreen } from '../../components/ScrollingScreen';
+import {
+  GlassSurface,
+  useReducedTransparency,
+} from '../../components/GlassSurface';
+import { ScrollEdgeFade } from '../../components/ScrollEdgeFade';
+import { CurrentConditions } from '../../components/CurrentConditions';
+import { ForecastContent } from './forecast';
+import { AirQualityContent } from './air-quality';
 
-const windSectors = [
-  'N',
-  'NNE',
-  'NE',
-  'ENE',
-  'E',
-  'ESE',
-  'SE',
-  'SSE',
-  'S',
-  'SSW',
-  'SW',
-  'WSW',
-  'W',
-  'WNW',
-  'NW',
-  'NNW',
-  'N',
-];
+const SCROLL_FADE_SIZE = 16;
 
-export default function HomeScreen() {
-  const router = useRouter();
-  const {
-    currentWeather,
-    weatherAlerts,
-    weatherAirQuality,
-    cityName,
-    loading,
-    error,
-    theme,
-    lastUpdated,
-    refreshWeather,
-  } = useWeather();
-
-  const now = useNow();
-
-  if (loading && !currentWeather) {
-    return <LoadingSpinner message="Getting your location and weather..." />;
-  }
-
-  if (error && !currentWeather) {
-    return <ErrorDisplay error={error} onRetry={refreshWeather} />;
-  }
-
-  if (!currentWeather) {
-    return <LoadingSpinner message="Loading weather data..." />;
-  }
-
-  const formatLastUpdated = (timestamp: number | null): string => {
-    if (!timestamp) return 'Never';
-
-    const diffMs = now - timestamp;
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    const diffHours = Math.floor(diffMinutes / 60);
-
-    if (diffMinutes < 1) {
-      return 'Just now';
-    } else if (diffMinutes < 60) {
-      return `${diffMinutes}m ago`;
-    } else if (diffHours < 24) {
-      return `${diffHours}h ago`;
-    } else {
-      return new Date(timestamp).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
-    }
+function WeatherScrollPane({
+  columns,
+  visible,
+  testID,
+  refreshControl,
+  children,
+}: React.PropsWithChildren<{
+  columns: boolean;
+  visible: boolean;
+  testID: string;
+  refreshControl?: React.ReactElement<RefreshControlProps>;
+}>) {
+  const reducedTransparency = useReducedTransparency();
+  const scroll = useRef<ScrollView>(null);
+  const offset = useRef(0);
+  const bounds = useRef({ viewport: 0, content: 0 });
+  const [fades, setFades] = useState({ top: 0, bottom: 0 });
+  const restoring = useRef(false);
+  const scrollable = useRef(columns && visible);
+  const fadeInset = columns && !reducedTransparency ? SCROLL_FADE_SIZE : 0;
+  const updateFades = useCallback(() => {
+    const { viewport, content } = bounds.current;
+    const overflow = viewport > 0 && content > viewport + 1;
+    const remaining = content - viewport - offset.current;
+    const top = overflow && offset.current > 1 ? SCROLL_FADE_SIZE : 0;
+    const bottom = overflow && remaining > 1 ? SCROLL_FADE_SIZE : 0;
+    setFades((previous) =>
+      previous.top === top && previous.bottom === bottom
+        ? previous
+        : { top, bottom },
+    );
+  }, []);
+  const trackScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    // Delayed scroll events can arrive after hiding or folding the pane.
+    if (!scrollable.current || restoring.current) return;
+    const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+    offset.current = Math.max(0, contentOffset.y);
+    // Use one event's measurements so an old layout cannot leave an edge faded.
+    bounds.current = {
+      viewport: layoutMeasurement.height,
+      content: contentSize.height,
+    };
+    updateFades();
   };
-
-  const styles = StyleSheet.create({
-    header: {
-      alignItems: 'center',
-      marginBottom: 18,
-    },
-    lastUpdatedContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 6,
-      opacity: 0.8,
-    },
-    lastUpdatedText: {
-      color: theme.textSecondary,
-      fontSize: 14,
-      marginLeft: 6,
-    },
-    mainWeatherContainer: {
-      width: '100%',
-      paddingBottom: 12,
-    },
-    weatherHeroRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 20,
-    },
-    temperatureBlock: {
-      alignItems: 'flex-start',
-    },
-    temperature: {
-      color: theme.text,
-      fontSize: 78,
-      fontWeight: '300',
-      lineHeight: 86,
-      letterSpacing: -4,
-    },
-    description: {
-      color: theme.primary,
-      fontSize: 20,
-      fontWeight: '600',
-      marginBottom: 8,
-    },
-    feelsLike: {
-      color: theme.textSecondary,
-      fontSize: 16,
-    },
-    currentIconWrap: {
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 118,
-      height: 118,
-      borderRadius: 59,
-      backgroundColor: theme.background + '66',
-    },
-    observationRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 12,
-    },
-    observationLabel: {
-      color: theme.textSecondary,
-      fontSize: 15,
-    },
-    observationValue: {
-      color: theme.text,
-      fontSize: 15,
-      fontWeight: '700',
-      marginLeft: 4,
-    },
-    observationSeparator: {
-      color: theme.textSecondary,
-      fontSize: 15,
-      marginHorizontal: 8,
-    },
-    content: {
-      paddingBottom: 0,
-    },
-    sectionTitle: {
-      color: theme.text,
-      fontSize: 20,
-      fontWeight: '600',
-      marginBottom: 16,
-      marginTop: 20,
-    },
-    detailsGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-      marginTop: 10,
-    },
-    detailCard: {
-      backgroundColor: theme.surface + 'CC',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: theme.textSecondary + '20',
-      padding: 14,
-      width: '48%',
-      marginBottom: 12,
-      minHeight: 104,
-      justifyContent: 'space-between',
-    },
-    detailLabel: {
-      color: theme.textSecondary,
-      fontSize: 13,
-      fontWeight: '500',
-    },
-    detailValue: {
-      color: theme.text,
-      fontSize: 18,
-      fontWeight: '700',
-      marginTop: 12,
-    },
-    detailIcon: {
-      marginRight: 8,
-    },
-    detailHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      minHeight: 26,
-    },
-  });
-
-  const renderDetailCard = (
-    icon: React.ReactNode,
-    label: string,
-    value: string,
-  ) => (
-    <View style={styles.detailCard}>
-      <View style={styles.detailHeader}>
-        <View style={styles.detailIcon}>{icon}</View>
-        <Text style={styles.detailLabel}>{label}</Text>
-      </View>
-      <Text style={styles.detailValue}>{value}</Text>
-    </View>
-  );
-
-  // Get wind direction
-  const pos = ((currentWeather.wind.deg % 360) / 22.5) | 0;
-  const windDirection = windSectors[pos];
-
-  // Check if there's current rain data
-  const hasRainData = currentWeather.rain?.['1h'];
-  const rainAmount = hasRainData ? currentWeather.rain?.['1h'] : 0;
-
-  // Check if there's current snow data
-  const hasSnowData = currentWeather.snow?.['1h'];
-  const snowAmount = hasSnowData ? currentWeather.snow?.['1h'] : 0;
-
-  // Check if there's current air quality data
-  const hasAirQualityData = weatherAirQuality?.aqi?.usa !== undefined;
-
-  const isNight =
-    currentWeather.sys.sunrise !== undefined &&
-      currentWeather.sys.sunset !== undefined
-      ? now / 1000 < currentWeather.sys.sunrise ||
-      now / 1000 >= currentWeather.sys.sunset
-      : currentWeather.weather[0].icon.endsWith('n');
+  useLayoutEffect(() => {
+    scrollable.current = columns && visible;
+    restoring.current = true;
+    // Wait for the new pane bounds before restoring a formerly hidden scroll view.
+    const frame = requestAnimationFrame(() => {
+      if (visible)
+        scroll.current?.scrollTo({
+          y: columns ? offset.current : 0,
+          animated: false,
+        });
+      restoring.current = false;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [columns, visible]);
 
   return (
-    <ScrollingScreen
-      showSettings
+    <ScrollEdgeFade
+      testID={`${testID}-frame`}
+      inset={fadeInset}
+      start={fadeInset ? fades.top : 0}
+      end={fadeInset ? fades.bottom : 0}
+      style={{
+        flexGrow: columns ? 1 : 0,
+        flexShrink: columns ? 1 : 0,
+        flexBasis: columns ? 0 : 'auto',
+        minWidth: 0,
+        minHeight: 0,
+        display: visible ? 'flex' : 'none',
+      }}
+    >
+      <ScrollView
+        ref={scroll}
+        testID={testID}
+        scrollEnabled={columns}
+        nestedScrollEnabled={columns}
+        showsVerticalScrollIndicator={columns}
+        fadingEdgeLength={{
+          start: fadeInset ? fades.top : 0,
+          end: fadeInset ? fades.bottom : 0,
+        }}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        contentContainerStyle={{ flexGrow: 1, paddingVertical: fadeInset }}
+        refreshControl={
+          refreshControl && !(columns && visible)
+            ? React.cloneElement(refreshControl, {
+                enabled: false,
+                refreshing: false,
+                onRefresh: undefined,
+              })
+            : refreshControl
+        }
+        onLayout={(event) => {
+          bounds.current.viewport = event.nativeEvent.layout.height;
+          updateFades();
+        }}
+        onContentSizeChange={(_, height) => {
+          bounds.current.content = height;
+          updateFades();
+        }}
+        onScroll={trackScroll}
+        onMomentumScrollEnd={trackScroll}
+        onScrollEndDrag={trackScroll}
+        scrollEventThrottle={16}
+        style={{
+          flexGrow: columns ? 1 : 0,
+          flexShrink: columns ? 1 : 0,
+          flexBasis: columns ? 0 : 'auto',
+          minWidth: 0,
+          minHeight: 0,
+          display: visible ? 'flex' : 'none',
+        }}
+      >
+        {children}
+      </ScrollView>
+    </ScrollEdgeFade>
+  );
+}
+
+export default function WeatherWorkspace() {
+  const { theme, cityName, lastUpdated, refreshWeather, loading } =
+    useWeather();
+  const pane = useWeatherPane();
+  const { rail, columns } = useAdaptiveLayout();
+  const router = useRouter();
+  const now = useNow();
+  const currentVisible = columns || pane === 'current';
+  const forecastVisible =
+    pane === 'forecast' || (columns && pane === 'current');
+  const airVisible = pane === 'air-quality';
+  const minutes =
+    lastUpdated === null
+      ? null
+      : Math.max(0, Math.floor((now - lastUpdated) / 60000));
+  const updated =
+    minutes === null
+      ? 'Never'
+      : minutes < 1
+        ? 'Just now'
+        : minutes < 60
+          ? `${minutes}m ago`
+          : minutes < 1440
+            ? `${Math.floor(minutes / 60)}h ago`
+            : new Date(lastUpdated!).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              });
+  const title = currentVisible
+    ? cityName || 'Weather'
+    : airVisible
+      ? 'Air Quality'
+      : 'Weather Forecast';
+  const paneSwitcher = rail ? (
+    <GlassSurface
       theme={theme}
-      title={cityName}
-      compactTitle={`${cityName} · ${formatTemperature(currentWeather.main.temp)}`}
-      titleIcon={<MapPin size={20} color={theme.text} />}
-      titleStyle={{ fontSize: 18, fontWeight: '600' }}
+      style={[
+        s.switcher,
+        !columns && { marginBottom: 12, alignSelf: 'flex-end' },
+      ]}
+    >
+      {(['current', 'forecast', 'air-quality'] as const)
+        .filter((item) => !columns || item !== 'current')
+        .map((item) => {
+          const selected =
+            item === pane ||
+            (columns && pane === 'current' && item === 'forecast');
+          return (
+            <Pressable
+              key={item}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+              aria-selected={selected}
+              onPress={() =>
+                router.navigate(item === 'current' ? '/' : `/${item}`)
+              }
+              style={[
+                s.choice,
+                selected && { backgroundColor: theme.primary + '18' },
+              ]}
+            >
+              <Text
+                style={{
+                  color: theme.primary,
+                  fontSize: 14,
+                  fontWeight: selected ? '700' : '500',
+                }}
+              >
+                {item === 'current'
+                  ? 'Current'
+                  : item === 'forecast'
+                    ? 'Forecast'
+                    : 'Air quality'}
+              </Text>
+            </Pressable>
+          );
+        })}
+    </GlassSurface>
+  ) : null;
+  return (
+    <ScrollingScreen
+      theme={theme}
+      title={title}
+      fillViewport={columns}
+      titleAlign={columns ? 'left' : 'center'}
+      headerTrailing={columns ? paneSwitcher : undefined}
+      titleIcon={
+        currentVisible ? <MapPin size={20} color={theme.heroText} /> : undefined
+      }
+      titleStyle={
+        currentVisible ? { fontSize: 18, fontWeight: '600' } : undefined
+      }
+      showSettings={!rail && pane === 'current'}
+      bottomInset={!rail && airVisible}
+      onBack={
+        !rail && airVisible
+          ? () => (router.canGoBack() ? router.back() : router.replace('/'))
+          : undefined
+      }
       onRefresh={refreshWeather}
       refreshBusy={loading}
       subtitle={
-        <View style={styles.lastUpdatedContainer}>
-          <Clock size={14} color={theme.textSecondary} />
-          <Text style={styles.lastUpdatedText}>
-            Updated {formatLastUpdated(lastUpdated)}
-          </Text>
-        </View>
+        currentVisible ? (
+          <View style={[s.updated, rail && { justifyContent: 'flex-start' }]}>
+            <Clock size={14} color={theme.heroSecondary} />
+            <Text style={{ color: theme.heroSecondary, fontSize: 14 }}>
+              Updated {updated}
+            </Text>
+          </View>
+        ) : undefined
       }
     >
-      <View style={styles.header}>
-        <View style={styles.mainWeatherContainer}>
-          <View style={styles.weatherHeroRow}>
-            <View style={styles.temperatureBlock}>
-              <Text style={styles.temperature}>
-                {formatTemperature(currentWeather.main.temp)}
-              </Text>
-              <Text style={styles.description}>
-                {capitalizeWords(currentWeather.weather[0].description)}
-              </Text>
-              <Text style={styles.feelsLike}>
-                Feels like {formatTemperature(currentWeather.main.feels_like)}
-              </Text>
-            </View>
+      {(refreshControl) => (
+        <>
+          {!columns && paneSwitcher}
 
-            <View style={styles.currentIconWrap}>
-              <WeatherIcon
-                weatherMain={currentWeather.weather[0].main}
-                size={98}
-                color={theme.primary}
-                isNight={isNight}
-              />
-            </View>
-          </View>
-
-          <View style={styles.observationRow}>
-            <Text style={styles.observationLabel}>High</Text>
-            <Text style={styles.observationValue}>
-              {formatTemperature(currentWeather.main.temp_max)}
-            </Text>
-            <Text style={styles.observationSeparator}>/</Text>
-            <Text style={styles.observationLabel}>Low</Text>
-            <Text style={styles.observationValue}>
-              {formatTemperature(currentWeather.main.temp_min)}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={styles.content}>
-        {/* AI Weather Summary */}
-        <WeatherSummary />
-
-        {/* Weather Alerts Section */}
-        {weatherAlerts.length > 0 && <WeatherAlerts alerts={weatherAlerts} />}
-
-        <Text style={styles.sectionTitle}>Details</Text>
-
-        <View style={styles.detailsGrid}>
-          {/* Show rain amount if there's current rain data */}
-          {!hasSnowData &&
-            renderDetailCard(
-              <CloudRain size={24} color={theme.primary} />,
-              'Rain (1h)',
-              `${rainAmount!.toFixed(1)} mm`,
-            )}
-
-          {/* Show snow amount if there's current rain data */}
-          {!hasRainData &&
-            hasSnowData &&
-            renderDetailCard(
-              <CloudSnow size={24} color={theme.primary} />,
-              'Snow (1h)',
-              `${snowAmount!.toFixed(1)} mm`,
-            )}
-
-          {/* Show rain & snow amount if there's current rain data */}
-          {hasRainData &&
-            hasSnowData &&
-            renderDetailCard(
-              <CloudSnow size={24} color={theme.primary} />,
-              'Rain/Snow (1h)',
-              `${((rainAmount || 0) + (snowAmount || 0)).toFixed(1)} mm`,
-            )}
-
-          {renderDetailCard(
+          <View
+            testID="weather-workspace"
+            style={{
+              flexDirection: columns ? 'row' : 'column',
+              flex: columns ? 1 : undefined,
+              minHeight: 0,
+              gap: 12,
+              alignItems: 'stretch',
+            }}
+          >
+            <WeatherScrollPane
+              columns={columns}
+              visible={currentVisible}
+              testID="current-pane"
+              refreshControl={refreshControl}
+            >
+              <CurrentConditions />
+            </WeatherScrollPane>
             <View
               style={{
-                transform: [{ rotate: `${currentWeather.wind.deg + 225}deg` }],
+                flex: columns ? 1 : undefined,
+                minWidth: 0,
+                minHeight: 0,
+                display: forecastVisible || airVisible ? 'flex' : 'none',
               }}
             >
-              <MousePointer2 size={24} color={theme.primary} />
-            </View>,
-            'Wind',
-            `${(currentWeather.wind.speed * 3.6).toFixed(1)} km/h ${windDirection}`,
-          )}
-
-          {/* Show air quality data if available */}
-          {hasAirQualityData && (
-            <TouchableOpacity
-              style={[styles.detailCard, { width: '48%' }]}
-              onPress={() => router.push('/air-quality')}
-            >
-              <View style={styles.detailHeader}>
-                <View style={styles.detailIcon}>
-                  <AirVent size={24} color={theme.primary} />
-                </View>
-                <Text style={styles.detailLabel}>Air Quality</Text>
-              </View>
-              <Text style={styles.detailValue}>
-                AQI {weatherAirQuality.aqi.usa.toFixed(1)}
-              </Text>
-              <View
-                style={{
-                  position: 'absolute',
-                  right: 8,
-                  top: '50%',
-                  marginTop: -8,
-                }}
+              <WeatherScrollPane
+                columns={columns}
+                visible={forecastVisible}
+                testID="forecast-pane"
+                refreshControl={refreshControl}
               >
-                <ChevronRight size={16} color={theme.textSecondary} />
-              </View>
-            </TouchableOpacity>
-          )}
-
-          {renderDetailCard(
-            <Eye size={24} color={theme.primary} />,
-            'Visibility',
-            `${(currentWeather.visibility / 1000).toFixed(1)} km`,
-          )}
-
-          {renderDetailCard(
-            <Droplets size={24} color={theme.primary} />,
-            'Humidity',
-            `${currentWeather.main.humidity.toFixed(1)}%`,
-          )}
-
-          {renderDetailCard(
-            <Gauge size={24} color={theme.primary} />,
-            'Pressure',
-            `${currentWeather.main.pressure.toFixed(1)} hPa`,
-          )}
-        </View>
-
-        {error && (
-          <View style={{ marginTop: 20 }}>
-            <Text style={[styles.sectionTitle, { color: theme.accent }]}>
-              {error}
-            </Text>
+                <ForecastContent />
+              </WeatherScrollPane>
+              <WeatherScrollPane
+                columns={columns}
+                visible={airVisible}
+                testID="air-quality-pane"
+                refreshControl={refreshControl}
+              >
+                <AirQualityContent />
+              </WeatherScrollPane>
+            </View>
           </View>
-        )}
-      </View>
+        </>
+      )}
     </ScrollingScreen>
   );
 }
+const s = StyleSheet.create({
+  updated: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+  },
+  switcher: {
+    flexDirection: 'row',
+    padding: 4,
+  },
+  choice: {
+    minHeight: 44,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    borderRadius: 14,
+  },
+});

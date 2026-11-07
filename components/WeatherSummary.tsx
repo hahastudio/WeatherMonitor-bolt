@@ -19,6 +19,7 @@ import {
   Lightbulb,
 } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
+import { GlassSurface } from './GlassSurface';
 import { useNow } from '../hooks/useNow';
 
 export const WeatherSummary: React.FC = () => {
@@ -83,11 +84,11 @@ export const WeatherSummary: React.FC = () => {
   const getMoodColor = (mood: string) => {
     switch (mood) {
       case 'positive':
-        return '#4CAF50';
+        return theme.success;
       case 'warning':
-        return '#FF8800';
+        return theme.warning;
       case 'severe':
-        return '#FF4444';
+        return theme.danger;
       default:
         return theme.primary;
     }
@@ -119,9 +120,8 @@ export const WeatherSummary: React.FC = () => {
 
   const styles = StyleSheet.create({
     container: {
-      backgroundColor: theme.surface + '90',
       borderRadius: 16,
-      marginVertical: 16,
+      marginVertical: 0,
       overflow: 'hidden',
       // CRITICAL: Remove all shadow/elevation properties to prevent Android grey borders
     },
@@ -147,6 +147,7 @@ export const WeatherSummary: React.FC = () => {
       fontSize: 18,
       fontWeight: '600',
       marginLeft: 8,
+      flexShrink: 1,
     },
     generatedTime: {
       color: theme.textSecondary,
@@ -225,7 +226,7 @@ export const WeatherSummary: React.FC = () => {
       gap: 6,
     },
     alertTitle: {
-      color: '#FF8800',
+      color: theme.warning,
       fontSize: 14,
       fontWeight: '600',
     },
@@ -240,7 +241,7 @@ export const WeatherSummary: React.FC = () => {
       padding: 12,
     },
     warningTitle: {
-      color: '#FF4444',
+      color: theme.danger,
       fontSize: 14,
       fontWeight: '600',
     },
@@ -300,7 +301,6 @@ export const WeatherSummary: React.FC = () => {
       textAlign: 'center',
       marginTop: 8,
       fontStyle: 'italic',
-      opacity: 0.7,
     },
   });
 
@@ -309,9 +309,13 @@ export const WeatherSummary: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <GlassSurface theme={theme} style={styles.container}>
       <TouchableOpacity
         testID="weather-summary-card"
+        accessibilityRole="button"
+        accessibilityLabel="AI weather summary"
+        accessibilityState={{ expanded }}
+        aria-expanded={expanded}
         style={styles.cardTouchable}
         onPress={handleCardPress}
         activeOpacity={0.7}
@@ -327,6 +331,8 @@ export const WeatherSummary: React.FC = () => {
             <View style={styles.headerActions}>
               <TouchableOpacity
                 testID="refresh-summary-button"
+                accessibilityRole="button"
+                accessibilityLabel="Refresh weather summary"
                 style={styles.refreshButton}
                 onPress={handleRefreshPress}
                 disabled={loading}
@@ -437,17 +443,10 @@ export const WeatherSummary: React.FC = () => {
                   </View>
                 </View>
               )}
-
-              {/* Show tap hint only when summary is available and not expanded */}
-              {weatherSummary && !expanded && !loading && (
-                <Text style={styles.tapHint}>
-                  Tap to see detailed recommendations
-                </Text>
-              )}
             </View>
           )}
         </View>
       </TouchableOpacity>
-    </View>
+    </GlassSurface>
   );
 };

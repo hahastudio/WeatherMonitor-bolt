@@ -5,6 +5,7 @@ import React, {
   useEffect,
   ReactNode,
   useCallback,
+  useMemo,
 } from 'react';
 import {
   CurrentWeather,
@@ -36,6 +37,8 @@ import {
   loadLastUpdated,
   saveDarkMode,
   loadDarkMode,
+  saveFollowSystemTheme,
+  loadFollowSystemTheme,
   saveRefreshRate,
   loadRefreshRate,
   loadCurrentWeather,
@@ -50,7 +53,9 @@ import {
   acquireFetchLock,
   releaseFetchLock,
 } from '../utils/weatherStorage';
-import { AppState, AppStateStatus } from 'react-native';
+import { useNow } from '../hooks/useNow';
+import { isWeatherNight } from '../utils/weatherDaylight';
+import { AppState, AppStateStatus, useColorScheme } from 'react-native';
 
 export interface WeatherContextType {
   currentWeather: CurrentWeather | null;
@@ -67,11 +72,13 @@ export interface WeatherContextType {
   theme: WeatherTheme;
   weatherCondition: WeatherCondition;
   isDarkMode: boolean;
+  followSystemTheme: boolean;
   refreshRate: number;
   lastUpdated: number | null;
   refreshWeather: () => Promise<void>;
   generateWeatherSummary: () => Promise<void>;
   toggleDarkMode: () => void;
+  setFollowSystemTheme: (enabled: boolean) => Promise<void>;
   setRefreshRate: (minutes: number) => Promise<void>;
 }
 
@@ -103,7 +110,12 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
   const [cityName, setCityName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+  const [manualDarkMode, setManualDarkMode] = useState<boolean>(false);
+  const [followSystemTheme, setFollowSystemThemeState] = useState(true);
+  const systemColorScheme = useColorScheme();
+  const isDarkMode = followSystemTheme
+    ? systemColorScheme === 'dark'
+    : manualDarkMode;
   const [refreshRate, setRefreshRateState] =
     useState<number>(DEFAULT_REFRESH_RATE);
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
@@ -114,7 +126,15 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     ? getWeatherCondition(currentWeather.weather[0].main)
     : 'clear';
 
-  const theme = getTheme(weatherCondition, isDarkMode);
+  const now = useNow();
+  const isNight = useMemo(
+    () => isWeatherNight(currentWeather, forecast, location, now),
+    [currentWeather, forecast, location, now],
+  );
+  const theme = useMemo(
+    () => getTheme(weatherCondition, isDarkMode, isNight),
+    [weatherCondition, isDarkMode, isNight],
+  );
 
   // Load all data from storage and update UI
   const loadDataFromStorage = async () => {
@@ -132,6 +152,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
         storedCityName,
         storedLastUpdated,
         storedDarkMode,
+        storedFollowSystemTheme,
         storedRefreshRate,
       ] = await Promise.all([
         loadCurrentWeather(),
@@ -143,6 +164,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
         loadCityName(),
         loadLastUpdated(),
         loadDarkMode(),
+        loadFollowSystemTheme(),
         loadRefreshRate(),
       ]);
 
@@ -189,8 +211,15 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
       }
 
       if (storedDarkMode !== null && storedDarkMode !== undefined) {
-        setIsDarkMode(storedDarkMode);
+        setManualDarkMode(storedDarkMode);
         console.log('Loaded dark mode preference from storage');
+      }
+
+      if (
+        storedFollowSystemTheme !== null &&
+        storedFollowSystemTheme !== undefined
+      ) {
+        setFollowSystemThemeState(storedFollowSystemTheme);
       }
 
       if (storedRefreshRate !== null && storedRefreshRate !== undefined) {
@@ -610,7 +639,7 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
 
   const toggleDarkMode = async () => {
     const newDarkMode = !isDarkMode;
-    setIsDarkMode(newDarkMode);
+    setManualDarkMode(newDarkMode);
     try {
       await saveDarkMode(newDarkMode);
       console.log('Dark mode preference saved');
@@ -619,9 +648,19 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     }
   };
 
+  const setFollowSystemTheme = async (enabled: boolean) => {
+    setFollowSystemThemeState(enabled);
+    try {
+      await saveFollowSystemTheme(enabled);
+    } catch (error) {
+      console.error('Failed to save system theme preference:', error);
+    }
+  };
+
   const setRefreshRate = async (minutes: number) => {
     try {
       await saveRefreshRate(minutes);
+      setRefreshRateState(minutes);
       console.log(`Refresh rate updated to ${minutes} minutes`);
     } catch (error) {
       console.error('Failed to save refresh rate:', error);
@@ -733,11 +772,13 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
     theme,
     weatherCondition,
     isDarkMode,
+    followSystemTheme,
     refreshRate,
     lastUpdated,
     refreshWeather,
     generateWeatherSummary,
     toggleDarkMode,
+    setFollowSystemTheme,
     setRefreshRate,
   };
 

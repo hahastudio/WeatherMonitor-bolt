@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
+import { GlassSurface, WeatherBackdrop } from './GlassSurface';
 import { CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react-native';
 import { useWeather } from '../contexts/WeatherContext';
 import { useApiKeys } from '../contexts/ApiKeyContext';
@@ -22,9 +22,9 @@ import { geminiService } from '../services/geminiService';
 type ValidationStatus = 'idle' | 'validating' | 'valid' | 'invalid';
 
 // This component doesn't accept any props
-type ApiKeySettingsProps = object;
+type ApiKeySettingsProps = { onSaved?: () => void };
 
-const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
+const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = ({ onSaved }) => {
   const router = useRouter();
   const { theme } = useWeather();
   const { updateApiKeys, apiKeys } = useApiKeys();
@@ -92,7 +92,8 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
     try {
       await updateApiKeys(keys);
       Alert.alert('Success', 'API keys saved successfully.');
-      router.replace('/(tabs)');
+      if (onSaved) onSaved();
+      else router.replace('/(tabs)');
     } catch (err) {
       console.error('Failed to save API keys:', err);
       Alert.alert('Error', 'Failed to save API keys');
@@ -126,6 +127,7 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
     },
     section: {
       marginBottom: 16,
+      padding: 16,
     },
     sectionTitle: {
       color: theme.text,
@@ -140,7 +142,7 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
       lineHeight: 20,
     },
     inputContainer: {
-      backgroundColor: theme.surface + '90',
+      backgroundColor: theme.surface,
       borderRadius: 12,
       padding: 16,
       marginBottom: 8,
@@ -180,7 +182,7 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
       fontWeight: '600',
     },
     saveButton: {
-      backgroundColor: theme.primary + '20',
+      backgroundColor: theme.surface,
       paddingVertical: 16,
       borderRadius: 12,
       alignItems: 'center',
@@ -196,13 +198,10 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={[theme.gradientStart, theme.gradientEnd]}
-        style={styles.gradient}
-      >
+      <WeatherBackdrop theme={theme}>
         <ScrollView contentContainerStyle={styles.content}>
           {/* OpenWeatherMap API Key */}
-          <View style={styles.section}>
+          <GlassSurface theme={theme} style={styles.section}>
             <Text style={styles.sectionTitle}>OpenWeatherMap API Key</Text>
             <Text style={styles.sectionDescription}>
               Required for current weather and forecast data. Get your API key
@@ -243,10 +242,10 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
                 {renderValidationStatus('openWeatherMap')}
               </View>
             </View>
-          </View>
+          </GlassSurface>
 
           {/* Caiyun API Key */}
-          <View style={styles.section}>
+          <GlassSurface theme={theme} style={styles.section}>
             <Text style={styles.sectionTitle}>Caiyun API Key</Text>
             <Text style={styles.sectionDescription}>
               Required for weather alerts in China. Get your API key from the
@@ -285,10 +284,10 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
                 {renderValidationStatus('caiyun')}
               </View>
             </View>
-          </View>
+          </GlassSurface>
 
           {/* Gemini API Key */}
-          <View style={styles.section}>
+          <GlassSurface theme={theme} style={styles.section}>
             <Text style={styles.sectionTitle}>Gemini API Key</Text>
             <Text style={styles.sectionDescription}>
               Required for weather summaries and recommendations. Get your API
@@ -327,13 +326,13 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = () => {
                 {renderValidationStatus('gemini')}
               </View>
             </View>
-          </View>
+          </GlassSurface>
 
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Text style={styles.saveButtonText}>Save Changes</Text>
           </TouchableOpacity>
         </ScrollView>
-      </LinearGradient>
+      </WeatherBackdrop>
     </View>
   );
 };

@@ -9,10 +9,12 @@ export const MoonPhase = memo(function MoonPhase({
   phase,
   fraction,
   theme,
+  compact = false,
 }: {
   phase: number;
   fraction: number;
   theme: WeatherTheme;
+  compact?: boolean;
 }) {
   const colors = skyColors(theme);
   const sign = phase < 0.5 ? 1 : -1;
@@ -31,8 +33,16 @@ export const MoonPhase = memo(function MoonPhase({
   const d =
     points.map(([x, y], i) => `${i ? 'L' : 'M'}${x},${y}`).join(' ') + 'Z';
   return (
-    <View testID="moon-phase" style={[s.row, { marginVertical: 12 }]}>
-      <Svg width={56} height={56} viewBox="0 0 56 56" accessible={false}>
+    <View
+      testID="moon-phase"
+      style={[s.row, { marginVertical: compact ? 8 : 12 }]}
+    >
+      <Svg
+        width={compact ? 40 : 56}
+        height={compact ? 40 : 56}
+        viewBox="0 0 56 56"
+        accessible={false}
+      >
         <Circle cx={28} cy={28} r={24} fill={colors.phaseDark} />
         <Path d={d} fill={colors.phaseLit} />
         <Circle

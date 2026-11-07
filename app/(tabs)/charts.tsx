@@ -1,506 +1,344 @@
-import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import {
-  Thermometer,
-  CloudRain,
-  Wind,
-  Gauge,
-  Droplets,
-  TrendingUp,
-  AirVent,
-  Clock,
-} from 'lucide-react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useWeather } from '../../contexts/WeatherContext';
+import { useAdaptiveLayout } from '../../hooks/useAdaptiveLayout';
 import { ScrollingScreen } from '../../components/ScrollingScreen';
+import { GlassSurface } from '../../components/GlassSurface';
+import { CustomChart, type DataPoint } from '../../components/CustomChart';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
-import { CustomChart, DataPoint } from '../../components/CustomChart';
-import { formatTime } from '../../utils/weatherTheme';
+import type { HourlyForecast } from '../../types/weather';
 
-interface chartStats {
-  min?: number;
-  max?: number;
-  avg?: number;
-  total?: number;
+interface Series {
+  name: string;
+  color: string;
+  data: DataPoint[];
 }
-
-export default function ChartsScreen() {
-  const { forecast, loading, error, theme, refreshWeather } = useWeather();
-
-  if (loading && !forecast) {
-    return <LoadingSpinner message="Loading forecast charts..." />;
-  }
-
-  if (error && !forecast) {
-    return <ErrorDisplay error={error} onRetry={refreshWeather} />;
-  }
-
-  if (!forecast || !forecast.hourly || forecast.hourly.length === 0) {
-    return <LoadingSpinner message="Loading chart data..." />;
-  }
-
-  const styles = StyleSheet.create({
-    timeRange: {
-      marginTop: 6,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    timeRangeText: {
-      color: theme.textSecondary,
-      fontSize: 14,
-      marginLeft: 6,
-    },
-    content: {
-      paddingBottom: 20,
-    },
-    chartCard: {
-      backgroundColor: theme.surface,
-      borderRadius: 16,
-      padding: 20,
-      marginBottom: 20,
-      // Use Android-compatible shadow approach
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-        android: {
-          elevation: 4,
-        },
-        web: {
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        },
-      }),
-    },
-    chartHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 16,
-    },
-    chartIcon: {
-      marginRight: 12,
-    },
-    chartTitle: {
-      color: theme.text,
-      fontSize: 18,
-      fontWeight: '600',
-      flex: 1,
-    },
-    chartTrend: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    trendText: {
-      color: theme.primary,
-      fontSize: 14,
-      fontWeight: '600',
-      marginLeft: 4,
-    },
-    chartContainer: {
-      backgroundColor: theme.background + '10',
-      borderRadius: 12,
-      padding: 8,
-      marginVertical: 8,
-    },
-    statsRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 16,
-      paddingTop: 16,
-      borderTopWidth: 1,
-      borderTopColor: theme.textSecondary + '15',
-    },
-    statItem: {
-      alignItems: 'center',
-      flex: 1,
-    },
-    statLabel: {
-      color: theme.textSecondary,
-      fontSize: 12,
-      marginBottom: 4,
-      textTransform: 'uppercase',
-      fontWeight: '500',
-    },
-    statValue: {
-      color: theme.text,
-      fontSize: 16,
-      fontWeight: '700',
-    },
-    errorText: {
-      color: theme.accent,
-      fontSize: 14,
-      textAlign: 'center',
-      marginTop: 20,
-      fontWeight: '500',
-    },
-    subtitle: {
-      color: theme.textSecondary,
-      fontSize: 16,
-      fontWeight: '500',
-      marginBottom: 8,
-    },
-  });
-
-  const next48Hours = forecast.hourly;
-
-  // Ensure we have data to work with
-  if (next48Hours.length === 0) {
-    return (
-      <ScrollingScreen showSettings theme={theme} title="Weather Charts">
-        <View style={styles.content}>
-          <Text style={[styles.subtitle, { textAlign: 'center' }]}>
-            No forecast data available
-          </Text>
-        </View>
-      </ScrollingScreen>
-    );
-  }
-
-  // Prepare data for charts with proper number formatting
-  const temperatureData = next48Hours.map((item, index) => {
-    const temp = item.main?.temp;
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof temp === 'number' ? parseFloat(temp.toFixed(1)) : 0,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const feelsLikeData = next48Hours.map((item, index) => {
-    const feelsLike = item.main?.feels_like;
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof feelsLike === 'number' ? parseFloat(feelsLike.toFixed(1)) : 0,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const precipitationData = next48Hours.map((item, index) => {
-    const rain = item.rain?.['1h'] || 0;
-    const snow = item.snow?.['1h'] || 0;
-    const precip = rain + snow;
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof precip === 'number' ? parseFloat(precip.toFixed(2)) : 0,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const windData = next48Hours.map((item, index) => {
-    const windSpeed = item.wind?.speed || 0;
-    const windKmh = windSpeed * 3.6; // Convert m/s to km/h
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof windKmh === 'number' ? parseFloat(windKmh.toFixed(1)) : 0,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const windGustData = next48Hours.map((item, index) => {
-    const windGust = item.wind?.gust || item.wind?.speed || 0; // Fallback to speed if gust is missing
-    const gustKmh = windGust * 3.6; // Convert m/s to km/h
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof gustKmh === 'number' ? parseFloat(gustKmh.toFixed(1)) : 0,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const pressureData = next48Hours.map((item, index) => {
-    const pressure = item.main?.pressure;
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof pressure === 'number' ? parseFloat(pressure.toFixed(0)) : 1013,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const humidityData = next48Hours.map((item, index) => {
-    const humidity = item.main?.humidity;
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof humidity === 'number' ? parseFloat(humidity.toFixed(0)) : 0,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const aqiChnData = next48Hours.map((item, index) => {
-    const aqi = item.air_quality?.chn;
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof aqi === 'number' ? Math.max(0, aqi) : 0,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const aqiUsaData = next48Hours.map((item, index) => {
-    const aqi = item.air_quality?.usa;
-    const hour = new Date(item.dt * 1000).getHours();
-    return {
-      x: index,
-      y: typeof aqi === 'number' ? Math.max(0, aqi) : 0,
-      label: hour % 12 === 0 ? formatTime(item.dt) : '',
-    };
-  });
-
-  const hasAqiData = next48Hours.some(
-    (item) =>
-      typeof item.air_quality?.chn === 'number' ||
-      typeof item.air_quality?.usa === 'number',
-  );
-
-  // Calculate statistics with proper number handling
-  const calculateStats = (data: DataPoint[]): chartStats | undefined => {
-    const values = data
-      .map((d) => d.y)
-      .filter((v) => typeof v === 'number' && !isNaN(v));
-    if (values.length === 0) return undefined;
-
-    return {
-      min: parseFloat(Math.min(...values).toFixed(1)),
-      max: parseFloat(Math.max(...values).toFixed(1)),
-      avg: parseFloat(
-        (values.reduce((sum, v) => sum + v, 0) / values.length).toFixed(1),
-      ),
-    };
-  };
-
-  const tempStats = calculateStats(temperatureData);
-  const feelsLikeStats = calculateStats(feelsLikeData);
-  const precipStats = {
-    total: parseFloat(
-      precipitationData.reduce((sum, d) => sum + d.y, 0).toFixed(1),
-    ),
-    max: parseFloat(Math.max(...precipitationData.map((d) => d.y)).toFixed(1)),
-  };
-  const windStats = calculateStats(windData);
-  const windGustStats = calculateStats(windGustData);
-  const pressureStats = calculateStats(pressureData);
-
-  const humidityStats = calculateStats(humidityData);
-  const aqiChnStats = calculateStats(aqiChnData);
-  const aqiUsaStats = calculateStats(aqiUsaData);
-
-  const renderChart = (
-    title: string,
-    icon: React.ReactNode,
-    data: DataPoint[],
-    color: string,
-    unit: string,
-    chartType: 'line' | 'area' | 'bar' = 'line',
-    stats?: chartStats,
-    data2?: DataPoint[],
-    color2?: string,
-    stats2?: chartStats,
-    stats2Label?: string,
-    statsLabel?: string,
-  ) => {
-    return (
-      <View key={title} style={styles.chartCard}>
-        <View style={styles.chartHeader}>
-          <View style={styles.chartIcon}>{icon}</View>
-          <Text style={styles.chartTitle}>{title}</Text>
-          <View style={styles.chartTrend}>
-            <TrendingUp size={16} color={theme.primary} />
-            <Text style={styles.trendText}>48h</Text>
-          </View>
-        </View>
-
-        <View style={styles.chartContainer}>
-          <CustomChart
-            data={data}
-            color={color}
-            data2={data2}
-            color2={color2}
-            unit={unit}
-            type={chartType}
-            showGrid={true}
-          />
-        </View>
-
-        {stats && (
-          <View style={styles.statsRow}>
-            {stats2 && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 4,
-                  left: 0,
-                  right: 0,
-                  alignItems: 'center',
-                }}
-              >
-                <Text
-                  style={{
-                    fontSize: 10,
-                    color: color,
-                    fontWeight: 'bold',
-                    backgroundColor: theme.surface,
-                    paddingHorizontal: 8,
-                  }}
-                >
-                  {statsLabel || 'ACTUAL'}
-                </Text>
-              </View>
-            )}
-            {Object.entries(stats).map(([key, value]) => (
-              <View key={key} style={styles.statItem}>
-                <Text style={styles.statLabel}>{key}</Text>
-                <Text style={styles.statValue}>
-                  {typeof value === 'number' ? value.toFixed(1) : String(value)}
-                  {unit}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-
-        {stats2 && (
-          <View style={[styles.statsRow, { marginTop: 0, borderTopWidth: 0 }]}>
-            <View
+function ChartPanel({
+  title,
+  unit,
+  series,
+  bar,
+  headerHeight,
+  onHeader,
+  onInteractionChange,
+}: {
+  title: string;
+  unit: string;
+  series: Series[];
+  bar?: boolean;
+  headerHeight: number;
+  onHeader: (height: number) => void;
+  onInteractionChange: (active: boolean) => void;
+}) {
+  const { theme } = useWeather();
+  const [guides, setGuides] = useState<0 | 1>(0);
+  return (
+    <GlassSurface
+      theme={theme}
+      testID="weather-chart-panel"
+      style={{ padding: 14, flex: 1 }}
+    >
+      <View style={{ minHeight: headerHeight }}>
+        <View onLayout={(e) => onHeader(e.nativeEvent.layout.height)}>
+          <View style={s.heading}>
+            <Text
               style={{
-                position: 'absolute',
-                top: 4,
-                left: 0,
-                right: 0,
-                alignItems: 'center',
+                color: theme.text,
+                fontWeight: '600',
+                fontSize: 18,
+                flex: 1,
               }}
             >
+              {title}
+            </Text>
+            <Text style={{ color: theme.textSecondary, fontSize: 12 }}>
+              {unit}
+            </Text>
+          </View>
+          <View style={s.stats}>
+            <Text style={s.seriesName} />
+            {(bar ? ['Total', 'Max'] : ['Min', 'Max', 'Avg']).map((label) => (
               <Text
-                style={{
-                  fontSize: 10,
-                  color: color2,
-                  fontWeight: 'bold',
-                  backgroundColor: theme.surface,
-                  paddingHorizontal: 8,
-                }}
+                key={label}
+                style={[s.stat, { color: theme.textSecondary, fontSize: 12 }]}
               >
-                {stats2Label || 'SECONDARY'}
+                {label}
               </Text>
-            </View>
-            {Object.entries(stats2).map(([key, value]) => (
-              <View key={key} style={styles.statItem}>
-                <Text style={styles.statLabel}>{key}</Text>
-                <Text
-                  style={[styles.statValue, { color: theme.textSecondary }]}
-                >
-                  {typeof value === 'number' ? value.toFixed(1) : String(value)}
-                  {unit}
-                </Text>
-              </View>
             ))}
           </View>
-        )}
+          {series.map((item, index) => {
+            const values = item.data.map((p) => p.y).filter(Number.isFinite);
+            const total = values.reduce((a, b) => a + b, 0);
+            const stats = values.length
+              ? bar
+                ? [total, Math.max(...values)]
+                : [
+                    Math.min(...values),
+                    Math.max(...values),
+                    total / values.length,
+                  ]
+              : bar
+                ? [null, null]
+                : [null, null, null];
+            return (
+              <Pressable
+                key={item.name}
+                disabled={series.length < 2}
+                accessibilityRole={series.length > 1 ? 'button' : undefined}
+                accessibilityLabel={`${item.name}, ${bar ? 'total, maximum' : 'minimum, maximum, average'} ${stats.map((v) => v?.toFixed(1) ?? 'Unavailable').join(', ')}${series.length > 1 ? '. Select min and max guides' : ''}`}
+                accessibilityState={
+                  series.length > 1 ? { selected: guides === index } : undefined
+                }
+                aria-pressed={series.length > 1 ? guides === index : undefined}
+                onPress={() => setGuides(index as 0 | 1)}
+                style={[s.stats, { minHeight: series.length > 1 ? 28 : 20 }]}
+              >
+                <Text
+                  style={[
+                    s.seriesName,
+                    {
+                      color: item.color,
+                      fontSize: 12,
+                      fontWeight: guides === index ? '700' : '500',
+                    },
+                  ]}
+                >
+                  {item.name}
+                </Text>
+                {stats.map((amount, i) => (
+                  <Text
+                    key={i}
+                    style={[
+                      s.stat,
+                      { color: theme.text, fontSize: 14, fontWeight: '600' },
+                    ]}
+                  >
+                    {amount?.toFixed(1) ?? '—'}
+                  </Text>
+                ))}
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
+      <CustomChart
+        data={series[0].data}
+        data2={series[1]?.data}
+        color={series[0].color}
+        color2={series[1]?.color}
+        unit={unit}
+        type={bar ? 'bar' : 'line'}
+        guideSeries={guides}
+        seriesNames={[series[0].name, series[1]?.name]}
+        onInteractionChange={onInteractionChange}
+      />
+    </GlassSurface>
+  );
+}
+export default function ChartsScreen() {
+  const { forecast, theme, loading, error, refreshWeather } = useWeather();
+  const { rail, columns, contentWidth } = useAdaptiveLayout();
+  const [width, setWidth] = useState(contentWidth - 32);
+  const [inspecting, setInspecting] = useState(false);
+  const [headerHeights, setHeaderHeights] = useState<Record<string, number>>(
+    {},
+  );
+  if (!forecast)
+    return error ? (
+      <ErrorDisplay error={error} onRetry={refreshWeather} />
+    ) : (
+      <LoadingSpinner message="Loading forecast charts..." />
     );
-  };
-
+  const data = forecast.hourly;
+  const series = (
+    name: string,
+    color: string,
+    read: (item: HourlyForecast) => number | undefined,
+  ): Series => ({
+    name,
+    color,
+    data: data.map((item, i) => {
+      const amount = read(item);
+      const date = new Date(item.dt * 1000);
+      const midnight = date.getHours() === 0;
+      const dateLabel = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      });
+      return {
+        x: i,
+        y: typeof amount === 'number' ? amount : NaN,
+        label:
+          date.getHours() % 12 === 0
+            ? midnight
+              ? dateLabel
+              : date.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })
+            : '',
+        dateLabel: midnight ? dateLabel : undefined,
+        timeOfDay: midnight
+          ? 'midnight'
+          : date.getHours() === 12
+            ? 'noon'
+            : undefined,
+        description: date.toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        }),
+      };
+    }),
+  });
+  // Darker variants retain the same series meanings on a light reading surface.
+  const colors = theme.isDark
+    ? [
+        '#8CC8FF',
+        '#FFBC69',
+        '#84E0AB',
+        '#D4ADFF',
+        '#FFB0B0',
+        '#7DE1E3',
+        '#FFAB96',
+        '#8EDDD4',
+      ]
+    : [
+        '#1256A0',
+        '#935000',
+        '#17663D',
+        '#7439A4',
+        '#A63246',
+        '#00666B',
+        '#A13824',
+        '#086C62',
+      ];
+  const charts = [
+    {
+      title: 'Temperature',
+      unit: '°C',
+      series: [
+        series('Temperature', colors[0], (i) => i.main?.temp),
+        series('Feels like', colors[1], (i) => i.main?.feels_like),
+      ],
+    },
+    {
+      title: 'Precipitation',
+      unit: 'mm',
+      bar: true,
+      series: [
+        series(
+          'Rain / snow',
+          colors[0],
+          (i) => (i.rain?.['1h'] ?? 0) + (i.snow?.['1h'] ?? 0),
+        ),
+      ],
+    },
+    {
+      title: 'Wind Speed',
+      unit: 'km/h',
+      series: [
+        series('Wind', colors[2], (i) =>
+          i.wind?.speed === undefined ? undefined : i.wind.speed * 3.6,
+        ),
+        series('Gust', colors[3], (i) =>
+          i.wind?.gust === undefined ? undefined : i.wind.gust * 3.6,
+        ),
+      ],
+    },
+    {
+      title: 'Atmospheric Pressure',
+      unit: 'hPa',
+      series: [series('Pressure', colors[4], (i) => i.main?.pressure)],
+    },
+    {
+      title: 'Air Quality Index',
+      unit: '',
+      series: [
+        series('China AQI', colors[5], (i) => i.air_quality?.chn),
+        series('US AQI', colors[6], (i) => i.air_quality?.usa),
+      ],
+    },
+    {
+      title: 'Humidity',
+      unit: '%',
+      series: [series('Humidity', colors[7], (i) => i.main?.humidity)],
+    },
+  ];
+  const sharedHeight = columns
+    ? Math.max(0, ...Object.values(headerHeights))
+    : 0;
   return (
     <ScrollingScreen
-      showSettings
       theme={theme}
       title="Weather Charts"
-      compactTitle="Charts"
       onRefresh={refreshWeather}
       refreshBusy={loading}
+      scrollEnabled={!inspecting}
       subtitle={
-        <View style={styles.timeRange}>
-          <Clock size={14} color={theme.textSecondary} />
-          <Text style={styles.timeRangeText}>Next 48 Hours Forecast</Text>
-        </View>
+        <Text
+          style={{
+            color: theme.heroSecondary,
+            textAlign: rail ? 'left' : 'center',
+            marginTop: 6,
+          }}
+        >
+          Next 48 Hours Forecast
+        </Text>
       }
     >
-      <View style={styles.content}>
-        {renderChart(
-          'Temperature',
-          <Thermometer size={24} color={theme.primary} />,
-          temperatureData,
-          theme.primary,
-          '°C',
-          'line',
-          tempStats,
-          feelsLikeData,
-          '#FF9F1C', // Orange for feels like
-          feelsLikeStats,
-          'FEELS LIKE',
-        )}
-
-        {renderChart(
-          'Precipitation',
-          <CloudRain size={24} color="#4A90E2" />,
-          precipitationData,
-          '#4A90E2',
-          'mm',
-          'bar',
-          precipStats,
-        )}
-
-        {renderChart(
-          'Wind Speed',
-          <Wind size={24} color="#50C878" />,
-          windData,
-          '#50C878',
-          ' km/h',
-          'line',
-          windStats,
-          windGustData,
-          '#8A2BE2', // BlueViolet for wind gust
-          windGustStats,
-          'GUST',
-        )}
-
-        {renderChart(
-          'Atmospheric Pressure',
-          <Gauge size={24} color="#FF6B6B" />,
-          pressureData,
-          '#FF6B6B',
-          ' hPa',
-          'line',
-          pressureStats,
-        )}
-
-        {hasAqiData &&
-          renderChart(
-            'Air Quality Index',
-            <AirVent size={24} color="#00CED1" />,
-            aqiChnData,
-            '#00CED1', // DarkTurquoise for China AQI
-            '',
-            'line',
-            aqiChnStats,
-            aqiUsaData,
-            '#FF6347', // Tomato for USA AQI
-            aqiUsaStats,
-            'USA AQI',
-            'CHINA AQI',
-          )}
-
-        {renderChart(
-          'Humidity',
-          <Droplets size={24} color="#20B2AA" />,
-          humidityData,
-          '#20B2AA',
-          '%',
-          'line',
-          humidityStats,
-        )}
-
-        {error && <Text style={styles.errorText}>{error}</Text>}
+      <View
+        style={s.grid}
+        onLayout={(e) => {
+          if (e.nativeEvent.layout.width > 0)
+            setWidth(e.nativeEvent.layout.width);
+        }}
+      >
+        {charts.map((chart) => (
+          <View
+            key={chart.title}
+            style={{ width: columns ? (width - 12) / 2 : '100%' }}
+          >
+            <ChartPanel
+              {...chart}
+              headerHeight={sharedHeight}
+              onInteractionChange={setInspecting}
+              onHeader={(height) =>
+                setHeaderHeights((prev) =>
+                  prev[chart.title] === height
+                    ? prev
+                    : { ...prev, [chart.title]: height },
+                )
+              }
+            />
+          </View>
+        ))}
       </View>
+      {error && (
+        <GlassSurface theme={theme} style={{ padding: 12, marginTop: 12 }}>
+          <Text style={{ color: theme.danger }}>{error}</Text>
+        </GlassSurface>
+      )}
     </ScrollingScreen>
   );
 }
+const s = StyleSheet.create({
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    alignItems: 'stretch',
+  },
+  heading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  stats: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  seriesName: { flex: 1.5, minWidth: 0 },
+  stat: { flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
+});

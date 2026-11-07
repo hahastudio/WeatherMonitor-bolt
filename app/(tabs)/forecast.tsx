@@ -3,13 +3,13 @@ import { View, Text, ScrollView, StyleSheet, FlexStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MousePointer2 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
-import { ScrollingScreen } from '../../components/ScrollingScreen';
+import { GlassSurface } from '../../components/GlassSurface';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { WeatherIcon } from '../../components/WeatherIcon';
 import { formatTime } from '../../utils/weatherTheme';
 
-export default function ForecastScreen() {
+export function ForecastContent() {
   const { forecast, loading, error, theme, refreshWeather } = useWeather();
 
   if (loading && !forecast) {
@@ -26,27 +26,26 @@ export default function ForecastScreen() {
 
   const styles = StyleSheet.create({
     content: {
-      paddingBottom: 0,
+      flexGrow: 1,
+      gap: 12,
     },
     sectionTitle: {
       color: theme.text,
       fontSize: 20,
       fontWeight: '600',
-      marginBottom: 16,
-      marginTop: 20,
+      marginBottom: 12,
     },
-    // 24-hour forecast styles
+    // Hourly forecast styles
     hourlyContainer: {
-      marginBottom: 32,
+      padding: 14,
     },
     hourlyScrollView: {
       paddingVertical: 8,
     },
     hourlyItem: {
-      backgroundColor: theme.surface + '90',
       borderRadius: 12,
-      padding: 12,
-      marginRight: 12,
+      padding: 6,
+      marginRight: 8,
       alignItems: 'center',
       minWidth: 80,
       // Remove shadow/elevation to prevent Android grey borders
@@ -68,7 +67,7 @@ export default function ForecastScreen() {
     },
     hourlyPrecip: {
       color: theme.primary,
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: '500',
     },
     windContainer: {
@@ -85,22 +84,23 @@ export default function ForecastScreen() {
       fontWeight: '500',
       textAlign: 'center',
     },
-    // 5-day forecast styles
+    // Seven-day forecast styles
     dailyContainer: {
-      gap: 12,
-      paddingBottom: 40,
+      flexGrow: 1,
+      padding: 14,
     },
     dailyItem: {
-      backgroundColor: theme.surface + '90',
-      borderRadius: 16,
-      padding: 16,
+      minHeight: 64,
+      paddingVertical: 6,
+      borderTopWidth: 1,
+      borderTopColor: theme.divider,
       flexDirection: 'row',
       alignItems: 'center',
       // Remove shadow/elevation to prevent Android grey borders
     },
     dailyLeft: {
-      minWidth: 80,
-      marginRight: 4,
+      width: 62,
+      marginRight: 10,
     },
     dailyDate: {
       color: theme.text,
@@ -115,18 +115,18 @@ export default function ForecastScreen() {
     dailyCenter: {
       flex: 1,
       alignItems: 'center',
-      marginRight: 16,
+      marginRight: 10,
     },
     dailyRight: {
-      alignItems: 'flex-end',
-      minWidth: 80,
+      alignItems: 'center',
+      width: 76,
     },
     tempRange: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       marginBottom: 8,
-      width: '80%',
+      width: '100%',
     },
     tempLow: {
       color: theme.textSecondary,
@@ -136,7 +136,7 @@ export default function ForecastScreen() {
     },
     tempHigh: {
       color: theme.text,
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: '700',
     },
     tempBar: {
@@ -144,17 +144,20 @@ export default function ForecastScreen() {
       backgroundColor: theme.textSecondary + '20',
       borderRadius: 2,
       marginBottom: 4,
-      width: '80%',
+      width: '100%',
     },
     tempBarFill: {
       height: '100%',
       borderRadius: 2,
     },
     precipChance: {
+      flex: 1,
       color: theme.primary,
       fontSize: 12,
       fontWeight: '500',
+      fontVariant: ['tabular-nums'],
     },
+    precipRow: { flexDirection: 'row', gap: 4, width: '100%' },
     errorText: {
       color: theme.accent,
       fontSize: 14,
@@ -167,7 +170,7 @@ export default function ForecastScreen() {
   // Get next 48 hours forecast
   const next48Hours = forecast.hourly;
 
-  // Get 5-day forecast data
+  // Keep every daily forecast row visible.
   const dailyForecast = forecast.daily.map((dayItem) => {
     return {
       date: dayItem.dt,
@@ -217,133 +220,159 @@ export default function ForecastScreen() {
   };
 
   return (
-    <ScrollingScreen
-      showSettings
-      theme={theme}
-      title="Weather Forecast"
-      compactTitle="Forecast"
-      onRefresh={refreshWeather}
-      refreshBusy={loading}
-    >
-      <View style={styles.content}>
-        {/* 48-Hour Forecast */}
-        <View style={styles.hourlyContainer}>
-          <Text style={styles.sectionTitle}>Next 48 Hours</Text>
+    <View style={styles.content}>
+      {/* 48-Hour Forecast */}
+      <GlassSurface theme={theme} style={styles.hourlyContainer}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          Next 48 Hours
+        </Text>
+        {next48Hours.length === 0 && (
+          <Text style={{ color: theme.textSecondary }}>
+            No hourly forecast data available
+          </Text>
+        )}
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.hourlyScrollView}
-            contentContainerStyle={{ paddingRight: 20 }}
-          >
-            {next48Hours.map((item, index) => (
-              <View key={index} style={styles.hourlyItem}>
-                <Text style={styles.hourlyTime}>
-                  {index === 0 ? 'Now' : formatTime(item.dt)}
-                </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.hourlyScrollView}
+          contentContainerStyle={{ paddingRight: 20 }}
+        >
+          {next48Hours.map((item, index) => (
+            <View key={index} testID="forecast-hour" style={styles.hourlyItem}>
+              <Text style={styles.hourlyTime}>
+                {index === 0 ? 'Now' : formatTime(item.dt)}
+              </Text>
 
-                <View style={styles.hourlyIcon}>
-                  <WeatherIcon
-                    weatherMain={item.weather[0].main}
-                    size={32}
-                    color={theme.primary}
-                    isNight={
-                      item.sys.sunrise !== undefined &&
-                      item.sys.sunset !== undefined
-                        ? item.dt < item.sys.sunrise ||
-                          item.dt >= item.sys.sunset
-                        : item.weather[0].icon.endsWith('n')
-                    }
-                  />
-                </View>
-
-                <Text style={styles.hourlyTemp}>
-                  {Math.round(item.main.temp)}°
-                </Text>
-
-                <Text style={styles.hourlyPrecip}>
-                  {Math.round(item.pop * 100)}%
-                </Text>
-
-                <Text style={styles.hourlyPrecip}>
-                  {(
-                    (item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0)
-                  ).toFixed(1)}
-                  mm
-                </Text>
-
-                <View style={styles.windContainer}>
-                  <View
-                    style={[
-                      styles.windIcon,
-                      {
-                        transform: [{ rotate: `${item.wind.deg + 225}deg` }],
-                      },
-                    ]}
-                  >
-                    <MousePointer2 size={16} color={theme.textSecondary} />
-                  </View>
-                  <Text style={styles.windSpeed}>
-                    {(item.wind.speed * 3.6).toFixed(1)} km/h
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* 7-Day Forecast */}
-        <Text style={styles.sectionTitle}>7-Day Forecast</Text>
-
-        <View style={styles.dailyContainer}>
-          {dailyForecast.map((day, index) => (
-            <View key={index} style={styles.dailyItem}>
-              <View style={styles.dailyLeft}>
-                <Text style={styles.dailyDate}>{formatDayName(day.date)}</Text>
-                <Text style={styles.dailyDate}>{formatDate(day.date)}</Text>
-              </View>
-
-              <View style={styles.dailyCenter}>
-                <View style={styles.tempRange}>
-                  <Text style={styles.tempLow}>{Math.round(day.minTemp)}°</Text>
-                  <Text style={styles.tempHigh}>
-                    {Math.round(day.maxTemp)}°
-                  </Text>
-                </View>
-
-                <View style={styles.tempBar}>
-                  <LinearGradient
-                    colors={[theme.primary + '60', theme.primary]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={[
-                      styles.tempBarFill,
-                      getTempBarGradient(day.minTemp, day.maxTemp),
-                    ]}
-                  />
-                </View>
-              </View>
-
-              <View style={styles.dailyRight}>
+              <View style={styles.hourlyIcon}>
                 <WeatherIcon
-                  weatherMain={day.weather.main}
+                  weatherMain={item.weather[0].main}
                   size={32}
                   color={theme.primary}
-                  isNight={false} // Daily forecast icons should always show daytime weather
+                  isNight={
+                    item.sys.sunrise !== undefined &&
+                    item.sys.sunset !== undefined
+                      ? item.dt < item.sys.sunrise || item.dt >= item.sys.sunset
+                      : item.weather[0].icon.endsWith('n')
+                  }
                 />
-                <Text style={styles.precipChance}>
-                  {Math.round(day.precipChance)}% rain
-                </Text>
-                <Text style={styles.precipChance}>
-                  {day.rain.toFixed(1)} mm
+              </View>
+
+              <Text style={styles.hourlyTemp}>
+                {Math.round(item.main.temp)}°
+              </Text>
+
+              <Text style={styles.hourlyPrecip}>
+                {Math.round(item.pop * 100)}%
+              </Text>
+
+              <Text style={styles.hourlyPrecip}>
+                {((item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0)).toFixed(
+                  1,
+                )}{' '}
+                mm
+              </Text>
+
+              <View style={styles.windContainer}>
+                <View
+                  style={[
+                    styles.windIcon,
+                    {
+                      transform: [{ rotate: `${item.wind.deg + 225}deg` }],
+                    },
+                  ]}
+                >
+                  <MousePointer2 size={16} color={theme.textSecondary} />
+                </View>
+                <Text style={styles.windSpeed}>
+                  {(item.wind.speed * 3.6).toFixed(1)} km/h
                 </Text>
               </View>
             </View>
           ))}
-        </View>
+        </ScrollView>
+      </GlassSurface>
 
-        {error && <Text style={styles.errorText}>{error}</Text>}
-      </View>
-    </ScrollingScreen>
+      {/* 7-Day Forecast */}
+      <GlassSurface theme={theme} style={styles.dailyContainer}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
+          7-Day Forecast
+        </Text>
+        {dailyForecast.length === 0 && (
+          <Text style={{ color: theme.textSecondary }}>
+            No daily forecast data available
+          </Text>
+        )}
+        {dailyForecast.map((day, index) => (
+          <View
+            key={index}
+            style={styles.dailyItem}
+            testID="forecast-day"
+            accessible
+            accessibilityLabel={`${formatDayName(day.date)}, ${formatDate(day.date)}, ${day.weather.description}, low ${Math.round(day.minTemp)}°, high ${Math.round(day.maxTemp)}°, rain ${Math.round(day.precipChance)}%, ${day.rain.toFixed(1)} millimetres`}
+          >
+            <View style={styles.dailyLeft}>
+              <Text style={styles.dailyDate}>{formatDayName(day.date)}</Text>
+              <Text style={styles.dailyDesc}>{formatDate(day.date)}</Text>
+            </View>
+
+            <View style={styles.dailyCenter}>
+              <View style={styles.tempRange}>
+                <Text style={styles.tempLow}>{Math.round(day.minTemp)}°</Text>
+                <Text style={styles.tempHigh}>{Math.round(day.maxTemp)}°</Text>
+              </View>
+
+              <View testID="forecast-temperature-track" style={styles.tempBar}>
+                <LinearGradient
+                  colors={[theme.primary + '60', theme.primary]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[
+                    styles.tempBarFill,
+                    getTempBarGradient(day.minTemp, day.maxTemp),
+                  ]}
+                />
+              </View>
+            </View>
+
+            <View style={styles.dailyRight}>
+              <WeatherIcon
+                weatherMain={day.weather.main}
+                size={24}
+                color={theme.primary}
+                isNight={false} // Daily forecast icons should always show daytime weather
+              />
+              {[
+                [`${Math.round(day.precipChance)}%`, 'rain'],
+                [day.rain.toFixed(1), 'mm'],
+              ].map(([amount, unit]) => (
+                <View
+                  key={unit}
+                  testID="forecast-precipitation-row"
+                  style={styles.precipRow}
+                >
+                  <Text style={[styles.precipChance, { textAlign: 'right' }]}>
+                    {amount}
+                  </Text>
+                  <Text style={[styles.precipChance, { textAlign: 'left' }]}>
+                    {unit}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+        {error && (
+          <Text accessibilityRole="alert" style={styles.errorText}>
+            {error}
+          </Text>
+        )}
+      </GlassSurface>
+    </View>
   );
+}
+
+// Forecast shares the persistent Weather workspace in the adaptive navigator.
+export default function ForecastRoute() {
+  return null;
 }

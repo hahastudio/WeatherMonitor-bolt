@@ -1,0 +1,538 @@
+<div id="weather-color-study">
+  <style>
+    #weather-color-study .wm-controls {
+      margin-bottom: 18px;
+      padding-right: 90px;
+    }
+    #weather-color-study .wm-stage {
+      padding: 26px 16px;
+    }
+    #weather-color-study .wm-screen {
+      --wm-surface: light-dark(#ffffff, #1d2733);
+      --wm-text: light-dark(#172b3a, #eef4f8);
+      --wm-muted: light-dark(#526775, #abb9c6);
+      --wm-action: light-dark(#2463a6, #9cc8ff);
+      --wm-line: light-dark(#dce3e9, #364352);
+      --wm-sky: light-dark(#eaf5fc, #132638);
+      --wm-weather: light-dark(#286a98, #9ccbeb);
+      --wm-base: light-dark(#f6f8fa, #141c24);
+      max-width: 380px;
+      margin: 0 auto;
+      overflow: hidden;
+      border: 1px solid var(--wm-line);
+      border-radius: 18px;
+      background: var(--wm-surface);
+      color: var(--wm-text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    #weather-color-study .wm-screen * {
+      box-sizing: border-box;
+    }
+    #weather-color-study .wm-hero {
+      background: var(--wm-sky);
+      padding: 24px;
+    }
+    #weather-color-study .wm-location {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 17px;
+      font-weight: 500;
+    }
+    #weather-color-study .wm-location svg {
+      width: 17px;
+      height: 17px;
+      color: var(--wm-muted);
+    }
+    #weather-color-study .wm-current {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 26px;
+    }
+    #weather-color-study .wm-temperature {
+      font-size: 72px;
+      line-height: 1;
+      font-weight: 400;
+      letter-spacing: -4px;
+    }
+    #weather-color-study .wm-condition {
+      font-size: 17px;
+      margin-top: 12px;
+    }
+    #weather-color-study .wm-weather-icon {
+      color: var(--wm-weather);
+      width: 48px;
+      height: 48px;
+      flex-shrink: 0;
+    }
+    #weather-color-study .wm-weather-icon svg {
+      width: 100%;
+      height: 100%;
+      stroke-width: 1.5;
+    }
+    #weather-color-study .wm-range {
+      margin-top: 10px;
+      color: var(--wm-muted);
+      font-size: 14px;
+    }
+    #weather-color-study .wm-detail {
+      padding: 22px 24px 24px;
+    }
+    #weather-color-study .wm-section-title {
+      font-weight: 500;
+      margin: 0 0 16px;
+      font-size: 15px;
+    }
+    #weather-color-study .wm-hours {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      text-align: center;
+    }
+    #weather-color-study .wm-hour {
+      display: grid;
+      justify-items: center;
+      gap: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    #weather-color-study .wm-hour time {
+      color: var(--wm-muted);
+      font-size: 12px;
+    }
+    #weather-color-study .wm-hour svg {
+      width: 21px;
+      height: 21px;
+      color: var(--wm-weather);
+    }
+    #weather-color-study .wm-hour strong {
+      font-weight: 500;
+    }
+    #weather-color-study .wm-forecast-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      margin-top: 22px;
+      padding: 18px 0 0;
+      border: 0;
+      border-top: 1px solid var(--wm-line);
+      border-radius: 0;
+      color: var(--wm-action);
+      background: transparent;
+      font: inherit;
+      text-align: left;
+      min-height: 44px;
+    }
+    #weather-color-study .wm-forecast-button svg {
+      width: 17px;
+      height: 17px;
+      margin-left: auto;
+    }
+    #weather-color-study .wm-tomorrow {
+      padding: 16px 0 0;
+      color: var(--wm-muted);
+      font-size: 14px;
+    }
+    #weather-color-study .wm-palette {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      padding: 18px 24px;
+      border-top: 1px solid var(--wm-line);
+      background: var(--wm-base);
+    }
+    #weather-color-study .wm-token {
+      font-size: 11px;
+      color: var(--wm-muted);
+      min-width: 0;
+    }
+    #weather-color-study .wm-token-swatch {
+      display: block;
+      height: 18px;
+      border-radius: 3px;
+      margin-bottom: 8px;
+    }
+    #weather-color-study .wm-token code {
+      display: block;
+      color: var(--wm-text);
+      font-size: 11px;
+      background: none;
+      padding: 0;
+      white-space: nowrap;
+    }
+    #weather-color-study .wm-caption {
+      margin-top: 14px;
+      text-align: center;
+    }
+    @media (max-width: 400px) {
+      #weather-color-study .wm-stage {
+        padding: 20px 8px;
+      }
+      #weather-color-study .wm-hero,
+      #weather-color-study .wm-detail {
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+      #weather-color-study .wm-palette {
+        gap: 8px;
+        padding: 16px 20px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      #weather-color-study .wm-token code {
+        font-size: 11px;
+      }
+    }
+  </style>
+
+  <div class="viz-controls wm-controls">
+    <label class="form-label">
+      Weather
+      <select class="form-select" id="wm-weather">
+        <option value="sunny">Sunny</option>
+        <option value="cloudy">Cloudy</option>
+        <option value="drizzle">Drizzle</option>
+        <option value="rain">Rain</option>
+        <option value="snow">Snow</option>
+        <option value="fog">Fog</option>
+        <option value="storm">Thunderstorm</option>
+        <option value="night">Clear night</option>
+      </select>
+    </label>
+    <label class="form-label">
+      Appearance
+      <select class="form-select" id="wm-appearance">
+        <option value="system">System</option>
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="wm-stage viz-dotted-background">
+    <article class="wm-screen" aria-label="Weather color preview">
+      <div class="wm-hero">
+        <div class="wm-location">
+          <i data-lucide="map-pin" aria-hidden="true"></i>
+          Shanghai
+        </div>
+        <div class="wm-current" aria-live="polite" aria-atomic="true">
+          <div>
+            <div class="wm-temperature" id="wm-temperature">24°</div>
+            <div class="wm-condition" id="wm-condition">Sunny</div>
+          </div>
+          <span class="wm-weather-icon" id="wm-icon">
+            <i data-lucide="sun" aria-hidden="true"></i>
+          </span>
+        </div>
+        <div class="wm-range" id="wm-range">
+          High 26° · Low 19° · Feels like 24°
+        </div>
+      </div>
+      <div class="wm-detail">
+        <h3 class="wm-section-title">Next hours</h3>
+        <div
+          class="wm-hours"
+          id="wm-hours"
+          aria-label="Sample hourly forecast"
+        ></div>
+        <button
+          type="button"
+          class="wm-forecast-button cursor-interaction"
+          aria-expanded="false"
+          aria-controls="wm-tomorrow"
+        >
+          <span>Tomorrow’s forecast</span>
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+        </button>
+        <div class="wm-tomorrow" id="wm-tomorrow" hidden>
+          Sunny · High 26° · Low 19°
+        </div>
+      </div>
+      <div class="wm-palette" aria-label="Preview palette">
+        <div class="wm-token" data-token="sky">
+          <span class="wm-token-swatch" style="background: var(--wm-sky)"></span
+          >Weather<code></code>
+        </div>
+        <div class="wm-token" data-token="surface">
+          <span
+            class="wm-token-swatch"
+            style="background: var(--wm-surface)"
+          ></span
+          >Surface<code></code>
+        </div>
+        <div class="wm-token" data-token="text">
+          <span
+            class="wm-token-swatch"
+            style="background: var(--wm-text)"
+          ></span
+          >Text<code></code>
+        </div>
+        <div class="wm-token" data-token="action">
+          <span
+            class="wm-token-swatch"
+            style="background: var(--wm-action)"
+          ></span
+          >Controls<code></code>
+        </div>
+      </div>
+    </article>
+  </div>
+  <div class="wm-caption text-small text-muted" id="wm-caption">
+    Pale sky · Sample forecast
+  </div>
+
+  <script>
+    (() => {
+      const root = document.getElementById('weather-color-study');
+      const screen = root.querySelector('.wm-screen');
+      const weatherInput = root.querySelector('#wm-weather');
+      const appearanceInput = root.querySelector('#wm-appearance');
+      const weatherThemes = {
+        sunny: {
+          label: 'Sunny',
+          palette: 'Pale sky',
+          icon: 'sun',
+          light: '#EAF5FC',
+          dark: '#132638',
+          ink: '#286A98',
+          darkInk: '#9CCBEB',
+          temperature: 24,
+          high: 26,
+          low: 19,
+        },
+        cloudy: {
+          label: 'Cloudy',
+          palette: 'Cool gray',
+          icon: 'cloud',
+          light: '#EDF1F3',
+          dark: '#1D242A',
+          ink: '#536976',
+          darkInk: '#BDCDD6',
+          temperature: 21,
+          high: 23,
+          low: 18,
+        },
+        drizzle: {
+          label: 'Drizzle',
+          palette: 'Soft blue-green',
+          icon: 'cloud-drizzle',
+          light: '#EAF3F3',
+          dark: '#172C30',
+          ink: '#356F79',
+          darkInk: '#9CCFD3',
+          temperature: 19,
+          high: 21,
+          low: 17,
+        },
+        rain: {
+          label: 'Rain',
+          palette: 'Blue slate',
+          icon: 'cloud-rain',
+          light: '#E8EFF5',
+          dark: '#192936',
+          ink: '#446B86',
+          darkInk: '#A5C4DD',
+          temperature: 18,
+          high: 20,
+          low: 16,
+        },
+        snow: {
+          label: 'Snow',
+          palette: 'Icy white',
+          icon: 'snowflake',
+          light: '#F3F8FA',
+          dark: '#1C2B34',
+          ink: '#467284',
+          darkInk: '#B5DAE5',
+          temperature: -1,
+          high: 1,
+          low: -4,
+        },
+        fog: {
+          label: 'Fog',
+          palette: 'Soft stone',
+          icon: 'cloud-fog',
+          light: '#F0F1EF',
+          dark: '#242927',
+          ink: '#5B6961',
+          darkInk: '#BFCAC3',
+          temperature: 16,
+          high: 18,
+          low: 14,
+        },
+        storm: {
+          label: 'Thunderstorm',
+          palette: 'Deep slate',
+          icon: 'cloud-lightning',
+          light: '#E8EBF1',
+          dark: '#202435',
+          ink: '#52617B',
+          darkInk: '#B7BED8',
+          temperature: 20,
+          high: 23,
+          low: 18,
+        },
+        night: {
+          label: 'Clear night',
+          palette: 'Moonlit navy',
+          icon: 'moon',
+          light: '#E9EEF6',
+          dark: '#111C30',
+          ink: '#4A638A',
+          darkInk: '#BED0EE',
+          temperature: 19,
+          high: 26,
+          low: 17,
+        },
+      };
+      const state = {
+        weather: 'sunny',
+        appearance: 'system',
+        surfaceStyle: 'tinted',
+        expanded: false,
+      };
+      const design = { surfaceStyle: 'tinted' };
+
+      function restore(saved) {
+        const values = saved?.modelContent || {};
+        if (weatherThemes[values.weather]) state.weather = values.weather;
+        if (['system', 'light', 'dark'].includes(values.appearance))
+          state.appearance = values.appearance;
+        if (['tinted', 'neutral'].includes(values.surfaceStyle))
+          state.surfaceStyle = values.surfaceStyle;
+        design.surfaceStyle = state.surfaceStyle;
+        if (typeof saved?.privateContent?.expanded === 'boolean')
+          state.expanded = saved.privateContent.expanded;
+      }
+
+      function persist() {
+        if (window.openai?.setWidgetState) {
+          window.openai
+            .setWidgetState({
+              modelContent: {
+                weather: state.weather,
+                appearance: state.appearance,
+                surfaceStyle: state.surfaceStyle,
+              },
+              privateContent: { expanded: state.expanded },
+            })
+            .catch(() => {});
+        }
+      }
+
+      function updateSwatches() {
+        root.querySelectorAll('.wm-token').forEach((token) => {
+          const rgb = getComputedStyle(
+            token.querySelector('.wm-token-swatch'),
+          ).backgroundColor.match(/\d+/g);
+          if (rgb && rgb.length >= 3) {
+            token.querySelector('code').textContent =
+              '#' +
+              rgb
+                .slice(0, 3)
+                .map((n) => Number(n).toString(16).padStart(2, '0'))
+                .join('')
+                .toUpperCase();
+          }
+        });
+      }
+
+      function render() {
+        const theme = weatherThemes[state.weather];
+        const neutral = state.surfaceStyle === 'neutral';
+        screen.style.colorScheme =
+          state.appearance === 'system' ? '' : state.appearance;
+        screen.style.setProperty(
+          '--wm-sky',
+          neutral
+            ? 'light-dark(#F6F8FA, #141C24)'
+            : `light-dark(${theme.light}, ${theme.dark})`,
+        );
+        screen.style.setProperty(
+          '--wm-weather',
+          `light-dark(${theme.ink}, ${theme.darkInk})`,
+        );
+        weatherInput.value = state.weather;
+        appearanceInput.value = state.appearance;
+        root.querySelector('#wm-temperature').textContent =
+          `${theme.temperature}°`;
+        root.querySelector('#wm-condition').textContent = theme.label;
+        root.querySelector('#wm-icon').innerHTML =
+          `<i data-lucide="${theme.icon}" aria-hidden="true"></i>`;
+        root.querySelector('#wm-range').textContent =
+          `High ${theme.high}° · Low ${theme.low}° · Feels like ${theme.temperature}°`;
+        root.querySelector('#wm-hours').innerHTML = [0, 1, 2, 3]
+          .map(
+            (index) =>
+              `<div class="wm-hour"><time>${index === 0 ? 'Now' : '+' + index + 'h'}</time><i data-lucide="${theme.icon}" aria-hidden="true"></i><strong>${theme.temperature + (index < 2 ? 0 : 1)}°</strong></div>`,
+          )
+          .join('');
+        root.querySelector('#wm-tomorrow').textContent =
+          `${theme.label} · High ${theme.high}° · Low ${theme.low}°`;
+        root.querySelector('#wm-tomorrow').hidden = !state.expanded;
+        root
+          .querySelector('.wm-forecast-button')
+          .setAttribute('aria-expanded', String(state.expanded));
+        root.querySelector('#wm-caption').textContent =
+          `${neutral ? 'Neutral surfaces' : theme.palette} · Sample forecast`;
+        if (globalThis.lucide)
+          lucide.createIcons({ attrs: { width: 16, height: 16 } });
+        updateSwatches();
+      }
+
+      restore(window.openai?.widgetState);
+      render();
+      weatherInput.addEventListener('change', () => {
+        state.weather = weatherInput.value;
+        render();
+        persist();
+      });
+      appearanceInput.addEventListener('change', () => {
+        state.appearance = appearanceInput.value;
+        render();
+        persist();
+      });
+      root
+        .querySelector('.wm-forecast-button')
+        .addEventListener('click', () => {
+          state.expanded = !state.expanded;
+          render();
+          persist();
+        });
+      window.addEventListener('openai:set_globals', (event) => {
+        if (event.detail?.globals?.widgetState) {
+          restore(event.detail.globals.widgetState);
+          render();
+        }
+      });
+      new MutationObserver(updateSwatches).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class', 'style', 'data-theme'],
+      });
+      matchMedia('(prefers-color-scheme: dark)').addEventListener(
+        'change',
+        updateSwatches,
+      );
+      if (globalThis.Tweak) {
+        const tweak = new Tweak({
+          container: screen,
+          onChange: () => {
+            state.surfaceStyle = design.surfaceStyle;
+            render();
+          },
+        });
+        tweak.addSelect(design, 'surfaceStyle', {
+          label: 'Weather tint',
+          options: [
+            { label: 'Subtle atmosphere', value: 'tinted' },
+            { label: 'Neutral surfaces', value: 'neutral' },
+          ],
+        });
+      }
+    })();
+  </script>
+</div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControl, Text } from 'react-native';
+import { RefreshControl, ScrollView, Text } from 'react-native';
 import {
   act,
   fireEvent,
@@ -12,9 +12,13 @@ import * as Reanimated from 'react-native-reanimated';
 import { ScrollingScreen } from '../../components/ScrollingScreen';
 import { defaultTheme } from '../../utils/weatherTheme';
 
-const mockPush = jest.fn();
+const mockNavigate = jest.fn();
+const mockAdaptiveLayout = { rail: false, navigationHeight: 64 };
+jest.mock('../../hooks/useAdaptiveLayout', () => ({
+  useAdaptiveLayout: () => mockAdaptiveLayout,
+}));
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ navigate: mockNavigate }),
 }));
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -27,40 +31,20 @@ jest.mock('expo-linear-gradient', () => ({
 
 // Run the component's scroll worklets synchronously for interaction tests.
 // Device rendering and native pull activation are outside this mock's scope.
-let updateHeading: (() => void) | undefined;
 
 describe('ScrollingScreen', () => {
   beforeEach(() => {
-    updateHeading = undefined;
+    mockAdaptiveLayout.rail = false;
     const makeSharedValue = Reanimated.useSharedValue;
     jest
       .spyOn(Reanimated, 'useSharedValue')
       .mockImplementation(
         (value) => React.useRef(makeSharedValue(value)).current,
       );
-    jest.spyOn(Reanimated, 'useDerivedValue').mockImplementation(
-      (updater) =>
-        ({
-          get value() {
-            return updater();
-          },
-        }) as ReturnType<typeof Reanimated.useDerivedValue>,
-    );
-    jest
-      .spyOn(Reanimated, 'useAnimatedReaction')
-      .mockImplementation((prepare, react) => {
-        const previous = React.useRef<ReturnType<typeof prepare> | null>(null);
-        updateHeading = () => {
-          const next = prepare();
-          react(next, previous.current);
-          previous.current = next;
-        };
-      });
     jest.spyOn(Reanimated, 'useAnimatedScrollHandler').mockImplementation(
       (handler) =>
         ((event: { nativeEvent: Parameters<Reanimated.ScrollHandler>[0] }) => {
           if (typeof handler === 'function') handler(event.nativeEvent, {});
-          updateHeading?.();
         }) as unknown as ReturnType<typeof Reanimated.useAnimatedScrollHandler>,
     );
   });
@@ -71,12 +55,7 @@ describe('ScrollingScreen', () => {
     props: Partial<React.ComponentProps<typeof ScrollingScreen>> = {},
   ) =>
     render(
-      <ScrollingScreen
-        theme={defaultTheme}
-        title="Weather Forecast"
-        compactTitle="Forecast"
-        {...props}
-      >
+      <ScrollingScreen theme={defaultTheme} title="Weather Forecast" {...props}>
         <Text>First forecast</Text>
         <Text>Last forecast</Text>
       </ScrollingScreen>,
@@ -99,55 +78,19 @@ describe('ScrollingScreen', () => {
     );
     expect(screen.getAllByRole('header')).toHaveLength(1);
     expect(screen.getByRole('header')).toHaveTextContent('Weather Forecast');
-  });
-
-  it('waits until the expanded heading scrolls out of view before revealing the compact title', () => {
-    renderScreen();
-    fireEvent(screen.getByTestId('screen-expanded-header'), 'layout', {
-      nativeEvent: { layout: { x: 0, y: 59, width: 300, height: 100 } },
-    });
-    scrollTo(40);
-    expect(screen.getByRole('header')).toHaveTextContent('Weather Forecast');
-    expect(
-      screen.getByTestId('screen-compact-header', {
-        includeHiddenElements: true,
-      }),
-    ).toHaveStyle({ opacity: 0 });
-    scrollTo(111);
-    expect(screen.getByRole('header')).toHaveTextContent('Weather Forecast');
-    expect(
-      screen.getByTestId('screen-compact-header', {
-        includeHiddenElements: true,
-      }),
-    ).toHaveStyle({ opacity: 0 });
-    scrollTo(136);
-    expect(screen.getByRole('header')).toHaveTextContent('Forecast');
-    expect(screen.getByTestId('screen-compact-header')).toHaveStyle({
-      opacity: 0.5,
-    });
-    scrollTo(80);
-    expect(screen.getByRole('header')).toHaveTextContent('Weather Forecast');
-    expect(
-      screen.getByTestId('screen-compact-header', {
-        includeHiddenElements: true,
-      }),
-    ).toHaveStyle({ opacity: 0 });
-    scrollTo(160);
+    scrollTo(200);
+    expect(within(scroll).getByRole('header')).toHaveTextContent(
+      'Weather Forecast',
+    );
     expect(screen.getAllByRole('header')).toHaveLength(1);
-    expect(screen.getByRole('header')).toHaveTextContent('Forecast');
-    expect(screen.getByTestId('screen-compact-header')).toHaveStyle({
-      opacity: 1,
-    });
-    scrollTo(-80);
-    expect(screen.getByRole('header')).toHaveTextContent('Weather Forecast');
     expect(
-      screen.getByTestId('screen-compact-header', {
+      screen.queryByTestId('screen-compact-header', {
         includeHiddenElements: true,
       }),
-    ).toHaveStyle({ opacity: 0 });
+    ).toBeNull();
   });
 
-  it('keeps the back action available after the title collapses', () => {
+  it('keeps the back action available after scrolling', () => {
     const onBack = jest.fn();
     renderScreen({ onBack });
     scrollTo(200);
@@ -155,31 +98,22 @@ describe('ScrollingScreen', () => {
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps Settings available after the title collapses', () => {
+  it('keeps Settings in the scrolling title row', () => {
     renderScreen({ showSettings: true });
+    fireEvent.press(
+      within(screen.getByTestId('screen-scroll')).getByRole('button', {
+        name: 'Open settings',
+      }),
+    );
+    expect(mockNavigate).toHaveBeenCalledWith('/settings');
     scrollTo(200);
-    fireEvent.press(screen.getByRole('button', { name: 'Open settings' }));
-    expect(mockPush).toHaveBeenCalledWith('/settings');
-  });
-
-  it('fully reveals the compact title at the end of a short page', () => {
-    renderScreen();
-    const scroll = screen.getByTestId('screen-scroll');
-    fireEvent(scroll, 'layout', {
-      nativeEvent: { layout: { x: 0, y: 0, width: 300, height: 800 } },
-    });
-    fireEvent(scroll, 'contentSizeChange', 300, 932);
-    fireEvent(screen.getByTestId('screen-expanded-header'), 'layout', {
-      nativeEvent: { layout: { x: 0, y: 59, width: 300, height: 100 } },
-    });
-    scrollTo(111);
-    expect(screen.getByRole('header')).toHaveTextContent('Weather Forecast');
-    scrollTo(132);
-    expect(screen.getByRole('header')).toHaveTextContent('Forecast');
-    expect(screen.getByTestId('screen-compact-header')).toHaveStyle({
-      opacity: 1,
-      transform: [{ translateY: 0 }],
-    });
+    expect(
+      within(screen.getByTestId('screen-expanded-header')).getByRole('button', {
+        name: 'Open settings',
+      }),
+    ).toBeTruthy();
+    scrollTo(0);
+    expect(screen.getByRole('button', { name: 'Open settings' })).toBeTruthy();
   });
 
   it('does not show a manual refresh indicator for background loading', () => {
@@ -233,15 +167,55 @@ describe('ScrollingScreen', () => {
     await waitFor(() => expect(onRefresh).toHaveBeenCalledTimes(2));
   });
 
-  it('removes title movement when reduced motion is enabled', () => {
-    jest.mocked(Reanimated.useReducedMotion).mockReturnValue(true);
-    renderScreen();
-    scrollTo(200);
-    expect(screen.getByTestId('screen-compact-header')).toHaveStyle({
-      opacity: 1,
-      transform: [{ translateY: 0 }],
+  it('shares one refresh between independent panes and keeps it running when folded', async () => {
+    let finish: () => void = () => {};
+    const onRefresh = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const Workspace = ({ columns }: { columns: boolean }) => (
+      <ScrollingScreen
+        theme={defaultTheme}
+        title="Weather"
+        fillViewport={columns}
+        onRefresh={onRefresh}
+      >
+        {(refreshControl) => (
+          <>
+            <ScrollView refreshControl={columns ? refreshControl : undefined}>
+              <Text>Current</Text>
+            </ScrollView>
+            <ScrollView refreshControl={columns ? refreshControl : undefined}>
+              <Text>Forecast</Text>
+            </ScrollView>
+          </>
+        )}
+      </ScrollingScreen>
+    );
+    const view = render(<Workspace columns />);
+    const activeControls = () =>
+      screen
+        .UNSAFE_getAllByType(RefreshControl)
+        .filter((control) => control.props.onRefresh);
+    const controls = activeControls();
+    expect(controls).toHaveLength(2);
+    fireEvent(controls[0], 'refresh');
+    fireEvent(controls[1], 'refresh');
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    activeControls().forEach((control) => {
+      expect(control.props.refreshing).toBe(true);
+      expect(control.props.progressViewOffset).toBe(0);
     });
-    scrollTo(0);
-    expect(screen.getByRole('header')).toHaveTextContent('Weather Forecast');
+    view.rerender(<Workspace columns={false} />);
+    expect(screen.UNSAFE_getAllByType(RefreshControl)).toHaveLength(1);
+    expect(screen.UNSAFE_getByType(RefreshControl).props.refreshing).toBe(true);
+    fireEvent(screen.UNSAFE_getByType(RefreshControl), 'refresh');
+    expect(onRefresh).toHaveBeenCalledTimes(1);
+    await act(async () => finish());
+    expect(screen.UNSAFE_getByType(RefreshControl).props.refreshing).toBe(
+      false,
+    );
   });
 });

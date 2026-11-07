@@ -1,6 +1,23 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react-native';
-import AirQualityScreen from '../../app/air-quality';
+import WeatherWorkspace from '../../app/(tabs)/index';
+import { WeatherPaneContext } from '../../contexts/WeatherPaneContext';
+import { mockWeatherContext } from '../mocks';
+import { defaultTheme } from '../../utils/weatherTheme';
+function AirQualityScreen() {
+  return (
+    <WeatherPaneContext.Provider value="air-quality">
+      <WeatherWorkspace />
+    </WeatherPaneContext.Provider>
+  );
+}
+jest.mock('../../hooks/useAdaptiveLayout', () => ({
+  useAdaptiveLayout: () => ({
+    rail: false,
+    columns: false,
+    navigationHeight: 64,
+  }),
+}));
 import { useWeather } from '../../contexts/WeatherContext';
 import { useRouter } from 'expo-router';
 
@@ -24,16 +41,7 @@ jest.mock('react-native-safe-area-context', () => ({
 describe('AirQualityScreen', () => {
   const mockRouter = {
     back: jest.fn(),
-  };
-
-  const defaultTheme = {
-    gradientStart: '#ffffff',
-    gradientEnd: '#f0f0f0',
-    text: '#000000',
-    textSecondary: '#666666',
-    primary: '#007AFF',
-    surface: '#ffffff',
-    background: '#ffffff',
+    canGoBack: () => true,
   };
 
   beforeEach(() => {
@@ -43,6 +51,7 @@ describe('AirQualityScreen', () => {
 
   it('renders loading spinner when loading and no data', () => {
     (useWeather as jest.Mock).mockReturnValue({
+      ...mockWeatherContext,
       weatherAirQuality: null,
       theme: defaultTheme,
       loading: true,
@@ -54,6 +63,7 @@ describe('AirQualityScreen', () => {
 
   it('renders error message when no data available', () => {
     (useWeather as jest.Mock).mockReturnValue({
+      ...mockWeatherContext,
       weatherAirQuality: null,
       theme: defaultTheme,
       loading: false,
@@ -67,6 +77,7 @@ describe('AirQualityScreen', () => {
     'keeps back navigation available without data (loading: %s)',
     (loading) => {
       (useWeather as jest.Mock).mockReturnValue({
+        ...mockWeatherContext,
         weatherAirQuality: null,
         theme: defaultTheme,
         loading,
@@ -89,6 +100,7 @@ describe('AirQualityScreen', () => {
     };
 
     (useWeather as jest.Mock).mockReturnValue({
+      ...mockWeatherContext,
       weatherAirQuality: mockData,
       theme: defaultTheme,
       loading: false,
@@ -118,6 +130,7 @@ describe('AirQualityScreen', () => {
 
   it('navigates back from the populated screen', () => {
     (useWeather as jest.Mock).mockReturnValue({
+      ...mockWeatherContext,
       weatherAirQuality: { aqi: { usa: 50 }, pm25: 10 },
       theme: defaultTheme,
       loading: false,
@@ -136,6 +149,7 @@ describe('AirQualityScreen', () => {
     };
 
     (useWeather as jest.Mock).mockReturnValue({
+      ...mockWeatherContext,
       weatherAirQuality: mockData,
       theme: defaultTheme,
       loading: false,

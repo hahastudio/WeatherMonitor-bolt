@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,6 @@ import {
   Alert,
   Platform,
   Linking,
-  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,8 +23,10 @@ import {
   ExternalLink,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
-import { SettingsButton } from '../../components/SettingsButton';
+import { useAdaptiveLayout } from '../../hooks/useAdaptiveLayout';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { GlassSurface } from '../../components/GlassSurface';
+import { FadingHorizontalScroll } from '../../components/FadingHorizontalScroll';
 
 type WeatherLayer = 'weather' | 'wind' | 'rain' | 'temp' | 'clouds';
 
@@ -35,8 +36,9 @@ interface MapSettings {
 }
 
 export default function MapScreen() {
-  const { location, theme, loading: weatherLoading } = useWeather();
+  const { location, theme } = useWeather();
   const insets = useSafeAreaInsets();
+  const adaptive = useAdaptiveLayout();
 
   const webViewRef = useRef<WebView>(null);
   const [mapSettings, setMapSettings] = useState<MapSettings>({
@@ -261,12 +263,15 @@ export default function MapScreen() {
     },
     gradient: {
       flex: 1,
-      paddingTop: insets.top + 4,
-      paddingLeft: insets.left,
+      paddingTop: insets.top + (adaptive.rail ? 12 : 4),
+      paddingBottom: adaptive.rail
+        ? insets.bottom
+        : Math.max(insets.bottom, 8) + adaptive.navigationHeight + 12,
+      paddingLeft: adaptive.rail ? 0 : insets.left,
       paddingRight: insets.right,
     },
     header: {
-      paddingHorizontal: 20,
+      paddingHorizontal: adaptive.rail ? 16 : 20,
       marginBottom: 8,
     },
     headerTop: {
@@ -278,7 +283,7 @@ export default function MapScreen() {
       gap: 12,
     },
     title: {
-      color: theme.text,
+      color: theme.heroText,
       fontSize: 18,
       fontWeight: '600',
       flex: 1,
@@ -288,7 +293,7 @@ export default function MapScreen() {
       gap: 4,
     },
     actionButton: {
-      backgroundColor: theme.surface + '80',
+      backgroundColor: theme.surface,
       borderRadius: 22,
       width: 44,
       height: 44,
@@ -296,23 +301,21 @@ export default function MapScreen() {
       justifyContent: 'center',
     },
     layerSelector: {
-      flexDirection: 'row',
+      paddingVertical: 4,
+      // Keep the outer fade gutters inside the rounded surface.
+      paddingHorizontal: 20,
     },
     layerButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.surface + '60',
-      borderRadius: 20,
+      backgroundColor: 'transparent',
+      borderRadius: 14,
       paddingHorizontal: 12,
-      marginHorizontal: 4,
       paddingVertical: 10,
       minHeight: 44,
-      borderWidth: 1,
-      borderColor: 'transparent',
     },
     layerButtonActive: {
-      backgroundColor: theme.primary + '20',
-      borderColor: theme.primary,
+      backgroundColor: theme.primary,
     },
     layerIcon: {
       marginRight: 6,
@@ -323,12 +326,12 @@ export default function MapScreen() {
       fontWeight: '500',
     },
     layerTextActive: {
-      color: theme.primary,
+      color: theme.onPrimary,
       fontWeight: '600',
     },
     mapContainer: {
       flex: 1,
-      marginHorizontal: 20,
+      marginHorizontal: adaptive.rail ? 16 : 20,
       marginBottom: 20,
       borderRadius: 16,
       overflow: 'hidden',
@@ -402,7 +405,7 @@ export default function MapScreen() {
       alignItems: 'center',
     },
     retryButtonText: {
-      color: '#FFFFFF',
+      color: theme.onPrimary,
       fontSize: 16,
       fontWeight: '600',
       marginLeft: 8,
@@ -427,7 +430,7 @@ export default function MapScreen() {
       position: 'absolute',
       top: 16,
       right: 16,
-      backgroundColor: theme.surface + 'CC',
+      backgroundColor: theme.surface,
       borderRadius: 20,
       paddingHorizontal: 12,
       paddingVertical: 6,
@@ -443,11 +446,13 @@ export default function MapScreen() {
     },
   });
 
-  if (weatherLoading || !location) {
+  const windyUrl = generateWindyUrl();
+  const source = useMemo(() => ({ uri: windyUrl }), [windyUrl]);
+
+  if (!location) {
     return <LoadingSpinner message="Loading map location..." />;
   }
 
-  const windyUrl = generateWindyUrl();
   const selectedLayerOption = layerOptions.find(
     (l) => l.key === mapSettings.layer,
   );
@@ -455,7 +460,8 @@ export default function MapScreen() {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={[theme.gradientStart, theme.gradientEnd]}
+        colors={theme.gradient}
+        locations={theme.gradientLocations}
         style={styles.gradient}
       >
         <View style={styles.header}>
@@ -468,7 +474,6 @@ export default function MapScreen() {
               Weather Map
             </Text>
             <View style={styles.headerActions}>
-              <SettingsButton theme={theme} />
               <TouchableOpacity
                 style={styles.actionButton}
                 accessibilityRole="button"
@@ -488,12 +493,16 @@ export default function MapScreen() {
             </View>
           </View>
 
-          <View style={styles.layerSelector}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <GlassSurface theme={theme} style={styles.layerSelector}>
+            <FadingHorizontalScroll
+              testID="map-layers"
+              contentContainerStyle={{ gap: 4 }}
+            >
               {layerOptions.map((option) => (
                 <TouchableOpacity
                   key={option.key}
                   accessibilityRole="button"
+                  aria-pressed={mapSettings.layer === option.key}
                   accessibilityState={{
                     selected: mapSettings.layer === option.key,
                   }}
@@ -509,8 +518,8 @@ export default function MapScreen() {
                       size={16}
                       color={
                         mapSettings.layer === option.key
-                          ? theme.primary
-                          : option.color
+                          ? theme.onPrimary
+                          : theme.primary
                       }
                     />
                   </View>
@@ -525,8 +534,8 @@ export default function MapScreen() {
                   </Text>
                 </TouchableOpacity>
               ))}
-            </ScrollView>
-          </View>
+            </FadingHorizontalScroll>
+          </GlassSurface>
         </View>
 
         <View style={styles.mapContainer}>
@@ -546,7 +555,7 @@ export default function MapScreen() {
                   style={styles.retryButton}
                   onPress={handleRefresh}
                 >
-                  <RefreshCw size={16} color="#FFFFFF" />
+                  <RefreshCw size={16} color={theme.onPrimary} />
                   <Text style={styles.retryButtonText}>Retry</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -562,66 +571,83 @@ export default function MapScreen() {
             </View>
           ) : (
             <>
-              <WebView
-                key={mapKey}
-                ref={webViewRef}
-                source={{ uri: windyUrl }}
-                style={styles.webView}
-                onLoadStart={() => {
-                  console.log('Starting to load Windy map...');
-                  setWebViewLoading(true);
-                  setWebViewError(null);
-                }}
-                onLoadEnd={() => {
-                  console.log('WebView load end');
-                  // Set a fallback timeout in case injected JS doesn't work
-                  setTimeout(() => {
-                    if (webViewLoading) {
-                      setWebViewLoading(false);
-                    }
-                  }, 3000);
-                }}
-                onError={(syntheticEvent) => {
-                  const { nativeEvent } = syntheticEvent;
-                  console.error('WebView error:', nativeEvent);
-                  setWebViewError(
-                    nativeEvent.description || 'Failed to load weather map',
-                  );
-                  setWebViewLoading(false);
-                }}
-                onHttpError={(syntheticEvent) => {
-                  const { nativeEvent } = syntheticEvent;
-                  console.error('HTTP error:', nativeEvent.statusCode);
-                  setWebViewError(
-                    `HTTP Error: ${nativeEvent.statusCode}. Please check your internet connection.`,
-                  );
-                  setWebViewLoading(false);
-                }}
-                onMessage={handleWebViewMessage}
-                injectedJavaScript={injectedJavaScript}
-                javaScriptEnabled={true}
-                domStorageEnabled={true}
-                startInLoadingState={false}
-                scalesPageToFit={Platform.OS !== 'ios'}
-                mediaPlaybackRequiresUserAction={false}
-                mixedContentMode="compatibility"
-                thirdPartyCookiesEnabled={true}
-                sharedCookiesEnabled={true}
-                allowsBackForwardNavigationGestures={false}
-                bounces={false}
-                scrollEnabled={true}
-                userAgent="Mozilla/5.0 (compatible; WeatherApp/1.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                originWhitelist={['https://*', 'http://*']}
-                allowsLinkPreview={false}
-                dataDetectorTypes={['none']}
-                overScrollMode="never"
-                showsHorizontalScrollIndicator={false}
-                showsVerticalScrollIndicator={false}
-                automaticallyAdjustContentInsets={false}
-                contentInsetAdjustmentBehavior="never"
-                cacheEnabled={true}
-                incognito={false}
-              />
+              {Platform.OS === 'web' ? (
+                <iframe
+                  key={mapKey}
+                  title="Interactive weather map"
+                  src={windyUrl}
+                  style={{ width: '100%', height: '100%', border: 0, flex: 1 }}
+                  onLoad={() => {
+                    setWebViewLoading(false);
+                    clearTimeout(loadingTimeoutRef.current);
+                  }}
+                  onError={() => {
+                    setWebViewError('Failed to load weather map');
+                    setWebViewLoading(false);
+                  }}
+                />
+              ) : (
+                <WebView
+                  key={mapKey}
+                  ref={webViewRef}
+                  source={source}
+                  style={styles.webView}
+                  onLoadStart={() => {
+                    console.log('Starting to load Windy map...');
+                    setWebViewLoading(true);
+                    setWebViewError(null);
+                  }}
+                  onLoadEnd={() => {
+                    console.log('WebView load end');
+                    // Set a fallback timeout in case injected JS doesn't work
+                    setTimeout(() => {
+                      if (webViewLoading) {
+                        setWebViewLoading(false);
+                      }
+                    }, 3000);
+                  }}
+                  onError={(syntheticEvent) => {
+                    const { nativeEvent } = syntheticEvent;
+                    console.error('WebView error:', nativeEvent);
+                    setWebViewError(
+                      nativeEvent.description || 'Failed to load weather map',
+                    );
+                    setWebViewLoading(false);
+                  }}
+                  onHttpError={(syntheticEvent) => {
+                    const { nativeEvent } = syntheticEvent;
+                    console.error('HTTP error:', nativeEvent.statusCode);
+                    setWebViewError(
+                      `HTTP Error: ${nativeEvent.statusCode}. Please check your internet connection.`,
+                    );
+                    setWebViewLoading(false);
+                  }}
+                  onMessage={handleWebViewMessage}
+                  injectedJavaScript={injectedJavaScript}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  startInLoadingState={false}
+                  scalesPageToFit={Platform.OS !== 'ios'}
+                  mediaPlaybackRequiresUserAction={false}
+                  mixedContentMode="compatibility"
+                  thirdPartyCookiesEnabled={true}
+                  sharedCookiesEnabled={true}
+                  allowsBackForwardNavigationGestures={false}
+                  bounces={false}
+                  scrollEnabled={true}
+                  userAgent="Mozilla/5.0 (compatible; WeatherApp/1.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                  originWhitelist={['https://*', 'http://*']}
+                  allowsLinkPreview={false}
+                  dataDetectorTypes={['none']}
+                  overScrollMode="never"
+                  showsHorizontalScrollIndicator={false}
+                  showsVerticalScrollIndicator={false}
+                  automaticallyAdjustContentInsets={false}
+                  contentInsetAdjustmentBehavior="never"
+                  cacheEnabled={true}
+                  incognito={false}
+                />
+              )}
 
               {webViewLoading && (
                 <View style={styles.loadingContainer}>

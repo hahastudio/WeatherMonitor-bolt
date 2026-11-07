@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 import type { WeatherTheme } from '../../utils/weatherTheme';
 
 export function skyColors(theme: WeatherTheme) {
-  const dark = theme.text.toUpperCase() === '#FFFFFF';
+  const dark = theme.isDark;
   return {
     sun: dark ? '#FFD166' : '#9B5800',
     moon: dark ? '#9EC8EF' : '#35638D',
@@ -16,7 +16,7 @@ export function skyColors(theme: WeatherTheme) {
 }
 
 export const skyStyles = StyleSheet.create({
-  section: { padding: 16, borderRadius: 12, marginBottom: 12 },
+  section: { padding: 16, borderRadius: 18, marginBottom: 12 },
   heading: { fontSize: 20, fontWeight: '600', flexShrink: 1 },
   row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
   spread: {

@@ -1,0 +1,1025 @@
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Switch,
+  Alert,
+  Modal,
+  BackHandler,
+} from 'react-native';
+import * as Application from 'expo-application';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import {
+  Moon,
+  Sun,
+  Monitor,
+  MapPin,
+  Bell,
+  RefreshCw,
+  Info,
+  ChevronRight,
+  Thermometer,
+  Clock,
+  X,
+  Check,
+  Activity,
+  Shield,
+  Database,
+  KeyRound,
+} from 'lucide-react-native';
+import { useWeather } from '../../contexts/WeatherContext';
+import { notificationService } from '../../services/notificationService';
+import { alertTracker } from '../../services/alertTracker';
+import { ApiLogViewer } from '../../components/ApiLogViewer';
+import ApiKeySettingsScreen from '../../components/ApiKeySettings';
+import { apiLogger } from '../../services/apiLogger';
+import { useNow } from '../../hooks/useNow';
+import { ScrollingScreen } from '../../components/ScrollingScreen';
+import { useAdaptiveLayout } from '../../hooks/useAdaptiveLayout';
+import { GlassSurface } from '../../components/GlassSurface';
+import { FullScreenModal } from '../../components/FullScreenModal';
+
+const REFRESH_RATE_OPTIONS = [
+  { label: '15 minutes', value: 15 },
+  { label: '30 minutes', value: 30 },
+  { label: '1 hour', value: 60 },
+  { label: '2 hours', value: 120 },
+];
+
+export default function SettingsScreen() {
+  const router = useRouter();
+  const { rail, columns } = useAdaptiveLayout();
+  const [category, setCategory] = useState('Appearance');
+  const [detailOpen, setDetailOpen] = useState(false);
+  useFocusEffect(
+    React.useCallback(() => {
+      if (columns || !detailOpen) return;
+      const subscription = BackHandler.addEventListener(
+        'hardwareBackPress',
+        () => {
+          setDetailOpen(false);
+          return true;
+        },
+      );
+      return () => subscription.remove();
+    }, [columns, detailOpen]),
+  );
+  const {
+    theme,
+    isDarkMode,
+    toggleDarkMode,
+    followSystemTheme,
+    setFollowSystemTheme,
+    currentWeather,
+    refreshLocation,
+    cityName,
+    refreshWeather,
+    refreshRate,
+    setRefreshRate,
+    lastUpdated,
+  } = useWeather();
+
+  const [showRefreshRateModal, setShowRefreshRateModal] = useState(false);
+  const [isRefreshingLocation, setIsRefreshingLocation] = useState(false);
+  const [showApiLogModal, setShowApiLogModal] = useState(false);
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [logVersion, setLogVersion] = useState(0);
+  const [alertTrackerStats, setAlertTrackerStats] = useState<{
+    totalTrackedAlerts: number;
+    oldestAlertAge: number | null;
+    newestAlertAge: number | null;
+  } | null>(null);
+
+  const now = useNow();
+
+  const handleNotificationTest = async () => {
+    try {
+      await notificationService.showGeneralNotification(
+        'Weather App Test',
+        'Notifications are working correctly!',
+      );
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Error', 'Failed to send test notification');
+    }
+  };
+
+  const handleLocationRefresh = async () => {
+    Alert.alert(
+      'Refresh Location',
+      'This will get your current location and update the weather data.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Refresh',
+          onPress: async () => {
+            setIsRefreshingLocation(true);
+            try {
+              await refreshLocation();
+              Alert.alert(
+                'Success',
+                'Location and weather data updated successfully',
+              );
+            } catch (error) {
+              console.log(error);
+              Alert.alert(
+                'Error',
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to refresh location',
+              );
+            } finally {
+              setIsRefreshingLocation(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleRefreshRateChange = async (newRate: number) => {
+    try {
+      await setRefreshRate(newRate);
+      setShowRefreshRateModal(false);
+    } catch {
+      Alert.alert('Error', 'Failed to save refresh rate');
+    }
+  };
+
+  const handleClearApiLogs = () => {
+    setShowClearConfirmModal(true);
+  };
+
+  const onConfirmClearLogs = async () => {
+    try {
+      await apiLogger.clearLogs();
+      setLogVersion((v) => v + 1);
+      setShowClearConfirmModal(false);
+    } catch {
+      Alert.alert('Error', 'Failed to clear API logs');
+    }
+  };
+
+  const handleClearAlertHistory = async () => {
+    Alert.alert(
+      'Clear Alert History',
+      'This will clear the history of recent weather alerts and allow duplicate notifications to be sent again. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Clear',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await alertTracker.clearRecentAlerts();
+              setAlertTrackerStats({
+                totalTrackedAlerts: 0,
+                oldestAlertAge: null,
+                newestAlertAge: null,
+              });
+              Alert.alert('Success', 'Alert history cleared successfully');
+            } catch (error) {
+              console.log(error);
+              Alert.alert('Error', 'Failed to clear alert history');
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const loadAlertTrackerStats = async () => {
+    try {
+      const stats = await alertTracker.getTrackerStats();
+      setAlertTrackerStats(stats);
+    } catch (error) {
+      console.error('Failed to load alert tracker stats:', error);
+    }
+  };
+
+  const showAbout = () => {
+    const version = Application.nativeApplicationVersion || '1.0.0';
+
+    Alert.alert(
+      'Weather Monitor NT',
+      `A weather app built with React Native and Expo. Weather data provided by OpenWeatherMap and ColorfulCloud.\n\nVersion ${version}`,
+      [{ text: 'OK' }],
+    );
+  };
+
+  const getRefreshRateLabel = (rate: number): string => {
+    const option = REFRESH_RATE_OPTIONS.find((opt) => opt.value === rate);
+    return option ? option.label : `${rate} minutes`;
+  };
+
+  const formatLastUpdated = (timestamp: number | null): string => {
+    if (!timestamp) return 'Never';
+
+    const diffMs = now - timestamp;
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffMinutes < 1) {
+      return 'Just now';
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes} minutes ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hours ago`;
+    } else {
+      return new Date(timestamp).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    }
+  };
+
+  const formatAlertAge = (ageMs: number | null): string => {
+    if (!ageMs) return 'N/A';
+
+    const hours = Math.floor(ageMs / (1000 * 60 * 60));
+    const minutes = Math.floor((ageMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ago`;
+    }
+    return `${minutes}m ago`;
+  };
+
+  // Load alert tracker stats when component mounts
+  React.useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const stats = await alertTracker.getTrackerStats();
+        if (active) setAlertTrackerStats(stats);
+      } catch (error) {
+        console.error('Failed to load alert tracker stats:', error);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    section: {
+      marginBottom: 12,
+    },
+    sectionTitle: {
+      color: theme.text,
+      fontSize: 20,
+      fontWeight: '600',
+      marginBottom: 16,
+    },
+    settingItem: {
+      backgroundColor: 'transparent',
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    settingLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    settingIcon: {
+      marginRight: 12,
+    },
+    settingInfo: {
+      flex: 1,
+    },
+    settingTitle: {
+      color: theme.text,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    settingDescription: {
+      color: theme.textSecondary,
+      fontSize: 14,
+      marginTop: 2,
+    },
+    settingValue: {
+      color: theme.primary,
+      fontSize: 14,
+      fontWeight: '600',
+      marginRight: 8,
+    },
+    infoCard: {
+      backgroundColor: 'transparent',
+      borderRadius: 12,
+      padding: 16,
+      marginBottom: 16,
+    },
+    infoTitle: {
+      color: theme.text,
+      fontSize: 16,
+      fontWeight: '600',
+      marginBottom: 8,
+    },
+    infoText: {
+      color: theme.textSecondary,
+      fontSize: 14,
+      lineHeight: 20,
+    },
+    currentWeatherInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    weatherTemp: {
+      color: theme.primary,
+      fontSize: 16,
+      fontWeight: '600',
+      marginLeft: 8,
+    },
+    lastUpdatedInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: 8,
+    },
+    lastUpdatedText: {
+      color: theme.textSecondary,
+      fontSize: 14,
+      marginLeft: 8,
+    },
+    alertStatsContainer: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.textSecondary + '20',
+    },
+    alertStatRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 4,
+    },
+    alertStatLabel: {
+      color: theme.textSecondary,
+      fontSize: 12,
+    },
+    alertStatValue: {
+      color: theme.text,
+      fontSize: 12,
+      fontWeight: '600',
+    },
+    // Modal styles
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    modalContent: {
+      backgroundColor: theme.surface,
+      borderRadius: 16,
+      padding: 20,
+      width: '80%',
+      maxWidth: 400,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 20,
+    },
+    modalTitle: {
+      color: theme.text,
+      fontSize: 18,
+      fontWeight: '600',
+    },
+    modalMessage: {
+      color: theme.textSecondary,
+      fontSize: 16,
+      marginBottom: 24,
+      lineHeight: 22,
+    },
+    modalButtonContainer: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+    },
+    modalButton: {
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+      borderRadius: 8,
+      marginLeft: 12,
+    },
+    cancelButton: {
+      backgroundColor: theme.surface,
+    },
+    confirmButton: {
+      backgroundColor: theme.accent,
+    },
+    buttonText: {
+      color: theme.text,
+      fontSize: 16,
+      fontWeight: '600',
+    },
+    closeButton: {
+      padding: 4,
+    },
+    optionItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      marginBottom: 8,
+    },
+    optionItemActive: {
+      backgroundColor: theme.primary + '20',
+    },
+    optionText: {
+      color: theme.text,
+      fontSize: 16,
+    },
+    optionTextActive: {
+      color: theme.primary,
+      fontWeight: '600',
+    },
+  });
+
+  const refreshRateModal = (
+    <Modal
+      visible={showRefreshRateModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowRefreshRateModal(false)}
+    >
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Auto Refresh Rate</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel="Close auto refresh settings"
+                onPress={() => setShowRefreshRateModal(false)}
+              >
+                <X size={24} color={theme.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {REFRESH_RATE_OPTIONS.map((option) => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.optionItem,
+                  refreshRate === option.value && styles.optionItemActive,
+                ]}
+                onPress={() => handleRefreshRateChange(option.value)}
+              >
+                <Text
+                  style={[
+                    styles.optionText,
+                    refreshRate === option.value && styles.optionTextActive,
+                  ]}
+                >
+                  {option.label}
+                </Text>
+                {refreshRate === option.value && (
+                  <Check size={20} color={theme.primary} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </Modal>
+  );
+
+  const apiLogModal = (
+    <FullScreenModal
+      visible={showApiLogModal}
+      theme={theme}
+      closeLabel="Close API request log"
+      onClose={() => setShowApiLogModal(false)}
+    >
+      <ApiLogViewer onClear={handleClearApiLogs} logVersion={logVersion} />
+    </FullScreenModal>
+  );
+
+  const clearConfirmModal = (
+    <Modal
+      visible={showClearConfirmModal}
+      transparent
+      animationType="fade"
+      onRequestClose={() => setShowClearConfirmModal(false)}
+    >
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Clear API Logs</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to clear all API request logs? This action
+              cannot be undone.
+            </Text>
+            <View style={styles.modalButtonContainer}>
+              <TouchableOpacity
+                style={styles.modalButton}
+                onPress={() => setShowClearConfirmModal(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton]}
+                onPress={onConfirmClearLogs}
+              >
+                <Text style={[styles.buttonText, { color: theme.onPrimary }]}>
+                  Clear
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    </Modal>
+  );
+
+  return (
+    <View style={styles.container}>
+      <ScrollingScreen
+        theme={theme}
+        title={!columns && detailOpen ? category : 'Settings'}
+        bottomInset
+        onBack={
+          !columns && detailOpen
+            ? () => setDetailOpen(false)
+            : rail
+              ? undefined
+              : () =>
+                  router.canGoBack() ? router.back() : router.replace('/(tabs)')
+        }
+      >
+        <View
+          style={{
+            flexDirection: columns ? 'row' : 'column',
+            gap: 12,
+            alignItems: 'stretch',
+          }}
+        >
+          <GlassSurface
+            theme={theme}
+            testID="settings-menu"
+            style={{
+              display: columns || !detailOpen ? 'flex' : 'none',
+              width: columns ? 190 : undefined,
+              padding: 6,
+              alignSelf: columns ? 'flex-start' : 'stretch',
+            }}
+          >
+            <View style={{ gap: 4 }}>
+              {[
+                'Appearance',
+                'Data & location',
+                'Notifications',
+                'Weather services',
+                'Diagnostics',
+                'About',
+              ].map((name) => (
+                <TouchableOpacity
+                  key={name}
+                  accessibilityRole="button"
+                  accessibilityState={
+                    columns ? { selected: category === name } : undefined
+                  }
+                  onPress={() => {
+                    setCategory(name);
+                    setDetailOpen(true);
+                  }}
+                  style={{
+                    minHeight: 48,
+                    padding: 12,
+                    borderRadius: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    backgroundColor:
+                      columns && category === name
+                        ? theme.primary + '18'
+                        : 'transparent',
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: theme.primary,
+                      fontSize: 16,
+                      flexShrink: 1,
+                      fontWeight: columns && category === name ? '700' : '500',
+                    }}
+                  >
+                    {name}
+                  </Text>
+                  {!columns && <ChevronRight size={20} color={theme.primary} />}
+                </TouchableOpacity>
+              ))}
+            </View>
+          </GlassSurface>
+          <GlassSurface
+            theme={theme}
+            testID="settings-detail"
+            style={{
+              display: columns || detailOpen ? 'flex' : 'none',
+              flex: 1,
+              minWidth: 0,
+              padding: 16,
+            }}
+          >
+            <View
+              style={{ display: category === 'Appearance' ? 'flex' : 'none' }}
+            >
+              {/* Appearance Settings */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Appearance</Text>
+
+                <View style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Monitor size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>
+                        Follow System Theme
+                      </Text>
+                      <Text style={styles.settingDescription}>
+                        Use your device&apos;s light or dark theme
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    accessibilityLabel="Follow system theme"
+                    aria-label="Follow system theme"
+                    value={followSystemTheme}
+                    onValueChange={setFollowSystemTheme}
+                    trackColor={{
+                      false: theme.textSecondary + '40',
+                      true: theme.primary + '40',
+                    }}
+                    thumbColor={
+                      followSystemTheme ? theme.primary : theme.textSecondary
+                    }
+                  />
+                </View>
+
+                <View
+                  style={[
+                    styles.settingItem,
+                    followSystemTheme && { opacity: 0.5 },
+                  ]}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      {isDarkMode ? (
+                        <Moon size={24} color={theme.primary} />
+                      ) : (
+                        <Sun size={24} color={theme.primary} />
+                      )}
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>Dark Mode</Text>
+                      <Text style={styles.settingDescription}>
+                        {followSystemTheme
+                          ? 'Turn off Follow System Theme to choose manually'
+                          : 'Toggle between light and dark themes'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Switch
+                    accessibilityLabel="Dark mode"
+                    accessibilityState={{ disabled: followSystemTheme }}
+                    aria-label="Dark mode"
+                    value={isDarkMode}
+                    disabled={followSystemTheme}
+                    onValueChange={toggleDarkMode}
+                    trackColor={{
+                      false: theme.textSecondary + '40',
+                      true: theme.primary + '40',
+                    }}
+                    thumbColor={
+                      isDarkMode ? theme.primary : theme.textSecondary
+                    }
+                  />
+                </View>
+              </View>
+            </View>
+            <View
+              style={{
+                display: category === 'Data & location' ? 'flex' : 'none',
+              }}
+            >
+              {/* Current Weather Info */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Current Status</Text>
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>Location</Text>
+                  <Text style={styles.infoText}>{cityName}</Text>
+                  {currentWeather && (
+                    <View style={styles.currentWeatherInfo}>
+                      <Thermometer size={16} color={theme.primary} />
+                      <Text style={styles.weatherTemp}>
+                        {Math.round(currentWeather.main.temp)}°C
+                      </Text>
+                      <Text style={[styles.infoText, { marginLeft: 8 }]}>
+                        {currentWeather.weather[0].description}
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.lastUpdatedInfo}>
+                    <Clock size={16} color={theme.textSecondary} />
+                    <Text style={styles.lastUpdatedText}>
+                      Last updated {formatLastUpdated(lastUpdated)}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Data Settings */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Data</Text>
+
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={() => setShowRefreshRateModal(true)}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Clock size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>Auto Refresh Rate</Text>
+                      <Text style={styles.settingDescription}>
+                        How often to update weather data automatically
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Text style={styles.settingValue}>
+                      {getRefreshRateLabel(refreshRate)}
+                    </Text>
+                    <ChevronRight size={20} color={theme.textSecondary} />
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={refreshWeather}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <RefreshCw size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>Refresh Weather</Text>
+                      <Text style={styles.settingDescription}>
+                        Manually update weather data now
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+
+              {/* Location Settings */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Location</Text>
+
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={handleLocationRefresh}
+                  disabled={isRefreshingLocation}
+                  accessibilityState={{ busy: isRefreshingLocation }}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <MapPin size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>
+                        {isRefreshingLocation
+                          ? 'Refreshing Location…'
+                          : 'Refresh Location'}
+                      </Text>
+                      <Text style={styles.settingDescription}>
+                        Update your current location
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View
+              style={{
+                display: category === 'Notifications' ? 'flex' : 'none',
+              }}
+            >
+              {/* Notification Settings */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Notifications</Text>
+
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={handleNotificationTest}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Bell size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>
+                        Test Notifications
+                      </Text>
+                      <Text style={styles.settingDescription}>
+                        Send a test notification
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View
+              style={{
+                display: category === 'Weather services' ? 'flex' : 'none',
+              }}
+            >
+              {/* API Keys Settings */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>API Keys</Text>
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={() => setShowApiKeyModal(true)}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <KeyRound size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>
+                        Configure API Keys
+                      </Text>
+                      <Text style={styles.settingDescription}>
+                        Set your own API keys for weather services
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View
+              style={{ display: category === 'Diagnostics' ? 'flex' : 'none' }}
+            >
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>API Logs</Text>
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={() => setShowApiLogModal(true)}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Activity size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>API Request Log</Text>
+                      <Text style={styles.settingDescription}>
+                        View API usage and request history (48h)
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>{' '}
+              </View>
+              {/* Alert Management */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Alert Management</Text>
+
+                <View style={styles.infoCard}>
+                  <Text style={styles.infoTitle}>
+                    Alert Duplicate Prevention
+                  </Text>
+                  <Text style={styles.infoText}>
+                    The app tracks recent weather alerts to prevent duplicate
+                    notifications. Up to 100 recent alert IDs are stored
+                    locally.
+                  </Text>
+
+                  {alertTrackerStats && (
+                    <View style={styles.alertStatsContainer}>
+                      <View style={styles.alertStatRow}>
+                        <Text style={styles.alertStatLabel}>
+                          Tracked Alerts:
+                        </Text>
+                        <Text style={styles.alertStatValue}>
+                          {alertTrackerStats.totalTrackedAlerts}
+                        </Text>
+                      </View>
+                      <View style={styles.alertStatRow}>
+                        <Text style={styles.alertStatLabel}>Last Updated:</Text>
+                        <Text style={styles.alertStatValue}>
+                          {formatAlertAge(alertTrackerStats.newestAlertAge)}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={handleClearAlertHistory}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Shield size={24} color={theme.accent} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>
+                        Clear Alert History
+                      </Text>
+                      <Text style={styles.settingDescription}>
+                        Reset duplicate alert prevention
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={loadAlertTrackerStats}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Database size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>
+                        Refresh Alert Stats
+                      </Text>
+                      <Text style={styles.settingDescription}>
+                        Update alert tracking statistics
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={{ display: category === 'About' ? 'flex' : 'none' }}>
+              {/* About */}
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>About</Text>
+
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={showAbout}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={styles.settingIcon}>
+                      <Info size={24} color={theme.primary} />
+                    </View>
+                    <View style={styles.settingInfo}>
+                      <Text style={styles.settingTitle}>About Weather App</Text>
+                      <Text style={styles.settingDescription}>
+                        Version information and credits
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color={theme.textSecondary} />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </GlassSurface>
+        </View>
+      </ScrollingScreen>
+
+      <FullScreenModal
+        visible={showApiKeyModal}
+        theme={theme}
+        closeLabel="Close API key settings"
+        onClose={() => setShowApiKeyModal(false)}
+      >
+        <ApiKeySettingsScreen onSaved={() => setShowApiKeyModal(false)} />
+      </FullScreenModal>
+
+      {refreshRateModal}
+      {apiLogModal}
+      {clearConfirmModal}
+    </View>
+  );
+}

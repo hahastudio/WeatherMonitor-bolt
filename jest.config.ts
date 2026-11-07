@@ -3,6 +3,8 @@ import type { Config } from '@jest/types';
 const config: Config.InitialOptions = {
   preset: 'jest-expo',
   testEnvironment: 'node',
+  // Tests do not need a shared Watchman daemon (also works in restricted CI).
+  watchman: false,
   setupFiles: ['<rootDir>/__tests__/mocks.ts'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   transform: {
@@ -12,7 +14,7 @@ const config: Config.InitialOptions = {
     ],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|standard-navigation)',
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
   collectCoverage: true,

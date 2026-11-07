@@ -18,11 +18,15 @@ export const DayNightGlobe = memo(function DayNightGlobe({
   longitude,
   subsolar,
   theme,
+  expanded = false,
+  fitHeight = false,
 }: {
   latitude: number;
   longitude: number;
   subsolar: EarthPoint;
   theme: WeatherTheme;
+  expanded?: boolean;
+  fitHeight?: boolean;
 }) {
   const [camera, setCamera] = useState<EarthPoint>({
     latitudeDeg: latitude,
@@ -76,14 +80,30 @@ export const DayNightGlobe = memo(function DayNightGlobe({
     { borderColor: colors.line, backgroundColor: theme.surface },
   ];
   return (
-    <View testID="day-night-globe">
+    <View
+      testID="day-night-globe"
+      style={{ flex: expanded ? 1 : undefined, marginTop: 14 }}
+    >
       <View
         {...pan.panHandlers}
+        style={{
+          flex: expanded ? 1 : undefined,
+          minHeight: fitHeight ? 120 : 220,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 12,
+        }}
         accessible
         accessibilityRole="image"
         accessibilityLabel={`Earth at the selected time. Shaded area is night. Sun overhead at ${coordinateLabel(subsolar)}. Observer ${paths.observer ? 'visible as a square' : 'on the far side'}. Sun marker ${paths.subsolar ? 'visible as a circle' : 'on the far side'}. Camera centred on ${coordinateLabel(camera)}.`}
       >
-        <Svg width="100%" height={220} viewBox="0 0 220 220" accessible={false}>
+        <Svg
+          width="100%"
+          height={expanded ? '100%' : 220}
+          style={expanded ? { position: 'absolute' } : undefined}
+          viewBox="0 0 220 220"
+          accessible={false}
+        >
           <Circle cx={110} cy={110} r={104} fill={colors.sea} />
           <Path d={paths.land} fill={colors.land} />
           <Path

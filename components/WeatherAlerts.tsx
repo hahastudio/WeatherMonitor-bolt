@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react-native';
+import { GlassSurface } from './GlassSurface';
 import { useWeather } from '../contexts/WeatherContext';
 import { CaiyunWeatherAlert } from '../types/weather';
 
@@ -89,8 +90,15 @@ const formatTime = (timestamp: number | string) => {
 
 const formatLevelLabel = (level: string) => level.replace(/_/g, ' ');
 
-const getBadgeTextColor = (level: string) =>
-  ['yellow', 'watch'].includes(level.toLowerCase()) ? '#2A2100' : '#FFFFFF';
+const getBadgeTextColor = (color: string) => {
+  const channels = [1, 3, 5].map((index) => {
+    const value = parseInt(color.slice(index, index + 2), 16) / 255;
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+  });
+  const luminance =
+    channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  return luminance > 0.179 ? '#000000' : '#FFFFFF';
+};
 
 export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts }) => {
   const { theme } = useWeather();
@@ -139,43 +147,7 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts }) => {
   };
 
   const styles = StyleSheet.create({
-    container: {
-      marginVertical: 16,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      justifyContent: 'space-between',
-      marginBottom: 12,
-      paddingHorizontal: 20,
-    },
-    sectionTitle: {
-      color: theme.text,
-      fontSize: 20,
-      fontWeight: '600',
-    },
-    sectionMeta: {
-      color: theme.textSecondary,
-      fontSize: 12,
-      fontWeight: '500',
-    },
-    alertsContainer: {
-      paddingHorizontal: 20,
-    },
-    alertCard: {
-      borderRadius: 16,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: theme.textSecondary + '20',
-      overflow: 'hidden',
-    },
-    severityRail: {
-      bottom: 0,
-      left: 0,
-      position: 'absolute',
-      top: 0,
-      width: 5,
-    },
+    alertCard: { overflow: 'hidden' },
     alertHeader: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -207,11 +179,6 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts }) => {
       fontSize: 16,
       fontWeight: '700',
       lineHeight: 21,
-    },
-    alertPublished: {
-      fontSize: 12,
-      fontWeight: '500',
-      marginTop: 4,
     },
     collapseButton: {
       alignItems: 'center',
@@ -250,122 +217,110 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts }) => {
     },
     metaText: {
       fontSize: 12,
-      opacity: 0.8,
     },
     alertTime: {
       fontSize: 12,
       marginTop: 8,
-      opacity: 0.7,
     },
   });
 
   return (
-    <View style={styles.container}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Weather Alerts</Text>
-      </View>
+    <>
+      {sortedAlerts.map((alert) => {
+        const alertColor = getAlertColor(alert);
+        const rawAlertLevel = extractAlertLevel(alert);
+        const alertLevel = formatLevelLabel(rawAlertLevel);
+        const badgeTextColor = getBadgeTextColor(alertColor);
+        const isExpanded = expandedAlerts.has(alert.alertId);
 
-      <View style={styles.alertsContainer}>
-        {sortedAlerts.map((alert) => {
-          const alertColor = getAlertColor(alert);
-          const rawAlertLevel = extractAlertLevel(alert);
-          const alertLevel = formatLevelLabel(rawAlertLevel);
-          const badgeTextColor = getBadgeTextColor(rawAlertLevel);
-          const isExpanded = expandedAlerts.has(alert.alertId);
-
-          return (
-            <View
-              key={alert.alertId}
-              style={[
-                styles.alertCard,
-                {
-                  backgroundColor: theme.surface,
-                },
-              ]}
+        return (
+          <GlassSurface
+            key={alert.alertId}
+            theme={theme}
+            testID="weather-alert"
+            style={styles.alertCard}
+          >
+            <TouchableOpacity
+              style={styles.alertHeader}
+              accessibilityRole="button"
+              accessibilityLabel={alert.title}
+              accessibilityState={{ expanded: isExpanded }}
+              aria-expanded={isExpanded}
+              onPress={() => toggleAlert(alert.alertId)}
+              activeOpacity={0.7}
             >
-              <TouchableOpacity
-                style={styles.alertHeader}
-                onPress={() => toggleAlert(alert.alertId)}
-                activeOpacity={0.7}
+              <View
+                style={[styles.severityBadge, { backgroundColor: alertColor }]}
               >
-                <View
-                  style={[
-                    styles.severityBadge,
-                    { backgroundColor: alertColor },
-                  ]}
+                <AlertTriangle
+                  size={16}
+                  color={badgeTextColor}
+                  strokeWidth={2.8}
+                />
+                <Text style={[styles.severityText, { color: badgeTextColor }]}>
+                  {alertLevel}
+                </Text>
+              </View>
+
+              <View style={styles.alertTitleContainer}>
+                <Text
+                  style={[styles.alertTitle, { color: theme.text }]}
+                  numberOfLines={isExpanded ? undefined : 2}
                 >
-                  <AlertTriangle
-                    size={16}
-                    color={badgeTextColor}
-                    strokeWidth={2.8}
-                  />
+                  {alert.title}
+                </Text>
+              </View>
+
+              <View style={styles.collapseButton}>
+                {isExpanded ? (
+                  <ChevronUp size={18} color={theme.textSecondary} />
+                ) : (
+                  <ChevronDown size={18} color={theme.textSecondary} />
+                )}
+              </View>
+            </TouchableOpacity>
+
+            {isExpanded && (
+              <View style={styles.alertContent}>
+                <View style={styles.alertContentDivider}>
                   <Text
-                    style={[styles.severityText, { color: badgeTextColor }]}
+                    style={[styles.alertDescription, { color: theme.text }]}
                   >
-                    {alertLevel}
+                    {alert.description}
                   </Text>
-                </View>
 
-                <View style={styles.alertTitleContainer}>
-                  <Text
-                    style={[styles.alertTitle, { color: theme.text }]}
-                    numberOfLines={isExpanded ? undefined : 2}
-                  >
-                    {alert.title}
-                  </Text>
-                </View>
-
-                <View style={styles.collapseButton}>
-                  {isExpanded ? (
-                    <ChevronUp size={18} color={theme.textSecondary} />
-                  ) : (
-                    <ChevronDown size={18} color={theme.textSecondary} />
-                  )}
-                </View>
-              </TouchableOpacity>
-
-              {isExpanded && (
-                <View style={styles.alertContent}>
-                  <View style={styles.alertContentDivider}>
-                    <Text
-                      style={[styles.alertDescription, { color: theme.text }]}
-                    >
-                      {alert.description}
-                    </Text>
-
-                    <View style={styles.alertMeta}>
-                      <View style={styles.metaItem}>
-                        <View style={styles.metaIcon}>
-                          <MapPin size={12} color={theme.textSecondary} />
-                        </View>
-                        <Text
-                          style={[
-                            styles.metaText,
-                            { color: theme.textSecondary },
-                          ]}
-                        >
-                          {alert.location || `${alert.city}, ${alert.county}`}
-                        </Text>
+                  <View style={styles.alertMeta}>
+                    <View style={styles.metaItem}>
+                      <View style={styles.metaIcon}>
+                        <MapPin size={12} color={theme.textSecondary} />
                       </View>
+                      <Text
+                        style={[
+                          styles.metaText,
+                          { color: theme.textSecondary },
+                        ]}
+                      >
+                        {alert.location || `${alert.city}, ${alert.county}`}
+                      </Text>
                     </View>
-
-                    <Text
-                      style={[styles.alertTime, { color: theme.textSecondary }]}
-                    >
-                      Source: {alert.source}
-                    </Text>
-                    <Text
-                      style={[styles.alertTime, { color: theme.textSecondary }]}
-                    >
-                      Published {formatTime(alert.pubtimestamp)}
-                    </Text>
                   </View>
+
+                  <Text
+                    style={[styles.alertTime, { color: theme.textSecondary }]}
+                  >
+                    Source: {alert.source}
+                  </Text>
+                  <Text
+                    style={[styles.alertTime, { color: theme.textSecondary }]}
+                  >
+                    Published {formatTime(alert.pubtimestamp)}
+                  </Text>
                 </View>
-              )}
-            </View>
-          );
-        })}
-      </View>
-    </View>
+              </View>
+            )}
+          </GlassSurface>
+        );
+      })}
+    </>
   );
 };

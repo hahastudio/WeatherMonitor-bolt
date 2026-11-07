@@ -3,7 +3,7 @@ export default {
     name: 'Weather Monitor NT',
     slug: 'weathermonitor-nt',
     version: process.env.npm_package_version || '1.0.0',
-    orientation: 'default',
+    orientation: 'portrait',
     userInterfaceStyle: 'automatic',
     android: {
       package: 'com.hahastudio.weathermonitornt',
@@ -19,6 +19,7 @@ export default {
       bundleIdentifier: 'com.hahastudio.weathermonitornt',
       icon: './assets/images/icon.png',
       supportsTablet: true,
+      requireFullScreen: true,
     },
     web: {
       bundler: 'metro',

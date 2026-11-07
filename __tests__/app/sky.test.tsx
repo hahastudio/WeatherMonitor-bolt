@@ -9,7 +9,14 @@ import { defaultTheme } from '../../utils/weatherTheme';
 import { TimeControl } from '../../components/astronomy/TimeControl';
 
 let mockContext: any;
-const mockPush = jest.fn();
+let mockWidth = 390;
+jest.mock('../../hooks/useAdaptiveLayout', () => ({
+  useAdaptiveLayout: () =>
+    jest
+      .requireActual('../../hooks/useAdaptiveLayout')
+      .adaptiveLayout(mockWidth, 800),
+}));
+const mockNavigate = jest.fn();
 jest.mock('../../contexts/WeatherContext', () => ({
   useWeather: () => mockContext,
 }));
@@ -19,7 +26,7 @@ jest.mock('../../components/ScrollingScreen', () => ({
 jest.mock('expo-router', () => ({
   useFocusEffect: (callback: () => void | (() => void)) =>
     require('react').useEffect(callback, [callback]),
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ navigate: mockNavigate }),
 }));
 jest.mock('react-native-svg');
 jest.mock('lucide-react-native');
@@ -34,6 +41,7 @@ beforeEach(() => {
     location: { latitude: 31.2304, longitude: 121.4737 },
     forecast: { ...mockWeatherContext.forecast, astronomy: astronomySnapshot },
   };
+  mockWidth = 390;
   jest.clearAllMocks();
   (global.fetch as jest.Mock).mockClear();
 });
@@ -90,7 +98,7 @@ it('supports accessible time adjustment, day navigation, and Settings', () => {
   expect(screen.getByText('Mon, 26 Oct 2026')).toBeTruthy();
   render(<SettingsButton theme={defaultTheme} />);
   fireEvent.press(screen.getByLabelText('Open settings'));
-  expect(mockPush).toHaveBeenCalledWith('/settings');
+  expect(mockNavigate).toHaveBeenCalledWith('/settings');
   expect(global.fetch).not.toHaveBeenCalled();
 });
 it('retains Moon-first at night when the Moon is below the horizon', () => {
@@ -132,4 +140,29 @@ it('starts collapsed and preserves preview time and date when closed and reopene
   expect(screen.getByText('21:00')).toBeTruthy();
   expect(screen.getByTestId('sky-time-status')).toHaveTextContent('Live');
   expect(global.fetch).not.toHaveBeenCalled();
+});
+
+it('preserves the preview instant, expanded controls and globe camera across folding', () => {
+  const view = render(<SkyScreen />);
+  fireEvent.press(screen.getByTestId('sky-time-toggle'));
+  fireEvent.press(screen.getByLabelText('Preview fifteen minutes earlier'));
+  fireEvent.press(screen.getByLabelText('Rotate globe east'));
+  const time = screen.getByTestId('selected-sky-time').props.children;
+  const globe = screen.getByTestId('day-night-globe');
+  const camera = screen.getByLabelText(/Earth at the selected time/).props
+    .accessibilityLabel;
+  [720, 840, 390].forEach((width) => {
+    mockWidth = width;
+    view.rerender(<SkyScreen />);
+    expect(screen.getByTestId('day-night-globe')).toBe(globe);
+    expect(screen.getByTestId('sky-time-slider')).toBeTruthy();
+    expect(screen.getByTestId('selected-sky-time').props.children).toEqual(
+      time,
+    );
+    expect(
+      screen.getByLabelText(/Earth at the selected time/).props
+        .accessibilityLabel,
+    ).toBe(camera);
+  });
+  expect(mockContext.refreshWeather).not.toHaveBeenCalled();
 });

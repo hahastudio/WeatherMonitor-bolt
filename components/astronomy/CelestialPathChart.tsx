@@ -1,5 +1,5 @@
 import React, { memo, useId, useMemo, useState } from 'react';
-import { View, useWindowDimensions } from 'react-native';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import Svg, {
   Circle,
   ClipPath,
@@ -26,6 +26,7 @@ export const CelestialPathChart = memo(function CelestialPathChart({
   atUtcMs,
   zone,
   theme,
+  compact = false,
 }: {
   body: 'sun' | 'moon';
   day: AstronomyDay;
@@ -33,15 +34,20 @@ export const CelestialPathChart = memo(function CelestialPathChart({
   atUtcMs: number;
   zone: ObserverZone;
   theme: WeatherTheme;
+  compact?: boolean;
 }) {
   const [width, setWidth] = useState(300);
+  const [availableHeight, setAvailableHeight] = useState(0);
   const { fontScale } = useWindowDimensions();
   const textScale = Math.max(1, Math.min(2, fontScale));
-  const fontSize = 11 * textScale;
-  const height = 175 + 60 * (textScale - 1);
+  const fontSize = 12 * textScale;
+  const minimumHeight = (compact ? 140 : 175) + 60 * (textScale - 1);
+  const height = compact
+    ? Math.max(minimumHeight, availableHeight)
+    : minimumHeight;
   const id = useId().replace(/[^a-zA-Z0-9]/g, '');
   const colors = skyColors(theme);
-  const left = 38 * textScale,
+  const left = 44 * textScale,
     right = width - 8,
     top = 18 * textScale,
     bottom = height - 34 * textScale;
@@ -76,11 +82,17 @@ export const CelestialPathChart = memo(function CelestialPathChart({
       accessible
       accessibilityRole="image"
       accessibilityLabel={label}
-      onLayout={(e) => setWidth(Math.max(160, e.nativeEvent.layout.width))}
+      style={compact ? { flexGrow: 1, minHeight: minimumHeight } : undefined}
+      onLayout={(e) => {
+        setWidth(Math.max(160, e.nativeEvent.layout.width));
+        setAvailableHeight(e.nativeEvent.layout.height);
+      }}
     >
       <Svg
+        fontFamily={Platform.OS === 'web' ? 'system-ui' : undefined}
         width="100%"
         height={height}
+        style={compact ? { position: 'absolute', top: 0, left: 0 } : undefined}
         viewBox={`0 0 ${width} ${height}`}
         accessible={false}
       >
@@ -103,13 +115,13 @@ export const CelestialPathChart = memo(function CelestialPathChart({
               strokeWidth={a === 0 ? 1.2 : 0.6}
             />
             <SvgText
-              x={left - 6}
+              x={left - 8 * textScale}
               y={y(a) + 4 * textScale}
               textAnchor="end"
               fontSize={fontSize}
               fill={theme.textSecondary}
             >
-              {a}°
+              {`${a}°`}
             </SvgText>
           </React.Fragment>
         ))}

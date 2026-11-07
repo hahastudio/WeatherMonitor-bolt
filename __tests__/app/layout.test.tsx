@@ -4,6 +4,8 @@ import RootLayout from '../../app/_layout';
 import { loadApiKeys } from '../../utils/weatherStorage';
 import type { ApiKeys } from '../../types/weather';
 
+let mockRootRoute = 'welcome';
+let mockPathname = '/welcome';
 const mockReplace = jest.fn();
 const mockRouter = { replace: mockReplace };
 
@@ -14,7 +16,12 @@ jest.mock('expo-router', () => {
       Screen: () => null,
     }),
     useRouter: () => mockRouter,
-    useRootNavigationState: () => ({ key: 'root' }),
+    usePathname: () => mockPathname,
+    useRootNavigationState: () => ({
+      key: 'root',
+      index: 0,
+      routes: [{ name: mockRootRoute }],
+    }),
   };
 });
 jest.mock('../../contexts/WeatherContext', () => ({
@@ -31,7 +38,11 @@ jest.mock('../../utils/weatherStorage', () => ({ loadApiKeys: jest.fn() }));
 jest.mock('../../services/apiKeyManager', () => ({ setApiKeys: jest.fn() }));
 
 describe('Root layout startup', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    mockRootRoute = 'welcome';
+    mockPathname = '/welcome';
+    jest.clearAllMocks();
+  });
 
   it.each([
     {
@@ -61,4 +72,40 @@ describe('Root layout startup', () => {
       expect(screen.getByText('Navigation ready')).toBeTruthy();
     },
   );
+});
+
+it('preserves an incoming app deep link after loading saved credentials', async () => {
+  jest.clearAllMocks();
+  mockRootRoute = '(tabs)';
+  mockPathname = '/charts';
+  jest.mocked(loadApiKeys).mockResolvedValue({
+    openWeatherMap: 'synthetic-weather',
+    caiyun: 'synthetic-caiyun',
+    gemini: 'synthetic-gemini',
+  });
+  render(<RootLayout />);
+  await waitFor(() =>
+    expect(screen.getByText('Navigation ready')).toBeTruthy(),
+  );
+  expect(mockReplace).not.toHaveBeenCalled();
+});
+
+it('keeps onboarding settings reachable before credentials are configured', async () => {
+  jest.clearAllMocks();
+  mockRootRoute = 'welcome';
+  mockPathname = '/welcome';
+  jest.mocked(loadApiKeys).mockResolvedValue(null);
+  const { rerender } = render(<RootLayout />);
+  await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/welcome'));
+  mockReplace.mockClear();
+
+  mockRootRoute = '(tabs)';
+  mockPathname = '/settings';
+  rerender(<RootLayout />);
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  });
+
+  expect(screen.getByText('Navigation ready')).toBeTruthy();
+  expect(mockReplace).not.toHaveBeenCalled();
 });

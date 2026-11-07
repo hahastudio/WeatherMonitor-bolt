@@ -261,6 +261,17 @@ describe('Weather Storage', () => {
       });
     });
 
+    describe('followSystemTheme', () => {
+      it('returns null when no system theme preference is saved', async () => {
+        expect(await weatherStorage.loadFollowSystemTheme()).toBeNull();
+      });
+
+      it.each([true, false])('saves and loads %s', async (enabled) => {
+        await weatherStorage.saveFollowSystemTheme(enabled);
+        expect(await weatherStorage.loadFollowSystemTheme()).toBe(enabled);
+      });
+    });
+
     describe('refreshRate', () => {
       it('should save and load refresh rate', async () => {
         const rate = 300000; // 5 minutes

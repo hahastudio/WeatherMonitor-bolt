@@ -14,6 +14,7 @@ import {
   zoneLabel,
 } from '../../utils/astronomyTime';
 import type { WeatherTheme } from '../../utils/weatherTheme';
+import { GlassSurface } from '../GlassSurface';
 import { skyColors, skyStyles as s } from './skyStyles';
 
 export function TimeControl({
@@ -88,10 +89,7 @@ export function TimeControl({
   const actionStyle = [s.button, { borderColor: skyColors(theme).line }];
   const ToggleIcon = expanded ? ChevronUp : ChevronDown;
   return (
-    <View
-      style={[s.section, { backgroundColor: theme.surface }]}
-      testID="sky-time-controls"
-    >
+    <GlassSurface theme={theme} style={s.section} testID="sky-time-controls">
       <Pressable
         testID="sky-time-toggle"
         accessibilityRole="button"
@@ -259,7 +257,7 @@ export function TimeControl({
           </View>
         </View>
       )}
-    </View>
+    </GlassSurface>
   );
 }
 const styles = StyleSheet.create({

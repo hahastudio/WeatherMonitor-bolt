@@ -1,4 +1,5 @@
 import React from 'react';
+import { useColorScheme } from 'react-native';
 import { astronomySnapshot } from '../fixtures/astronomy';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { WeatherProvider, useWeather } from '../../contexts/WeatherContext';
@@ -36,9 +37,12 @@ jest.mock('../../utils/weatherStorage');
 
 const newLocation = { latitude: 34.0522, longitude: -118.2437 };
 
-describe('WeatherProvider location refresh', () => {
+describe('WeatherProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.mocked(useColorScheme).mockReturnValue('light');
+    jest.mocked(storage.loadDarkMode).mockResolvedValue(null);
+    jest.mocked(storage.loadFollowSystemTheme).mockResolvedValue(null);
     jest.mocked(storage.loadLocation).mockResolvedValue(mockLocation);
     jest.mocked(storage.loadCityName).mockResolvedValue('San Francisco');
     jest
@@ -71,6 +75,84 @@ describe('WeatherProvider location refresh', () => {
     );
     return hook;
   };
+
+  it('follows a dark system theme by default even when a manual light preference was saved', async () => {
+    jest.mocked(useColorScheme).mockReturnValue('dark');
+    jest.mocked(storage.loadDarkMode).mockResolvedValue(false);
+    const { result } = await renderWeather();
+
+    expect(result.current.followSystemTheme).toBe(true);
+    expect(result.current.isDarkMode).toBe(true);
+    expect(result.current.theme.isDark).toBe(true);
+  });
+
+  it.each(['light', 'unspecified'] as const)(
+    'uses a light theme when the system theme is %s',
+    async (colorScheme) => {
+      jest.mocked(useColorScheme).mockReturnValue(colorScheme);
+      const { result } = await renderWeather();
+
+      expect(result.current.followSystemTheme).toBe(true);
+      expect(result.current.isDarkMode).toBe(false);
+      expect(result.current.theme.isDark).toBe(false);
+    },
+  );
+
+  it('updates the app theme when the system theme changes', async () => {
+    const { result, rerender } = await renderWeather();
+
+    jest.mocked(useColorScheme).mockReturnValue('dark');
+    rerender({});
+    expect(result.current.isDarkMode).toBe(true);
+    expect(result.current.theme.isDark).toBe(true);
+
+    jest.mocked(useColorScheme).mockReturnValue('light');
+    rerender({});
+    expect(result.current.isDarkMode).toBe(false);
+    expect(result.current.theme.isDark).toBe(false);
+    expect(storage.saveDarkMode).not.toHaveBeenCalled();
+  });
+
+  it('restores a saved opt-out and keeps manual choices independent of system changes', async () => {
+    jest.mocked(useColorScheme).mockReturnValue('dark');
+    jest.mocked(storage.loadFollowSystemTheme).mockResolvedValue(false);
+    jest.mocked(storage.loadDarkMode).mockResolvedValue(false);
+    const { result, rerender } = await renderWeather();
+
+    expect(result.current.followSystemTheme).toBe(false);
+    expect(result.current.isDarkMode).toBe(false);
+    await act(async () => {
+      await result.current.toggleDarkMode();
+    });
+    expect(result.current.isDarkMode).toBe(true);
+    expect(storage.saveDarkMode).toHaveBeenCalledWith(true);
+
+    jest.mocked(useColorScheme).mockReturnValue('light');
+    rerender({});
+    expect(result.current.isDarkMode).toBe(true);
+    expect(result.current.theme.isDark).toBe(true);
+  });
+
+  it('saves the system preference and restores the manual choice when turned off', async () => {
+    jest.mocked(useColorScheme).mockReturnValue('dark');
+    jest.mocked(storage.loadDarkMode).mockResolvedValue(false);
+    const { result } = await renderWeather();
+
+    await act(async () => {
+      await result.current.setFollowSystemTheme(false);
+    });
+    expect(result.current.followSystemTheme).toBe(false);
+    expect(result.current.isDarkMode).toBe(false);
+    expect(storage.saveFollowSystemTheme).toHaveBeenLastCalledWith(false);
+
+    await act(async () => {
+      await result.current.setFollowSystemTheme(true);
+    });
+    expect(result.current.followSystemTheme).toBe(true);
+    expect(result.current.isDarkMode).toBe(true);
+    expect(storage.saveFollowSystemTheme).toHaveBeenLastCalledWith(true);
+    expect(storage.saveDarkMode).not.toHaveBeenCalled();
+  });
 
   it('refreshes weather and the summary using the newly obtained location in the same call', async () => {
     const { result } = await renderWeather();

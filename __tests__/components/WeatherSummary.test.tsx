@@ -184,19 +184,16 @@ describe('WeatherSummary', () => {
 
     // Initially collapsed
     expect(queryByTestId('expanded-content')).toBeNull();
-    expect(getByText('Tap to see detailed recommendations')).toBeTruthy();
 
     // Expand
     fireEvent.press(card);
     expect(getByTestId('expanded-content')).toBeTruthy();
     expect(getByText(mockSummary.futureWarnings)).toBeTruthy();
     expect(getByText(mockSummary.recommendations[0])).toBeTruthy();
-    expect(queryByTestId('Tap to see detailed recommendations')).toBeNull();
 
     // Collapse
     fireEvent.press(card);
     expect(queryByTestId('expanded-content')).toBeNull();
-    expect(getByText('Tap to see detailed recommendations')).toBeTruthy();
   });
 
   it('formats generated time correctly', () => {

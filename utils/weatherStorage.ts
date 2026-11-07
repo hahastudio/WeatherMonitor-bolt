@@ -14,6 +14,7 @@ import type { WeatherSummary } from '../services/geminiService';
 
 const STORAGE_KEYS = {
   DARK_MODE: '@weather_app_dark_mode',
+  FOLLOW_SYSTEM_THEME: '@weather_app_follow_system_theme',
   REFRESH_RATE: '@weather_app_refresh_rate',
   DISMISSED_ALERTS: '@weather_app_dismissed_alerts',
   LAST_UPDATED: '@weather_app_last_updated',
@@ -163,6 +164,18 @@ export async function saveDarkMode(isDark: boolean) {
 
 export async function loadDarkMode(): Promise<boolean | null> {
   const data = await AsyncStorage.getItem(STORAGE_KEYS.DARK_MODE);
+  return data ? JSON.parse(data) : null;
+}
+
+export async function saveFollowSystemTheme(followSystem: boolean) {
+  await AsyncStorage.setItem(
+    STORAGE_KEYS.FOLLOW_SYSTEM_THEME,
+    JSON.stringify(followSystem),
+  );
+}
+
+export async function loadFollowSystemTheme(): Promise<boolean | null> {
+  const data = await AsyncStorage.getItem(STORAGE_KEYS.FOLLOW_SYSTEM_THEME);
   return data ? JSON.parse(data) : null;
 }
 

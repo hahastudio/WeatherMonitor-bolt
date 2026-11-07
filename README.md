@@ -21,6 +21,13 @@ It's mainly built with [Bolt](https://bolt.new/).
 - **Cross-Platform**: Works on iOS, Android, and Web
 - **Offline-Ready**: Graceful handling of network issues with cached data
 
+## Design references
+
+- [Approved adaptive layout](docs/adaptive-ui-layout-handoff.md)
+- [Approved weather colors, gradients, and glass surfaces](docs/weather-color-theme-handoff.md)
+
+These handoffs record the approved design. See [implementation and verification notes](docs/adaptive-ui-implementation.md) for the adaptive app layout and weather theme.
+
 ## Architecture
 
 ### Key Architectural Decisions

@@ -48,7 +48,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       borderRadius: 8,
     },
     retryText: {
-      color: '#FFFFFF',
+      color: theme.onPrimary,
       fontSize: 16,
       fontWeight: '600',
       marginLeft: 8,
@@ -63,7 +63,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       <Text style={styles.title}>Something went wrong</Text>
       <Text style={styles.message}>{error}</Text>
       <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-        <RefreshCw size={20} color="#FFFFFF" />
+        <RefreshCw size={20} color={theme.onPrimary} />
         <Text style={styles.retryText}>Try Again</Text>
       </TouchableOpacity>
     </View>

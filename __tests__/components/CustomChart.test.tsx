@@ -1,5 +1,10 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react-native';
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react-native';
 import { CustomChart, DataPoint } from '../../components/CustomChart';
 import { useWeather } from '../../contexts/WeatherContext';
 
@@ -99,7 +104,7 @@ describe('CustomChart', () => {
     render(<CustomChart data={pressure_data} color="#FFA500" unit="hPa" />);
     const yLabels = await screen.findAllByTestId('y-label');
     expect(yLabels.length).toBeGreaterThan(0);
-    expect(await screen.findByText('Standard (1013 hPa)')).toBeTruthy();
+    expect(screen.getByTestId('standard-pressure')).toBeTruthy();
   });
 
   it('displays X-axis labels when provided in data points', async () => {
@@ -152,7 +157,7 @@ describe('CustomChart', () => {
     expect(screen.queryByText('No data available')).toBeNull();
     expect(screen.queryByText('No valid data points')).toBeNull();
     expect(await screen.findByText('Today')).toBeTruthy();
-    const labels = await screen.findAllByText(/25°C/);
+    const labels = await screen.findAllByText(/^25$/);
     expect(labels.length).toBeGreaterThan(0);
   });
 
@@ -209,4 +214,216 @@ describe('CustomChart', () => {
     const zeroLabels = await screen.findAllByText(/^0$/);
     expect(zeroLabels.length).toBeGreaterThan(0);
   });
+});
+
+it('preserves missing sample positions, secondary values and inspection across resizing', () => {
+  const { fireEvent } = require('@testing-library/react-native');
+  (useWeather as jest.Mock).mockReturnValue({
+    theme: require('../../utils/weatherTheme').defaultTheme,
+  });
+  const data = [
+    { x: 0, y: 0, label: 'Oct 31' },
+    { x: 1, y: NaN, label: '12 PM' },
+    { x: 2, y: 12, label: 'Nov 1' },
+  ];
+  const second = data.map((p) => ({ ...p, y: 20 }));
+  const view = render(
+    <CustomChart
+      data={data}
+      data2={second}
+      color="#123456"
+      color2="#654321"
+      unit="°C"
+      seriesNames={['Temperature', 'Feels like']}
+    />,
+  );
+  // A gap starts a new path at the original x position; no invented zero or compressed domain.
+  expect(screen.getByTestId('svg-path').props.d.match(/M /g)).toHaveLength(2);
+  fireEvent(screen.getByRole('adjustable'), 'accessibilityAction', {
+    nativeEvent: { actionName: 'increment' },
+  });
+  expect(screen.getByTestId('chart-inspection')).toHaveTextContent(
+    /TemperatureUnavailableFeels like20\.0 °C/,
+  );
+  fireEvent(screen.getByTestId('chart-plot'), 'layout', {
+    nativeEvent: { layout: { width: 280 } },
+  });
+  expect(screen.getByTestId('chart-inspection')).toHaveTextContent(
+    /TemperatureUnavailable/,
+  );
+  view.rerender(
+    <CustomChart
+      data={data}
+      data2={second}
+      color="#123456"
+      color2="#654321"
+      unit="°C"
+      seriesNames={['Temperature', 'Feels like']}
+      guideSeries={1}
+    />,
+  );
+  expect(screen.getByTestId('svg-path')).toBeTruthy();
+  expect(screen.getByTestId('svg-path-2')).toBeTruthy();
+  expect(screen.getAllByTestId('chart-extrema-guide')[0].props.stroke).toBe(
+    '#654321',
+  );
+});
+
+it('omits precipitation extrema and uses the axis label color for both midnight and noon bars', () => {
+  const { getTheme } = require('../../utils/weatherTheme');
+  const data: DataPoint[] = [
+    { x: 0, y: 0, label: 'Nov 2', dateLabel: 'Nov 2', timeOfDay: 'midnight' },
+    { x: 1, y: 2 },
+    { x: 12, y: 3, label: '12:00 PM', timeOfDay: 'noon' },
+    { x: 24, y: 1, label: 'Nov 3', dateLabel: 'Nov 3', timeOfDay: 'midnight' },
+  ];
+  const view = render(
+    <CustomChart data={data} color="#1256A0" type="bar" unit="mm" />,
+  );
+  [false, true].forEach((dark) => {
+    const theme = getTheme('rain', dark);
+    (useWeather as jest.Mock).mockReturnValue({
+      theme,
+    });
+    view.rerender(
+      <CustomChart
+        data={data}
+        color={dark ? '#8CC8FF' : '#1256A0'}
+        type="bar"
+        unit="mm"
+      />,
+    );
+    expect(screen.queryAllByTestId('chart-extrema-guide')).toHaveLength(0);
+    expect(screen.queryAllByTestId('chart-extrema-marker')).toHaveLength(0);
+    const bars = screen.getAllByTestId('svg-rect');
+    expect(bars[0].props.height).toBe(0);
+    expect(new Set(bars.slice(0, 3).map((bar) => bar.props.stroke)).size).toBe(
+      2,
+    );
+    expect(new Set(bars.slice(0, 3).map((bar) => bar.props.fill)).size).toBe(2);
+    expect(bars[0].props.stroke).toBe(theme.textSecondary);
+    expect(bars[2].props.stroke).toBe(theme.textSecondary);
+    expect(bars[3].props.stroke).toBe(bars[0].props.stroke);
+    expect(
+      screen.getAllByTestId('x-label').map((tick) => tick.props.fill),
+    ).toEqual([theme.textSecondary, theme.textSecondary, theme.textSecondary]);
+  });
+});
+
+it('tracks the nearest values in a compact readout and keeps touch ownership until release or cancellation', () => {
+  const theme = require('../../utils/weatherTheme').defaultTheme;
+  (useWeather as jest.Mock).mockReturnValue({ theme });
+  const onInteractionChange = jest.fn();
+  const data = [
+    { x: 0, y: 0, description: 'Nov 2, 12:00 AM' },
+    { x: 1, y: 2.5, description: 'Nov 2, 1:00 AM' },
+  ];
+  const view = render(
+    <CustomChart
+      data={data}
+      color="#1256A0"
+      unit="mm"
+      seriesNames={['Rain / snow']}
+      onInteractionChange={onInteractionChange}
+    />,
+  );
+  fireEvent(screen.getByTestId('chart-plot'), 'layout', {
+    nativeEvent: { layout: { width: 280 } },
+  });
+  const chart = screen.getByRole('adjustable');
+  fireEvent(chart, 'responderGrant', { nativeEvent: { locationX: 60 } });
+  expect(onInteractionChange).toHaveBeenLastCalledWith(true);
+  expect(chart.props.onResponderTerminationRequest()).toBe(false);
+  expect(
+    within(screen.getByTestId('chart-inspection')).getByText('Nov 2, 12:00 AM'),
+  ).toBeTruthy();
+  expect(screen.getByTestId('chart-inspection')).toHaveStyle({
+    width: 220,
+    left: 52,
+  });
+  expect(screen.getByTestId('chart-inspection-marker').props.cy).toBe(160);
+  fireEvent(chart, 'responderMove', {
+    nativeEvent: { locationX: 260, locationY: 140 },
+  });
+  expect(
+    within(screen.getByTestId('chart-inspection')).getByText('2.5', {
+      exact: false,
+    }),
+  ).toBeTruthy();
+  expect(screen.getByTestId('chart-inspection')).toHaveStyle({ left: 8 });
+  fireEvent(chart, 'responderRelease');
+  expect(screen.queryByTestId('chart-inspection')).toBeNull();
+  expect(onInteractionChange).toHaveBeenLastCalledWith(false);
+  fireEvent(chart, 'responderGrant', { nativeEvent: { locationX: 120 } });
+  fireEvent(chart, 'responderTerminate');
+  expect(screen.queryByTestId('chart-inspection')).toBeNull();
+  expect(onInteractionChange).toHaveBeenLastCalledWith(false);
+  fireEvent(chart, 'responderGrant', { nativeEvent: { locationX: 120 } });
+  view.unmount();
+  expect(onInteractionChange).toHaveBeenLastCalledWith(false);
+});
+
+it('renders the second series when the first has no measurements, and keeps zero bars at zero', () => {
+  (useWeather as jest.Mock).mockReturnValue({
+    theme: require('../../utils/weatherTheme').defaultTheme,
+  });
+  const view = render(
+    <CustomChart
+      data={[{ x: 0, y: NaN }]}
+      data2={[{ x: 0, y: 0 }]}
+      color="#123456"
+      color2="#654321"
+      unit=""
+    />,
+  );
+  expect(screen.getByTestId('svg-path-2')).toBeTruthy();
+  expect(screen.queryByText('No valid data points')).toBeNull();
+  view.rerender(
+    <CustomChart
+      data={[
+        { x: 0, y: 0 },
+        { x: 1, y: 2 },
+      ]}
+      color="#123456"
+      type="bar"
+      unit="mm"
+    />,
+  );
+  expect(screen.getAllByTestId('svg-rect')[0].props.height).toBe(0);
+});
+
+it('restores single-row clock/date labels and smooth thick curves without dropping samples', () => {
+  const { fireEvent } = require('@testing-library/react-native');
+  (useWeather as jest.Mock).mockReturnValue({
+    theme: require('../../utils/weatherTheme').defaultTheme,
+  });
+  const data = Array.from({ length: 48 }, (_, x) => ({
+    x,
+    y: x,
+    label:
+      x % 12 === 0
+        ? x % 24 === 0
+          ? x === 0
+            ? 'Oct 31'
+            : 'Nov 1'
+          : '12:00 PM'
+        : '',
+    dateLabel: x % 24 === 0 ? (x === 0 ? 'Oct 31' : 'Nov 1') : undefined,
+  }));
+  render(<CustomChart data={data} color="#123456" unit="°C" />);
+  fireEvent(screen.getByTestId('chart-plot'), 'layout', {
+    nativeEvent: { layout: { width: 260 } },
+  });
+  const ticks = screen.getAllByTestId('x-label');
+  expect(new Set(ticks.map((node) => node.props.y)).size).toBe(1);
+  const dates = screen
+    .getAllByTestId('x-label')
+    .map((node) => node.props.children);
+  expect(dates).toContain('Oct 31');
+  expect(dates).toContain('Nov 1');
+  expect(screen.getByTestId('svg-path').props.strokeWidth).toBe(3);
+  expect(screen.getByTestId('svg-path').props.d).toContain('C ');
+  expect(screen.getByTestId('svg-path').props.d.match(/[MLC] /g)).toHaveLength(
+    48,
+  );
 });

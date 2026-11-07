@@ -44,19 +44,21 @@ describe('Weather Theme Utils', () => {
     it('should return light theme during daytime', () => {
       jest.setSystemTime(new Date('2025-08-31T12:00:00')); // noon
       const theme = getTheme('clear', false);
-      expect(theme.background).toBe('#87CEEB'); // light theme sky blue
+      expect(theme.gradient).toEqual(['#064BCC', '#0865DF', '#6BD6FF']); // light theme sky blue
     });
 
-    it('should return dark theme during nighttime', () => {
+    it('does not infer appearance or night from the device clock', () => {
       jest.setSystemTime(new Date('2025-08-31T20:00:00')); // 8 PM
       const theme = getTheme('clear', false);
-      expect(theme.background).toBe('#0F1419'); // dark theme background
+      expect(theme.isDark).toBe(false);
+      expect(theme.gradientStart).toBe('#064BCC');
     });
 
     it('should return dark theme when isDarkMode is true regardless of time', () => {
       jest.setSystemTime(new Date('2025-08-31T12:00:00')); // noon
       const theme = getTheme('clear', true);
-      expect(theme.background).toBe('#0F1419'); // dark theme background
+      expect(theme.isDark).toBe(true);
+      expect(theme.gradientStart).toBe('#06296F');
     });
 
     it('should return appropriate theme for each weather condition', () => {

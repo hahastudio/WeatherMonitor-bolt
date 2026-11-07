@@ -96,10 +96,14 @@ export const mockWeatherContext: WeatherContextType = {
   theme: getTheme('clear'),
   weatherCondition: 'clear',
   isDarkMode: false,
+  followSystemTheme: true,
   refreshRate: 15,
   lastUpdated: null,
   refreshWeather: jest.fn() as jest.Mock<() => Promise<void>>,
   generateWeatherSummary: jest.fn() as jest.Mock<() => Promise<void>>,
   toggleDarkMode: jest.fn(),
+  setFollowSystemTheme: jest.fn() as jest.Mock<
+    (enabled: boolean) => Promise<void>
+  >,
   setRefreshRate: jest.fn() as jest.Mock<(minutes: number) => Promise<void>>,
 };
