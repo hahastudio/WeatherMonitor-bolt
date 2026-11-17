@@ -1,5 +1,6 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import {
+  GeminiService,
   geminiService,
   type WeatherSummary,
 } from '../../services/geminiService';
@@ -9,7 +10,7 @@ import type {
   CaiyunWeatherAlert,
   CaiyunAirQuality,
 } from '../../types/weather';
-import type { GenerateContentResponse } from '@google/genai';
+import { GoogleGenAI, type GenerateContentResponse } from '@google/genai';
 import { apiLogger } from '../../services/apiLogger';
 import { setApiKeys } from '../../services/apiKeyManager';
 
@@ -177,7 +178,7 @@ describe('GeminiService', () => {
         ],
         thoughtsTokenCount: 1417,
       },
-      modelVersion: 'gemini-3.8-flash',
+      modelVersion: 'gemini-4-hydrogen',
       responseId: 'mock_response_id_12345',
     } as GenerateContentResponse);
 
@@ -191,13 +192,22 @@ describe('GeminiService', () => {
 
   describe('generateWeatherSummary', () => {
     it('should generate weather summary successfully', async () => {
-      const result = await geminiService.generateWeatherSummary(mockInput);
+      const service = new GeminiService();
+      const result = await service.generateWeatherSummary(mockInput);
       expect(result).toEqual(mockWeatherSummary);
+      expect(GoogleGenAI).toHaveBeenCalledWith({
+        apiKey: 'test_api_key',
+        apiVersion: 'v1beta',
+      });
+      expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'gemini-4-hydrogen' }),
+      );
     });
 
-    it('should fallback to gemini-3.6-flash if gemini-3.8-flash returns 429', async () => {
+    it('should fallback to gemini-3.8-flash if gemini-4-hydrogen returns 429', async () => {
       mockGenerateContent.mockImplementation(async (args) => {
-        if (args?.model === 'gemini-3.8-flash') {
+        if (args?.model === 'gemini-4-hydrogen') {
           const err = Object.assign(new Error('Rate limit exceeded'), {
             status: 429,
           });
@@ -219,7 +229,7 @@ describe('GeminiService', () => {
               index: 0,
             },
           ],
-          modelVersion: 'gemini-3.6-flash',
+          modelVersion: 'gemini-3.8-flash',
         } as GenerateContentResponse;
       });
 
@@ -227,16 +237,17 @@ describe('GeminiService', () => {
       expect(result).toEqual(mockWeatherSummary);
       expect(mockGenerateContent).toHaveBeenCalledTimes(2);
       expect(mockGenerateContent.mock.calls[0][0]).toMatchObject({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-4-hydrogen',
       });
       expect(mockGenerateContent.mock.calls[1][0]).toMatchObject({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.8-flash',
       });
     });
 
-    it('should fallback to gemini-2.5-flash if the first three models return 429', async () => {
+    it('should fallback to gemini-2.5-flash if the first four models return 429', async () => {
       mockGenerateContent.mockImplementation(async (args) => {
         if (
+          args?.model === 'gemini-4-hydrogen' ||
           args?.model === 'gemini-3.8-flash' ||
           args?.model === 'gemini-3.6-flash' ||
           args?.model === 'gemini-3-flash-preview'
@@ -266,16 +277,20 @@ describe('GeminiService', () => {
 
       const result = await geminiService.generateWeatherSummary(mockInput);
       expect(result).toEqual(mockWeatherSummary);
-      expect(mockGenerateContent).toHaveBeenCalledTimes(4);
+      expect(mockGenerateContent).toHaveBeenCalledTimes(5);
       expect(mockGenerateContent.mock.calls[0][0]).toMatchObject({
-        model: 'gemini-3.8-flash',
+        model: 'gemini-4-hydrogen',
       });
       expect(mockGenerateContent.mock.calls[1][0]).toMatchObject({
-        model: 'gemini-3.6-flash',
+        model: 'gemini-3.8-flash',
       });
       expect(
         mockGenerateContent.mock.calls.slice(2).map(([args]) => args.model),
-      ).toEqual(['gemini-3-flash-preview', 'gemini-2.5-flash']);
+      ).toEqual([
+        'gemini-3.6-flash',
+        'gemini-3-flash-preview',
+        'gemini-2.5-flash',
+      ]);
     });
 
     it('should throw error if all models return 429', async () => {
@@ -289,8 +304,8 @@ describe('GeminiService', () => {
       await expect(
         geminiService.generateWeatherSummary(mockInput),
       ).rejects.toThrow('Too Many Requests');
-      expect(mockGenerateContent).toHaveBeenCalledTimes(4);
-      expect(apiLogger.logRequest).toHaveBeenCalledTimes(4);
+      expect(mockGenerateContent).toHaveBeenCalledTimes(5);
+      expect(apiLogger.logRequest).toHaveBeenCalledTimes(5);
     });
 
     it.each([
@@ -309,7 +324,7 @@ describe('GeminiService', () => {
         ).resolves.toEqual(mockWeatherSummary);
         expect(
           mockGenerateContent.mock.calls.map(([args]) => args.model),
-        ).toEqual(['gemini-3.8-flash', 'gemini-3.8-flash']);
+        ).toEqual(['gemini-4-hydrogen', 'gemini-4-hydrogen']);
       },
     );
 
@@ -329,10 +344,10 @@ describe('GeminiService', () => {
       expect(
         mockGenerateContent.mock.calls.map(([args]) => args.model),
       ).toEqual([
+        'gemini-4-hydrogen',
+        'gemini-4-hydrogen',
         'gemini-3.8-flash',
         'gemini-3.8-flash',
-        'gemini-3.6-flash',
-        'gemini-3.6-flash',
       ]);
     });
 
@@ -358,7 +373,7 @@ describe('GeminiService', () => {
         ).resolves.toEqual(mockWeatherSummary);
         expect(jest.mocked(apiLogger.logRequest).mock.calls).toEqual([
           [
-            'generateWeatherSummary (Gemini - gemini-3.8-flash)',
+            'generateWeatherSummary (Gemini - gemini-4-hydrogen)',
             'POST',
             'error',
             'auto',
@@ -367,7 +382,7 @@ describe('GeminiService', () => {
             'gemini',
           ],
           [
-            'generateWeatherSummary (Gemini - gemini-3.8-flash)',
+            'generateWeatherSummary (Gemini - gemini-4-hydrogen)',
             'POST',
             'error',
             'auto',
@@ -376,7 +391,7 @@ describe('GeminiService', () => {
             'gemini',
           ],
           [
-            'generateWeatherSummary (Gemini - gemini-3.6-flash)',
+            'generateWeatherSummary (Gemini - gemini-3.8-flash)',
             'POST',
             'success',
             'auto',
@@ -404,7 +419,7 @@ describe('GeminiService', () => {
       ).resolves.toEqual(mockWeatherSummary);
       expect(
         mockGenerateContent.mock.calls.map(([args]) => args.model),
-      ).toEqual(['gemini-3.8-flash', 'gemini-3.8-flash', 'gemini-3.6-flash']);
+      ).toEqual(['gemini-4-hydrogen', 'gemini-4-hydrogen', 'gemini-3.8-flash']);
     });
 
     it('should stop after retrying every model on persistent high demand', async () => {
@@ -414,10 +429,12 @@ describe('GeminiService', () => {
       await expect(
         geminiService.generateWeatherSummary(mockInput),
       ).rejects.toBe(error);
-      expect(apiLogger.logRequest).toHaveBeenCalledTimes(8);
+      expect(apiLogger.logRequest).toHaveBeenCalledTimes(10);
       expect(
         mockGenerateContent.mock.calls.map(([args]) => args.model),
       ).toEqual([
+        'gemini-4-hydrogen',
+        'gemini-4-hydrogen',
         'gemini-3.8-flash',
         'gemini-3.8-flash',
         'gemini-3.6-flash',
@@ -480,7 +497,7 @@ describe('GeminiService', () => {
             index: 0,
           },
         ],
-        modelVersion: 'gemini-3.8-flash',
+        modelVersion: 'gemini-4-hydrogen',
       } as GenerateContentResponse);
 
       const result = await geminiService.generateWeatherSummary(mockInput);
@@ -518,6 +535,13 @@ describe('GeminiService', () => {
       mockGenerateContent.mockResolvedValueOnce({} as GenerateContentResponse);
       const result = await geminiService.validateApiKey('valid_key');
       expect(result).toBe(true);
+      expect(GoogleGenAI).toHaveBeenCalledWith({
+        apiKey: 'valid_key',
+        apiVersion: 'v1beta',
+      });
+      expect(mockGenerateContent).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'gemini-4-hydrogen' }),
+      );
     });
 
     it('should return false for invalid api key', async () => {

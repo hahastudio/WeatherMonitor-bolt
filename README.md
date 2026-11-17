@@ -78,7 +78,7 @@ These handoffs record the approved design. See [implementation and verification 
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 22+
 - npm or yarn
 - Expo CLI (`npm install -g @expo/cli`)
 - API keys (see Environment Setup below)
@@ -215,8 +215,8 @@ For mobile app builds, you'll need to use EAS Build:
 
 **Models Used:**
 
-- `gemini-3.8-flash` - Primary fast, efficient model for text generation
-- `gemini-3.6-flash`, `gemini-3-flash-preview`, and `gemini-2.5-flash` - Fallback models for rate limits
+- `gemini-4-hydrogen` - Primary model for text generation
+- `gemini-3.8-flash`, `gemini-3.6-flash`, `gemini-3-flash-preview`, and `gemini-2.5-flash` - Fallback models for rate limits and persistent high demand
 
 **AI Features:**
 

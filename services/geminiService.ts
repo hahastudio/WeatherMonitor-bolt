@@ -27,11 +27,15 @@ export interface WeatherSummary {
 }
 
 const MODELS = [
+  'gemini-4-hydrogen',
   'gemini-3.8-flash',
   'gemini-3.6-flash',
   'gemini-3-flash-preview',
   'gemini-2.5-flash',
 ];
+
+// Preview fallback models require the beta API.
+const API_VERSION = 'v1beta';
 
 export class GeminiService {
   private genAI: GoogleGenAI | undefined;
@@ -48,7 +52,7 @@ export class GeminiService {
     }
 
     if (!this.genAI) {
-      this.genAI = new GoogleGenAI({ apiKey });
+      this.genAI = new GoogleGenAI({ apiKey, apiVersion: API_VERSION });
     }
 
     let lastError: unknown = null;
@@ -396,7 +400,7 @@ Guidelines:
 
   async validateApiKey(apiKey: string): Promise<boolean> {
     try {
-      const genAI = new GoogleGenAI({ apiKey });
+      const genAI = new GoogleGenAI({ apiKey, apiVersion: API_VERSION });
       await genAI.models.generateContent({
         model: MODELS[0],
         contents: [{ parts: [{ text: 'test' }] }],
