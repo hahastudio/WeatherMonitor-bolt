@@ -359,7 +359,7 @@ export default function SettingsScreen() {
       marginTop: 8,
       paddingTop: 8,
       borderTopWidth: 1,
-      borderTopColor: theme.textSecondary + '20',
+      borderTopColor: theme.divider,
     },
     alertStatRow: {
       flexDirection: 'row',
@@ -383,8 +383,10 @@ export default function SettingsScreen() {
       alignItems: 'center',
     },
     modalContent: {
-      backgroundColor: theme.surface,
-      borderRadius: 16,
+      backgroundColor: theme.background,
+      borderColor: theme.glassBorder,
+      borderWidth: 1,
+      borderRadius: 20,
       padding: 20,
       width: '80%',
       maxWidth: 400,
@@ -440,7 +442,7 @@ export default function SettingsScreen() {
       marginBottom: 8,
     },
     optionItemActive: {
-      backgroundColor: theme.primary + '20',
+      backgroundColor: theme.selection,
     },
     optionText: {
       color: theme.text,
@@ -574,6 +576,7 @@ export default function SettingsScreen() {
         >
           <GlassSurface
             theme={theme}
+            opaque
             testID="settings-menu"
             style={{
               display: columns || !detailOpen ? 'flex' : 'none',
@@ -611,7 +614,7 @@ export default function SettingsScreen() {
                     gap: 8,
                     backgroundColor:
                       columns && category === name
-                        ? theme.primary + '18'
+                        ? theme.selection
                         : 'transparent',
                   }}
                 >
@@ -632,6 +635,7 @@ export default function SettingsScreen() {
           </GlassSurface>
           <GlassSurface
             theme={theme}
+            opaque
             testID="settings-detail"
             style={{
               display: columns || detailOpen ? 'flex' : 'none',
@@ -667,8 +671,8 @@ export default function SettingsScreen() {
                     value={followSystemTheme}
                     onValueChange={setFollowSystemTheme}
                     trackColor={{
-                      false: theme.textSecondary + '40',
-                      true: theme.primary + '40',
+                      false: '#516877',
+                      true: '#1675A3',
                     }}
                     thumbColor={
                       followSystemTheme ? theme.primary : theme.textSecondary
@@ -676,12 +680,7 @@ export default function SettingsScreen() {
                   />
                 </View>
 
-                <View
-                  style={[
-                    styles.settingItem,
-                    followSystemTheme && { opacity: 0.5 },
-                  ]}
-                >
+                <View style={styles.settingItem}>
                   <View style={styles.settingLeft}>
                     <View style={styles.settingIcon}>
                       {isDarkMode ? (
@@ -707,8 +706,8 @@ export default function SettingsScreen() {
                     disabled={followSystemTheme}
                     onValueChange={toggleDarkMode}
                     trackColor={{
-                      false: theme.textSecondary + '40',
-                      true: theme.primary + '40',
+                      false: '#516877',
+                      true: '#1675A3',
                     }}
                     thumbColor={
                       isDarkMode ? theme.primary : theme.textSecondary

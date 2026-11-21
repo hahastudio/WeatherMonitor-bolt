@@ -195,7 +195,7 @@ export const WeatherAlerts: React.FC<WeatherAlertsProps> = ({ alerts }) => {
     },
     alertContentDivider: {
       borderTopWidth: 1,
-      borderTopColor: theme.textSecondary + '15',
+      borderTopColor: theme.divider,
       paddingTop: 14,
     },
     alertDescription: {

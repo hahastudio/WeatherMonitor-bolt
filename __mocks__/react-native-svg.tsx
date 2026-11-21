@@ -25,6 +25,10 @@ export const Text = (props: any) => {
 export const Path = createMockComponent('Path');
 export const Line = createMockComponent('Line');
 export const Circle = createMockComponent('Circle');
+export const Mask = createMockComponent('Mask');
+export const Ellipse = createMockComponent('Ellipse');
+export const Image = createMockComponent('Image');
+export const RadialGradient = createMockComponent('RadialGradient');
 export const Rect = createMockComponent('Rect');
 export const ClipPath = createMockComponent('ClipPath');
 export const Defs = createMockComponent('Defs');

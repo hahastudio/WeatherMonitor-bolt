@@ -540,7 +540,7 @@ export function CustomChart({
               left:
                 scaleX(selected.x) < width / 2 ? width - tooltipWidth - 8 : 8,
               width: tooltipWidth,
-              backgroundColor: theme.surface,
+              backgroundColor: theme.background,
               borderColor: theme.divider,
             },
           ]}
@@ -586,7 +586,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: StyleSheet.hairlineWidth,
     gap: 6,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
   },
   inspectionTime: { fontSize: 12, fontWeight: '500' },
   inspectionRow: {

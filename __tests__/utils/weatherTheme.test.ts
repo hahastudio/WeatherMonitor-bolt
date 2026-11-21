@@ -1,6 +1,7 @@
 import { describe, expect, it, jest, beforeEach } from '@jest/globals';
 import {
-  WeatherTheme,
+  materialFill,
+  type SceneCondition,
   getWeatherCondition,
   getTheme,
   formatTemperature,
@@ -33,66 +34,186 @@ describe('Weather Theme Utils', () => {
   });
 
   describe('getTheme', () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    it('should return light theme during daytime', () => {
-      jest.setSystemTime(new Date('2025-08-31T12:00:00')); // noon
-      const theme = getTheme('clear', false);
-      expect(theme.gradient).toEqual(['#064BCC', '#0865DF', '#6BD6FF']); // light theme sky blue
-    });
-
-    it('does not infer appearance or night from the device clock', () => {
-      jest.setSystemTime(new Date('2025-08-31T20:00:00')); // 8 PM
-      const theme = getTheme('clear', false);
-      expect(theme.isDark).toBe(false);
-      expect(theme.gradientStart).toBe('#064BCC');
-    });
-
-    it('should return dark theme when isDarkMode is true regardless of time', () => {
-      jest.setSystemTime(new Date('2025-08-31T12:00:00')); // noon
-      const theme = getTheme('clear', true);
-      expect(theme.isDark).toBe(true);
-      expect(theme.gradientStart).toBe('#06296F');
-    });
-
-    it('should return appropriate theme for each weather condition', () => {
-      jest.setSystemTime(new Date('2025-08-31T12:00:00')); // noon
-      const conditions: Array<
-        | 'clear'
-        | 'clouds'
-        | 'rain'
-        | 'snow'
-        | 'thunderstorm'
-        | 'drizzle'
-        | 'mist'
-      > = [
+    const cases: [
+      SceneCondition,
+      string[],
+      string[],
+      string,
+      string,
+      number,
+      string,
+    ][] = [
+      [
         'clear',
+        ['#149EEE', '#42B8F2', '#9DE4F6'],
+        ['#07172E', '#102E50', '#264D6A'],
+        '#001B55',
+        '#0B426D',
+        0.515,
+        '#35779B',
+      ],
+      [
         'clouds',
-        'rain',
-        'snow',
-        'thunderstorm',
+        ['#1468C7', '#359DE0', '#8ADAF1'],
+        ['#102A43', '#294C68', '#577B94'],
+        '#001C4C',
+        '#164565',
+        0.535,
+        '#357897',
+      ],
+      [
         'drizzle',
+        ['#287687', '#5A9CAA', '#A0CDD1'],
+        ['#102E3B', '#254C5A', '#547C86'],
+        '#021F2D',
+        '#154651',
+        0.57,
+        '#487880',
+      ],
+      [
+        'rain',
+        ['#275E88', '#4B88A9', '#8EB8CA'],
+        ['#11283D', '#23455D', '#486B80'],
+        '#031E3D',
+        '#123B55',
+        0.635,
+        '#457790',
+      ],
+      [
+        'snow',
+        ['#467EAB', '#82B7D6', '#C9E3EF'],
+        ['#18324B', '#355970', '#7394A6'],
+        '#102239',
+        '#244961',
+        0.46,
+        '#557488',
+      ],
+      [
         'mist',
-      ];
-
-      conditions.forEach((condition) => {
-        const theme = getTheme(condition, false);
-        expect(theme).toHaveProperty('primary');
-        expect(theme).toHaveProperty('secondary');
-        expect(theme).toHaveProperty('background');
-        expect(theme).toHaveProperty('surface');
-        expect(theme).toHaveProperty('text');
-        expect(theme).toHaveProperty('textSecondary');
-        expect(theme).toHaveProperty('accent');
-        expect(theme).toHaveProperty('gradientStart');
-        expect(theme).toHaveProperty('gradientEnd');
-      });
+        ['#527F99', '#7CA4B6', '#BDD4DD'],
+        ['#233B4C', '#466373', '#78929D'],
+        '#10222D',
+        '#2A4B5B',
+        0.52,
+        '#597581',
+      ],
+      [
+        'thunderstorm',
+        ['#263C63', '#4C698A', '#829EB5'],
+        ['#101E34', '#263952', '#4A5F76'],
+        '#0C1A38',
+        '#172F4C',
+        0.755,
+        '#527490',
+      ],
+    ];
+    const rgb = (hex: string) =>
+      [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const luminance = (channels: number[]) =>
+      channels.reduce((sum, n, i) => {
+        const c = n / 255;
+        return (
+          sum +
+          [0.2126, 0.7152, 0.0722][i] *
+            (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4)
+        );
+      }, 0);
+    it.each(cases)(
+      '%s resolves the full scene and both material roles',
+      (condition, day, night, dayTint, ink, brightness, fallback) => {
+        for (const isNight of [false, true])
+          for (const dark of [false, true]) {
+            const theme = getTheme(condition, dark, isNight);
+            const lightDay = !isNight && !dark;
+            const deep = rgb(ink).map((v, i) =>
+              Math.round(dark ? v * 0.7 + [5, 18, 33][i] * 0.3 : v),
+            );
+            expect(theme.gradient).toEqual(isNight ? night : day);
+            expect(theme.gradientLocations).toEqual([0, 0.58, 1]);
+            expect(theme.text).toBe('#FFFFFF');
+            expect(theme.textSecondary).toBe(lightDay ? '#F5FBFF' : '#E7F3FC');
+            expect(theme.navigation.backdropBrightness).toBe(
+              lightDay ? brightness : 1,
+            );
+            expect(rgb(theme.surface)).toEqual(lightDay ? rgb(fallback) : deep);
+            expect(rgb(theme.content.tint)).toEqual(
+              isNight ? deep : rgb(dayTint),
+            );
+            expect(theme.content.opacity).toBeLessThanOrEqual(
+              isNight ? 0.5 : 0.61,
+            );
+            expect(theme.navigation.opacity).toBe(lightDay ? 0.5 : 0.9);
+            expect(rgb(theme.navigation.tint)).toEqual(
+              lightDay ? rgb('#0865A6') : deep,
+            );
+            const scene = theme.gradient.map((stop) =>
+              rgb(stop).map((v, i) =>
+                dark ? v * 0.84 + [5, 18, 33][i] * 0.16 : v,
+              ),
+            );
+            const stops = theme.daylightGlass?.map((fill) =>
+              Number(fill.match(/[0-9.]+/g)![3]),
+            );
+            if (isNight) expect(stops).toBeUndefined();
+            else {
+              expect(stops).toHaveLength(3);
+              expect(stops![0]).toBeLessThanOrEqual(0.38);
+              expect(stops![0]).toBeLessThan(stops![1]);
+              expect(stops![1]).toBeLessThan(stops![2]);
+              expect(stops![2]).toBeCloseTo(theme.content.opacity);
+            }
+            for (const material of [theme.content, theme.navigation]) {
+              // Android navigation blur adds black at 75% of its intensity.
+              const transmissions =
+                material === theme.navigation ? [1, 1 - 66 / 255] : [1];
+              for (const transmission of transmissions) {
+                const [r, g, b, alpha] = materialFill(material, transmission)
+                  .match(/[0-9.]+/g)!
+                  .map(Number);
+                for (const channel of [r, g, b])
+                  expect(channel).toBeLessThanOrEqual(255);
+                for (let step = 0; step <= 100; step++) {
+                  const segment = step <= 58 ? 0 : 1;
+                  const fraction = segment ? (step - 58) / 42 : step / 58;
+                  const sky = scene[segment].map(
+                    (v, i) => v + fraction * (scene[segment + 1][i] - v),
+                  );
+                  const expected = rgb(material.tint).map(
+                    (v, i) =>
+                      material.opacity * v +
+                      (1 - material.opacity) *
+                        (material.backdropBrightness ?? 1) *
+                        sky[i],
+                  );
+                  const actual = [r, g, b].map(
+                    (v, i) => alpha * v + (1 - alpha) * transmission * sky[i],
+                  );
+                  if (actual.some((v, i) => Math.abs(v - expected[i]) > 0.51))
+                    throw Error(
+                      'Composite differs by more than half a channel',
+                    );
+                  if (material === theme.content) {
+                    const density = stops
+                      ? stops[segment] +
+                        fraction * (stops[segment + 1] - stops[segment])
+                      : material.opacity;
+                    const glass = rgb(material.tint).map(
+                      (v, i) => v * density + (1 - density) * sky[i],
+                    );
+                    expect(
+                      (luminance(rgb(theme.textSecondary)) + 0.05) /
+                        (luminance(glass) + 0.05),
+                    ).toBeGreaterThanOrEqual(4.65);
+                  }
+                }
+              }
+            }
+          }
+      },
+    );
+    it('aliases fog to mist and defaults to daytime without a device-time dependency', () => {
+      expect(getTheme('fog', true, true)).toEqual(getTheme('mist', true, true));
+      expect(getTheme('clear')).toEqual(getTheme('clear', false, false));
     });
   });
 

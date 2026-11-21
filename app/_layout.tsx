@@ -43,20 +43,27 @@ function RootLayoutNav() {
 
   if (isLoading || !navigationState?.key) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: theme.background,
+        }}
+      >
+        <ActivityIndicator size="large" color={theme.text} />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.gradientStart }}>
-      <StatusBar style={rootRoute === 'welcome' ? 'dark' : 'light'} />
+    <View style={{ flex: 1, backgroundColor: theme.sceneTop }}>
+      <StatusBar style="light" />
       <Stack
         screenOptions={{
           headerShown: false,
           orientation: 'portrait',
-          contentStyle: { backgroundColor: theme.gradientStart },
+          contentStyle: { backgroundColor: theme.sceneTop },
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

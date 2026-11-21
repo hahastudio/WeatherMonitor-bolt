@@ -6,7 +6,6 @@ import { ScrollingScreen } from '../../components/ScrollingScreen';
 import { GlassSurface } from '../../components/GlassSurface';
 import { CustomChart, type DataPoint } from '../../components/CustomChart';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorDisplay } from '../../components/ErrorDisplay';
 import type { HourlyForecast } from '../../types/weather';
 
 interface Series {
@@ -94,18 +93,27 @@ function ChartPanel({
                 onPress={() => setGuides(index as 0 | 1)}
                 style={[s.stats, { minHeight: series.length > 1 ? 28 : 20 }]}
               >
-                <Text
-                  style={[
-                    s.seriesName,
-                    {
-                      color: item.color,
+                <View style={[s.seriesName, s.seriesKey]}>
+                  <View
+                    style={[
+                      s.swatch,
+                      {
+                        backgroundColor: item.color,
+                        borderColor: theme.background,
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={{
+                      color: theme.text,
+                      flexShrink: 1,
                       fontSize: 12,
                       fontWeight: guides === index ? '700' : '500',
-                    },
-                  ]}
-                >
-                  {item.name}
-                </Text>
+                    }}
+                  >
+                    {item.name}
+                  </Text>
+                </View>
                 {stats.map((amount, i) => (
                   <Text
                     key={i}
@@ -137,20 +145,14 @@ function ChartPanel({
   );
 }
 export default function ChartsScreen() {
-  const { forecast, theme, loading, error, refreshWeather } = useWeather();
-  const { rail, columns, contentWidth } = useAdaptiveLayout();
+  const { forecast, theme, loading, refreshWeather } = useWeather();
+  const { columns, contentWidth } = useAdaptiveLayout();
   const [width, setWidth] = useState(contentWidth - 32);
   const [inspecting, setInspecting] = useState(false);
   const [headerHeights, setHeaderHeights] = useState<Record<string, number>>(
     {},
   );
-  if (!forecast)
-    return error ? (
-      <ErrorDisplay error={error} onRetry={refreshWeather} />
-    ) : (
-      <LoadingSpinner message="Loading forecast charts..." />
-    );
-  const data = forecast.hourly;
+  const data = forecast?.hourly ?? [];
   const series = (
     name: string,
     color: string,
@@ -194,28 +196,16 @@ export default function ChartsScreen() {
       };
     }),
   });
-  // Darker variants retain the same series meanings on a light reading surface.
-  const colors = theme.isDark
-    ? [
-        '#8CC8FF',
-        '#FFBC69',
-        '#84E0AB',
-        '#D4ADFF',
-        '#FFB0B0',
-        '#7DE1E3',
-        '#FFAB96',
-        '#8EDDD4',
-      ]
-    : [
-        '#1256A0',
-        '#935000',
-        '#17663D',
-        '#7439A4',
-        '#A63246',
-        '#00666B',
-        '#A13824',
-        '#086C62',
-      ];
+  const colors = [
+    '#8CC8FF',
+    '#FFBC69',
+    '#84E0AB',
+    '#D4ADFF',
+    '#FFB0B0',
+    '#7DE1E3',
+    '#FFAB96',
+    '#8EDDD4',
+  ];
   const charts = [
     {
       title: 'Temperature',
@@ -278,49 +268,41 @@ export default function ChartsScreen() {
       onRefresh={refreshWeather}
       refreshBusy={loading}
       scrollEnabled={!inspecting}
-      subtitle={
-        <Text
-          style={{
-            color: theme.heroSecondary,
-            textAlign: rail ? 'left' : 'center',
-            marginTop: 6,
+    >
+      {forecast ? (
+        <View
+          style={s.grid}
+          onLayout={(e) => {
+            if (e.nativeEvent.layout.width > 0)
+              setWidth(e.nativeEvent.layout.width);
           }}
         >
-          Next 48 Hours Forecast
+          {charts.map((chart) => (
+            <View
+              key={chart.title}
+              style={{ width: columns ? (width - 12) / 2 : '100%' }}
+            >
+              <ChartPanel
+                {...chart}
+                headerHeight={sharedHeight}
+                onInteractionChange={setInspecting}
+                onHeader={(height) =>
+                  setHeaderHeights((prev) =>
+                    prev[chart.title] === height
+                      ? prev
+                      : { ...prev, [chart.title]: height },
+                  )
+                }
+              />
+            </View>
+          ))}
+        </View>
+      ) : loading ? (
+        <LoadingSpinner message="Loading forecast charts..." />
+      ) : (
+        <Text style={{ color: theme.heroSecondary, textAlign: 'center' }}>
+          No forecast available
         </Text>
-      }
-    >
-      <View
-        style={s.grid}
-        onLayout={(e) => {
-          if (e.nativeEvent.layout.width > 0)
-            setWidth(e.nativeEvent.layout.width);
-        }}
-      >
-        {charts.map((chart) => (
-          <View
-            key={chart.title}
-            style={{ width: columns ? (width - 12) / 2 : '100%' }}
-          >
-            <ChartPanel
-              {...chart}
-              headerHeight={sharedHeight}
-              onInteractionChange={setInspecting}
-              onHeader={(height) =>
-                setHeaderHeights((prev) =>
-                  prev[chart.title] === height
-                    ? prev
-                    : { ...prev, [chart.title]: height },
-                )
-              }
-            />
-          </View>
-        ))}
-      </View>
-      {error && (
-        <GlassSurface theme={theme} style={{ padding: 12, marginTop: 12 }}>
-          <Text style={{ color: theme.danger }}>{error}</Text>
-        </GlassSurface>
       )}
     </ScrollingScreen>
   );
@@ -339,6 +321,8 @@ const s = StyleSheet.create({
     marginBottom: 10,
   },
   stats: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  seriesKey: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  swatch: { width: 9, height: 5, borderRadius: 2, borderWidth: 1 },
   seriesName: { flex: 1.5, minWidth: 0 },
   stat: { flex: 1, textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

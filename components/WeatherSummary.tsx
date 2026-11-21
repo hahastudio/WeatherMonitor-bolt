@@ -71,26 +71,13 @@ export const WeatherSummary: React.FC = () => {
   const getMoodIcon = (mood: string) => {
     switch (mood) {
       case 'positive':
-        return <ThumbsUp size={20} color={theme.primary} />;
+        return <ThumbsUp size={16} color={theme.success} />;
       case 'warning':
-        return <ThumbsDown size={20} color="#FF8800" />;
+        return <ThumbsDown size={16} color={theme.warning} />;
       case 'severe':
-        return <AlertTriangle size={20} color="#FF4444" />;
+        return <AlertTriangle size={16} color={theme.danger} />;
       default:
-        return <Cloud size={20} color={theme.primary} />;
-    }
-  };
-
-  const getMoodColor = (mood: string) => {
-    switch (mood) {
-      case 'positive':
-        return theme.success;
-      case 'warning':
-        return theme.warning;
-      case 'severe':
-        return theme.danger;
-      default:
-        return theme.primary;
+        return <Cloud size={16} color={theme.textSecondary} />;
     }
   };
 
@@ -120,10 +107,7 @@ export const WeatherSummary: React.FC = () => {
 
   const styles = StyleSheet.create({
     container: {
-      borderRadius: 16,
-      marginVertical: 0,
       overflow: 'hidden',
-      // CRITICAL: Remove all shadow/elevation properties to prevent Android grey borders
     },
     cardTouchable: {
       // Make the entire card tappable
@@ -158,7 +142,6 @@ export const WeatherSummary: React.FC = () => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginBottom: 12,
     },
     headerActions: {
       flexDirection: 'row',
@@ -167,7 +150,7 @@ export const WeatherSummary: React.FC = () => {
     refreshButton: {
       padding: 8,
       borderRadius: 20,
-      backgroundColor: theme.background + '20',
+      backgroundColor: theme.selection,
       marginRight: 8,
     },
     expandIndicator: {
@@ -189,13 +172,13 @@ export const WeatherSummary: React.FC = () => {
       paddingVertical: 12,
     },
     errorText: {
-      color: theme.accent,
+      color: theme.text,
       fontSize: 14,
       textAlign: 'center',
       marginBottom: 8,
     },
     retryButton: {
-      backgroundColor: theme.primary + '20',
+      backgroundColor: theme.selection,
       borderRadius: 8,
       paddingVertical: 8,
       paddingHorizontal: 16,
@@ -214,10 +197,10 @@ export const WeatherSummary: React.FC = () => {
       fontSize: 16,
       lineHeight: 22,
     },
-    alertSection: {
-      backgroundColor: theme.textSecondary + '10',
-      borderRadius: 8,
-      padding: 12,
+    summarySection: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: theme.divider,
+      paddingTop: 12,
     },
     sectionTitleRow: {
       flexDirection: 'row',
@@ -225,8 +208,8 @@ export const WeatherSummary: React.FC = () => {
       marginBottom: 4,
       gap: 6,
     },
-    alertTitle: {
-      color: theme.warning,
+    sectionTitle: {
+      color: theme.text,
       fontSize: 14,
       fontWeight: '600',
     },
@@ -235,25 +218,10 @@ export const WeatherSummary: React.FC = () => {
       fontSize: 14,
       lineHeight: 20,
     },
-    warningSection: {
-      backgroundColor: theme.textSecondary + '10',
-      borderRadius: 8,
-      padding: 12,
-    },
-    warningTitle: {
-      color: theme.danger,
-      fontSize: 14,
-      fontWeight: '600',
-    },
     warningText: {
       color: theme.text,
       fontSize: 14,
       lineHeight: 20,
-    },
-    recommendationsSection: {
-      backgroundColor: theme.primary + '10',
-      borderRadius: 8,
-      padding: 12,
     },
     recommendationsTitle: {
       flexDirection: 'row',
@@ -286,13 +254,12 @@ export const WeatherSummary: React.FC = () => {
     moodIndicator: {
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: 'flex-start',
-      borderRadius: 12,
+      gap: 6,
     },
     moodText: {
-      fontSize: 12,
+      color: theme.text,
+      fontSize: 13,
       fontWeight: '600',
-      marginLeft: 4,
       textTransform: 'capitalize',
     },
     tapHint: {
@@ -377,16 +344,9 @@ export const WeatherSummary: React.FC = () => {
           {weatherSummary && (
             <View style={styles.content}>
               <View style={styles.moodRow}>
-                <View style={styles.moodIndicator}>
+                <View testID="summary-mood" style={styles.moodIndicator}>
                   {getMoodIcon(weatherSummary.mood)}
-                  <Text
-                    style={[
-                      styles.moodText,
-                      { color: getMoodColor(weatherSummary.mood) },
-                    ]}
-                  >
-                    {weatherSummary.mood}
-                  </Text>
+                  <Text style={styles.moodText}>{weatherSummary.mood}</Text>
                 </View>
                 {summaryGeneratedAt && (
                   <Text style={styles.generatedTime}>
@@ -400,10 +360,12 @@ export const WeatherSummary: React.FC = () => {
               </Text>
 
               {weatherSummary.alertSummary && (
-                <View style={styles.alertSection}>
+                <View style={styles.summarySection}>
                   <View style={styles.sectionTitleRow}>
-                    <AlertTriangle size={16} color="#FF8800" />
-                    <Text style={styles.alertTitle}>Active Weather Alerts</Text>
+                    <AlertTriangle size={16} color={theme.warning} />
+                    <Text style={styles.sectionTitle}>
+                      Active Weather Alerts
+                    </Text>
                   </View>
                   <Text style={styles.alertText}>
                     {weatherSummary.alertSummary}
@@ -414,10 +376,10 @@ export const WeatherSummary: React.FC = () => {
               {expanded && (
                 <View testID="expanded-content" style={styles.content}>
                   {weatherSummary.futureWarnings && (
-                    <View style={styles.warningSection}>
+                    <View style={styles.summarySection}>
                       <View style={styles.sectionTitleRow}>
-                        <Cloud size={16} color="#FF4444" />
-                        <Text style={styles.warningTitle}>
+                        <Cloud size={16} color={theme.danger} />
+                        <Text style={styles.sectionTitle}>
                           Upcoming Weather Concerns
                         </Text>
                       </View>
@@ -427,7 +389,7 @@ export const WeatherSummary: React.FC = () => {
                     </View>
                   )}
 
-                  <View style={styles.recommendationsSection}>
+                  <View style={styles.summarySection}>
                     <View style={styles.recommendationsTitle}>
                       <Lightbulb size={16} color={theme.primary} />
                       <Text style={styles.recommendationsTitleText}>

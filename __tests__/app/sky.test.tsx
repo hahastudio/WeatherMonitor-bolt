@@ -101,6 +101,23 @@ it('supports accessible time adjustment, day navigation, and Settings', () => {
   expect(mockNavigate).toHaveBeenCalledWith('/settings');
   expect(global.fetch).not.toHaveBeenCalled();
 });
+
+it('pins the observer to the globe and hides the pin on the far side', () => {
+  render(<SkyScreen />);
+  const globeLabel = () => screen.getByLabelText(/Earth at the selected time/);
+  const pin = () => screen.getByTestId('observer-marker');
+  expect(globeLabel().props.accessibilityLabel).toContain('marked with a pin');
+  expect(pin().props.transform).toBe('translate(110 110)');
+
+  const east = screen.getByLabelText('Rotate globe east');
+  fireEvent.press(east);
+  expect(pin().props.transform).not.toBe('translate(110 110)');
+  for (let i = 0; i < 3; i += 1) fireEvent.press(east);
+  expect(screen.queryByTestId('observer-marker')).toBeNull();
+
+  fireEvent.press(screen.getByRole('button', { name: 'My location' }));
+  expect(pin().props.transform).toBe('translate(110 110)');
+});
 it('retains Moon-first at night when the Moon is below the horizon', () => {
   jest.setSystemTime(new Date('2026-11-01T10:00Z'));
   render(<SkyScreen />);

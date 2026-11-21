@@ -57,12 +57,14 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 it('retains 48 hourly entries, seven expanded daily rows, zero values and the same strip while folding', () => {
+  mockContext.error = 'Weather provider request failed';
   const view = render(<Workspace pane="forecast" />);
   const hour = screen.getAllByTestId('forecast-hour')[0];
   expect(screen.getAllByTestId('forecast-hour')).toHaveLength(48);
   expect(screen.getAllByTestId('forecast-day')).toHaveLength(7);
   expect(screen.getAllByTestId('forecast-temperature-track')).toHaveLength(7);
   expect(screen.getAllByText('0.0 km/h')).toHaveLength(48);
+  expect(screen.queryByText(mockContext.error)).toBeNull();
   [600, 720, 840, 1024, 320].forEach((width) => {
     mockWidth = width;
     view.rerender(<Workspace pane="forecast" />);
@@ -114,4 +116,19 @@ it('uses only the pane selector to open air quality with a rail, restoring the d
   expect(
     screen.getByRole('button', { name: /Air Quality.*show details/ }),
   ).toBeTruthy();
+});
+
+it('allocates equal measured widths to both unfolded panes after a phone resize', () => {
+  const view = render(<Workspace pane="current" />);
+  mockWidth = 840;
+  view.rerender(<Workspace pane="current" />);
+  fireEvent(screen.getByTestId('weather-workspace'), 'layout', {
+    nativeEvent: { layout: { x: 16, y: 80, width: 732, height: 600 } },
+  });
+  expect(screen.getByTestId('current-pane-frame')).toHaveStyle({ width: 360 });
+  expect(screen.getByTestId('weather-detail-column')).toHaveStyle({
+    width: 360,
+  });
+  expect(screen.getAllByTestId('forecast-day')).toHaveLength(7);
+  expect(mockContext.refreshWeather).not.toHaveBeenCalled();
 });

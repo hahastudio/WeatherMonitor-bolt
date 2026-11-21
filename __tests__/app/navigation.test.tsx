@@ -1,5 +1,5 @@
 import React from 'react';
-import { BackHandler, Text, View } from 'react-native';
+import { BackHandler, ScrollView, Text, View } from 'react-native';
 import {
   act,
   fireEvent,
@@ -14,12 +14,13 @@ import { useWeatherPane } from '../../contexts/WeatherPaneContext';
 import { mockWeatherContext } from '../mocks';
 
 let mockWidth = 390;
+let mockFontScale = 1;
 jest.mock('../../hooks/useAdaptiveLayout', () => ({
   ...jest.requireActual('../../hooks/useAdaptiveLayout'),
   useAdaptiveLayout: () =>
     jest
       .requireActual('../../hooks/useAdaptiveLayout')
-      .adaptiveLayout(mockWidth, 800),
+      .adaptiveLayout(mockWidth, 800, mockFontScale),
 }));
 jest.mock('../../contexts/WeatherContext', () => ({
   useWeather: () => mockWeatherContext,
@@ -92,9 +93,22 @@ function renderNavigation(initialUrl = '/') {
 
 beforeEach(() => {
   mockWidth = 390;
+  mockFontScale = 1;
   jest.clearAllMocks();
 });
 afterEach(() => jest.useRealTimers());
+
+it('keeps enlarged phone tab labels at their intrinsic widths and scrolls to the final destination', () => {
+  mockWidth = 320;
+  mockFontScale = 1.6;
+  const view = renderNavigation();
+  expect(screen.UNSAFE_getByType(ScrollView).props.horizontal).toBe(true);
+  for (const name of ['Weather', 'Forecast', 'Charts', 'Sky', 'Map']) {
+    expect(screen.getByRole('tab', { name })).toHaveStyle({ flexShrink: 0 });
+  }
+  fireEvent.press(screen.getByRole('tab', { name: 'Map' }));
+  expect(view.getPathname()).toBe('/map');
+});
 
 it.each([390, 840])(
   'returns to Weather after repeated tab switches at width %s',

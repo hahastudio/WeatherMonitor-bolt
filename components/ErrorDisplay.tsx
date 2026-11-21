@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { CircleAlert as AlertCircle, RefreshCw } from 'lucide-react-native';
+import { GlassSurface } from './GlassSurface';
 import { useWeather } from '../contexts/WeatherContext';
 
 interface ErrorDisplayProps {
@@ -19,7 +20,7 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: theme.background,
+
       padding: 20,
     },
     iconContainer: {
@@ -42,13 +43,13 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
     retryButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: theme.primary,
+      backgroundColor: theme.background,
       paddingHorizontal: 24,
       paddingVertical: 12,
       borderRadius: 8,
     },
     retryText: {
-      color: theme.onPrimary,
+      color: theme.text,
       fontSize: 16,
       fontWeight: '600',
       marginLeft: 8,
@@ -56,16 +57,16 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
   });
 
   return (
-    <View style={styles.container}>
+    <GlassSurface theme={theme} opaque style={styles.container}>
       <View style={styles.iconContainer}>
         <AlertCircle size={48} color={theme.accent} />
       </View>
       <Text style={styles.title}>Something went wrong</Text>
       <Text style={styles.message}>{error}</Text>
       <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
-        <RefreshCw size={20} color={theme.onPrimary} />
+        <RefreshCw size={20} color={theme.text} />
         <Text style={styles.retryText}>Try Again</Text>
       </TouchableOpacity>
-    </View>
+    </GlassSurface>
   );
 };

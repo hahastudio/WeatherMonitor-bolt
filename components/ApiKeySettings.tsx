@@ -142,7 +142,6 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = ({ onSaved }) => {
       lineHeight: 20,
     },
     inputContainer: {
-      backgroundColor: theme.surface,
       borderRadius: 12,
       padding: 16,
       marginBottom: 8,
@@ -153,7 +152,7 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = ({ onSaved }) => {
       backgroundColor: theme.background,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: theme.textSecondary + '40',
+      borderColor: theme.textSecondary,
     },
     input: {
       flex: 1,
@@ -170,7 +169,7 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = ({ onSaved }) => {
       marginTop: 16,
     },
     validateButton: {
-      backgroundColor: theme.primary + '20',
+      backgroundColor: theme.background,
       paddingHorizontal: 16,
       paddingVertical: 8,
       borderRadius: 6,
@@ -201,7 +200,7 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = ({ onSaved }) => {
       <WeatherBackdrop theme={theme}>
         <ScrollView contentContainerStyle={styles.content}>
           {/* OpenWeatherMap API Key */}
-          <GlassSurface theme={theme} style={styles.section}>
+          <GlassSurface theme={theme} opaque style={styles.section}>
             <Text style={styles.sectionTitle}>OpenWeatherMap API Key</Text>
             <Text style={styles.sectionDescription}>
               Required for current weather and forecast data. Get your API key
@@ -245,7 +244,7 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = ({ onSaved }) => {
           </GlassSurface>
 
           {/* Caiyun API Key */}
-          <GlassSurface theme={theme} style={styles.section}>
+          <GlassSurface theme={theme} opaque style={styles.section}>
             <Text style={styles.sectionTitle}>Caiyun API Key</Text>
             <Text style={styles.sectionDescription}>
               Required for weather alerts in China. Get your API key from the
@@ -287,7 +286,7 @@ const ApiKeySettingsScreen: React.FC<ApiKeySettingsProps> = ({ onSaved }) => {
           </GlassSurface>
 
           {/* Gemini API Key */}
-          <GlassSurface theme={theme} style={styles.section}>
+          <GlassSurface theme={theme} opaque style={styles.section}>
             <Text style={styles.sectionTitle}>Gemini API Key</Text>
             <Text style={styles.sectionDescription}>
               Required for weather summaries and recommendations. Get your API

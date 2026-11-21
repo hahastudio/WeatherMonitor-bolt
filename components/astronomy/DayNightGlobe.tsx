@@ -6,7 +6,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react-native';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
+import Svg, { Circle, G, Path } from 'react-native-svg';
 import type { EarthPoint } from '../../types/astronomy';
 import { wrapLongitude } from '../../services/astronomyService';
 import { coordinateLabel, projectGlobe } from '../../utils/globeGeometry';
@@ -95,13 +95,13 @@ export const DayNightGlobe = memo(function DayNightGlobe({
         }}
         accessible
         accessibilityRole="image"
-        accessibilityLabel={`Earth at the selected time. Shaded area is night. Sun overhead at ${coordinateLabel(subsolar)}. Observer ${paths.observer ? 'visible as a square' : 'on the far side'}. Sun marker ${paths.subsolar ? 'visible as a circle' : 'on the far side'}. Camera centred on ${coordinateLabel(camera)}.`}
+        accessibilityLabel={`Earth at the selected time. Shaded area is night. Sun overhead at ${coordinateLabel(subsolar)}. Your location is ${paths.observer ? 'marked with a pin' : 'on the far side'}. Sun marker ${paths.subsolar ? 'visible as a circle' : 'on the far side'}. Camera centred on ${coordinateLabel(camera)}.`}
       >
         <Svg
           width="100%"
           height={expanded ? '100%' : 220}
           style={expanded ? { position: 'absolute' } : undefined}
-          viewBox="0 0 220 220"
+          viewBox="-2 -12 224 232"
           accessible={false}
         >
           <Circle cx={110} cy={110} r={104} fill={colors.sea} />
@@ -127,16 +127,19 @@ export const DayNightGlobe = memo(function DayNightGlobe({
             />
           )}
           {paths.observer && (
-            <Rect
+            <G
               testID="observer-marker"
-              x={paths.observer[0] - 3.5}
-              y={paths.observer[1] - 3.5}
-              width={7}
-              height={7}
-              fill={theme.text}
-              stroke={theme.surface}
-              strokeWidth={1.5}
-            />
+              transform={`translate(${paths.observer[0]} ${paths.observer[1]})`}
+            >
+              <Path
+                d="M 0 0 C -2 -3 -6 -6 -6 -10 A 6 6 0 0 1 6 -10 C 6 -6 2 -3 0 0 Z"
+                fill={theme.text}
+                stroke={theme.background}
+                strokeWidth={1.5}
+                strokeLinejoin="round"
+              />
+              <Circle cx={0} cy={-10} r={2} fill={theme.background} />
+            </G>
           )}
         </Svg>
       </View>

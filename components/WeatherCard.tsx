@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useWeather } from '../contexts/WeatherContext';
+import { GlassSurface } from './GlassSurface';
 import { WeatherIcon } from './WeatherIcon';
 import { formatTemperature, capitalizeWords } from '../utils/weatherTheme';
 
@@ -29,28 +30,8 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
 
   const styles = StyleSheet.create({
     card: {
-      backgroundColor: theme.surface,
-      borderRadius: 16,
       padding: 16,
       marginVertical: 8,
-      // Use Platform.select to prevent Android grey borders
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        },
-        android: {
-          elevation: 3,
-        },
-        web: {
-          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-        },
-      }),
     },
     header: {
       flexDirection: 'row',
@@ -116,7 +97,7 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
   });
 
   return (
-    <View style={styles.card}>
+    <GlassSurface theme={theme} style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
         {time && <Text style={styles.time}>{time}</Text>}
@@ -158,6 +139,6 @@ export const WeatherCard: React.FC<WeatherCardProps> = ({
             )}
         </View>
       </View>
-    </View>
+    </GlassSurface>
   );
 };

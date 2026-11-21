@@ -12,12 +12,9 @@ import { mockWeatherContext } from '../mocks';
 import { adaptiveForecast as mockForecast } from '../fixtures/adaptiveWeather';
 
 const mockRefresh = jest.fn().mockResolvedValue(undefined);
+let mockContext: typeof mockWeatherContext;
 jest.mock('../../contexts/WeatherContext', () => ({
-  useWeather: () => ({
-    ...mockWeatherContext,
-    forecast: mockForecast,
-    refreshWeather: mockRefresh,
-  }),
+  useWeather: () => mockContext,
 }));
 jest.mock('../../hooks/useAdaptiveLayout', () => ({
   useAdaptiveLayout: () => ({
@@ -33,6 +30,14 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: require('react-native').View,
 }));
+
+beforeEach(() => {
+  mockContext = {
+    ...mockWeatherContext,
+    forecast: mockForecast,
+    refreshWeather: mockRefresh,
+  };
+});
 
 it('locks scrolling and refresh throughout chart inspection and restores them after release or cancellation', async () => {
   render(<ChartsScreen />);
@@ -68,4 +73,20 @@ it('locks scrolling and refresh throughout chart inspection and restores them af
     ),
   );
   expect(mockRefresh).toHaveBeenCalledTimes(1);
+});
+
+it('keeps the shared heading and hides request errors with or without cached data', () => {
+  mockContext.error = 'Weather provider request failed';
+  const view = render(<ChartsScreen />);
+  expect(screen.getByRole('header', { name: 'Weather Charts' })).toBeTruthy();
+  expect(screen.queryByText('Next 48 Hours Forecast')).toBeNull();
+  expect(screen.getAllByTestId('weather-chart-panel')).toHaveLength(6);
+  expect(screen.queryByRole('alert')).toBeNull();
+
+  mockContext.forecast = null;
+  view.rerender(<ChartsScreen />);
+  expect(screen.getByRole('header', { name: 'Weather Charts' })).toBeTruthy();
+  expect(screen.getByText('No forecast available')).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.UNSAFE_getByType(RefreshControl).props.enabled).toBe(true);
 });

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { ActivityIndicator, Text, StyleSheet } from 'react-native';
+import { GlassSurface } from './GlassSurface';
 import { useWeather } from '../contexts/WeatherContext';
 
 interface LoadingSpinnerProps {
@@ -16,7 +17,6 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
-      backgroundColor: theme.background,
       padding: 20,
     },
     text: {
@@ -28,9 +28,9 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   });
 
   return (
-    <View style={styles.container}>
+    <GlassSurface theme={theme} opaque style={styles.container}>
       <ActivityIndicator size="large" color={theme.primary} />
       <Text style={styles.text}>{message}</Text>
-    </View>
+    </GlassSurface>
   );
 };

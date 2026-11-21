@@ -1,8 +1,18 @@
-import { WeatherCondition } from '../types/weather';
+import type { WeatherCondition } from '../types/weather';
+
+export type SceneCondition = Exclude<WeatherCondition, 'fog'>;
+type Palette = readonly [string, string, string];
+export interface WeatherMaterial {
+  tint: string;
+  opacity: number;
+  backdropBrightness?: number;
+}
 
 export interface WeatherTheme {
+  condition: SceneCondition;
   isDark: boolean;
   isNight: boolean;
+  brightDay: boolean;
   primary: string;
   secondary: string;
   background: string;
@@ -12,62 +22,141 @@ export interface WeatherTheme {
   accent: string;
   heroText: string;
   heroSecondary: string;
-  glass: string;
+  content: WeatherMaterial;
+  daylightGlass?: Palette;
+  navigation: WeatherMaterial;
+  selection: string;
   glassBorder: string;
   divider: string;
-  shadow: string;
   onPrimary: string;
   danger: string;
   warning: string;
   success: string;
-  gradientStart: string;
-  gradientMiddle: string;
-  gradientEnd: string;
-  gradient: readonly [string, string, string];
+  sceneTop: string;
+  gradient: Palette;
   gradientLocations: readonly [number, number, number];
-  colors: { background: string; text: string; primary: string };
-  radii: { medium: number };
 }
 
-type Palette = readonly [string, string, string];
-type Atmosphere = Exclude<WeatherCondition, 'fog'> | 'night';
-export const weatherPalettes: Record<
-  Atmosphere,
-  { light: Palette; dark: Palette }
-> = {
+interface WeatherPalette {
+  day: Palette;
+  night: Palette;
+  glassTint: string;
+  daylightOpacity: readonly [number, number, number];
+  nightOpacity: number;
+  ink: string;
+  navigationBrightness: number;
+  opaqueDay: string;
+}
+
+// The palest stop in each sky sets the tint needed for small white captions.
+export const weatherPalettes: Record<SceneCondition, WeatherPalette> = {
   clear: {
-    light: ['#064BCC', '#0865DF', '#6BD6FF'],
-    dark: ['#06296F', '#084BAA', '#169ADB'],
+    day: ['#149EEE', '#42B8F2', '#9DE4F6'],
+    night: ['#07172E', '#102E50', '#264D6A'],
+    glassTint: '#001B55',
+    daylightOpacity: [0.38, 0.47, 0.57],
+    nightOpacity: 0.26,
+    ink: '#0B426D',
+    navigationBrightness: 0.515,
+    opaqueDay: '#35779B',
   },
   clouds: {
-    light: ['#345D8F', '#426C9A', '#B8D6EB'],
-    dark: ['#162D51', '#2B507B', '#5484AE'],
+    day: ['#1468C7', '#359DE0', '#8ADAF1'],
+    night: ['#102A43', '#294C68', '#577B94'],
+    glassTint: '#001C4C',
+    daylightOpacity: [0.21, 0.37, 0.55],
+    nightOpacity: 0.28,
+    ink: '#164565',
+    navigationBrightness: 0.535,
+    opaqueDay: '#357897',
   },
   drizzle: {
-    light: ['#005A73', '#076C81', '#78DAD6'],
-    dark: ['#103B50', '#15576F', '#3FA4B3'],
+    day: ['#287687', '#5A9CAA', '#A0CDD1'],
+    night: ['#102E3B', '#254C5A', '#547C86'],
+    glassTint: '#021F2D',
+    daylightOpacity: [0.21, 0.34, 0.53],
+    nightOpacity: 0.28,
+    ink: '#154651',
+    navigationBrightness: 0.57,
+    opaqueDay: '#487880',
   },
   rain: {
-    light: ['#1147A3', '#215FB0', '#79BCEB'],
-    dark: ['#102E65', '#214E91', '#3C93CE'],
+    day: ['#275E88', '#4B88A9', '#8EB8CA'],
+    night: ['#11283D', '#23455D', '#486B80'],
+    glassTint: '#031E3D',
+    daylightOpacity: [0.18, 0.26, 0.47],
+    nightOpacity: 0.26,
+    ink: '#123B55',
+    navigationBrightness: 0.635,
+    opaqueDay: '#457790',
   },
   snow: {
-    light: ['#285C91', '#326BA4', '#D4F1FF'],
-    dark: ['#173E66', '#2A5A83', '#73B5D5'],
+    day: ['#467EAB', '#82B7D6', '#C9E3EF'],
+    night: ['#18324B', '#355970', '#7394A6'],
+    glassTint: '#102239',
+    daylightOpacity: [0.3, 0.49, 0.61],
+    nightOpacity: 0.5,
+    ink: '#244961',
+    navigationBrightness: 0.46,
+    opaqueDay: '#557488',
   },
   mist: {
-    light: ['#465F79', '#536D87', '#C7D8E2'],
-    dark: ['#263D53', '#3E5870', '#819EAD'],
+    day: ['#527F99', '#7CA4B6', '#BDD4DD'],
+    night: ['#233B4C', '#466373', '#78929D'],
+    glassTint: '#10222D',
+    daylightOpacity: [0.26, 0.42, 0.57],
+    nightOpacity: 0.5,
+    ink: '#2A4B5B',
+    navigationBrightness: 0.52,
+    opaqueDay: '#597581',
   },
   thunderstorm: {
-    light: ['#203B76', '#3B548F', '#7D9ED3'],
-    dark: ['#101D45', '#273769', '#526FA3'],
-  },
-  night: {
-    light: ['#101F64', '#21458F', '#5586CE'],
-    dark: ['#071437', '#10275E', '#28579D'],
+    day: ['#263C63', '#4C698A', '#829EB5'],
+    night: ['#101E34', '#263952', '#4A5F76'],
+    glassTint: '#0C1A38',
+    daylightOpacity: [0.18, 0.21, 0.36],
+    nightOpacity: 0.26,
+    ink: '#172F4C',
+    navigationBrightness: 0.755,
+    opaqueDay: '#527490',
   },
 };
+
+const channels = (hex: string) =>
+  [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16));
+
+const dimChannels = channels('#051221');
+export const sceneDim = 'rgba(5, 18, 33, 0.16)';
+export const heroLetterShadow = {
+  textShadowColor: 'rgba(8, 55, 91, 0.18)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 2,
+} as const;
+
+function dimColor(hex: string, fraction: number) {
+  const mixed = channels(hex).map((channel, i) =>
+    Math.round(channel * (1 - fraction) + dimChannels[i] * fraction),
+  );
+  return (
+    '#' +
+    mixed
+      .map((c) => c.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase()
+  );
+}
+
+/** Match a*tint + (1-a)*brightness*sky with a single RGBA fill over the blur. */
+export function materialFill(
+  { tint, opacity, backdropBrightness = 1 }: WeatherMaterial,
+  blurTransmission = 1,
+) {
+  const alpha = 1 - ((1 - opacity) * backdropBrightness) / blurTransmission;
+  const rgb = channels(tint).map((channel) =>
+    Math.round((channel * opacity) / alpha),
+  );
+  return `rgba(${rgb.join(', ')}, ${Number(alpha.toFixed(6))})`;
+}
 
 export const getWeatherCondition = (weatherMain: string): WeatherCondition => {
   const main = weatherMain.toLowerCase();
@@ -82,54 +171,60 @@ export const getWeatherCondition = (weatherMain: string): WeatherCondition => {
   return 'clear';
 };
 
-/** Appearance is a stored preference; night is supplied by the active location. */
+/** Daylight is resolved for the active location independently of the stored appearance. */
 export const getTheme = (
-  condition: WeatherCondition,
+  weather: WeatherCondition,
   isDarkMode = false,
   isNight = false,
 ): WeatherTheme => {
-  const atmosphere =
-    condition === 'clear' && isNight
-      ? 'night'
-      : condition === 'fog'
-        ? 'mist'
-        : condition;
-  const gradient = weatherPalettes[atmosphere][isDarkMode ? 'dark' : 'light'];
-  const primary = isDarkMode ? '#FFFFFF' : '#083877';
-  const surface = isDarkMode ? '#112C52' : '#E7F3FF';
-  const text = isDarkMode ? '#F5FAFF' : '#0A2B52';
-  const danger = isDarkMode ? '#FFB4B4' : '#9B1C31';
+  const condition = weather === 'fog' ? 'mist' : weather;
+  const scene = weatherPalettes[condition];
+  const gradient = isNight ? scene.night : scene.day;
+  const brightDay = !isNight && !isDarkMode;
+  const ink = isDarkMode ? dimColor(scene.ink, 0.3) : scene.ink;
+  const textSecondary = brightDay ? '#F5FBFF' : '#E7F3FC';
+  const adjustment = isDarkMode ? 0.05 : 0;
+  const [top, middle, horizon] = scene.daylightOpacity;
+  const glassColor = (opacity: number) =>
+    materialFill({ tint: scene.glassTint, opacity: opacity - adjustment });
   return {
+    condition,
     isDark: isDarkMode,
     isNight,
-    primary,
-    secondary: primary,
-    background: surface,
-    surface,
-    text,
-    textSecondary: isDarkMode ? '#D8E9FC' : '#1C3C61',
-    accent: danger,
-    danger,
-    warning: isDarkMode ? '#FFD166' : '#805000',
-    success: isDarkMode ? '#8CE3B1' : '#17603D',
-    heroText: '#FFFFFF',
-    heroSecondary: '#F0F6FF',
-    glass: isDarkMode ? 'rgba(7, 27, 59, 0.56)' : 'rgba(255, 255, 255, 0.56)',
-    glassBorder: isDarkMode
-      ? 'rgba(200, 231, 255, 0.28)'
-      : 'rgba(255, 255, 255, 0.70)',
-    divider: isDarkMode
-      ? 'rgba(225, 241, 255, 0.22)'
-      : 'rgba(9, 55, 109, 0.15)',
-    shadow: 'rgba(0, 29, 89, 0.12)',
-    onPrimary: isDarkMode ? '#112C52' : '#FFFFFF',
-    gradientStart: gradient[0],
-    gradientMiddle: gradient[1],
-    gradientEnd: gradient[2],
+    brightDay,
     gradient,
     gradientLocations: [0, 0.58, 1],
-    colors: { background: surface, text, primary },
-    radii: { medium: 18 },
+    sceneTop: isDarkMode ? dimColor(gradient[0], 0.16) : gradient[0],
+    content: {
+      tint: isNight ? ink : scene.glassTint,
+      opacity: (isNight ? scene.nightOpacity : horizon) - adjustment,
+    },
+    daylightGlass: isNight
+      ? undefined
+      : [glassColor(top), glassColor(middle), glassColor(horizon)],
+    navigation: {
+      tint: brightDay ? '#0865A6' : ink,
+      opacity: brightDay ? 0.5 : 0.9,
+      backdropBrightness: brightDay ? scene.navigationBrightness : 1,
+    },
+    surface: brightDay ? scene.opaqueDay : ink,
+    background: ink,
+    glassBorder: 'rgba(255, 255, 255, 0.06)',
+    divider: 'rgba(231, 243, 252, 0.18)',
+    selection: brightDay
+      ? 'rgba(3, 64, 108, 0.2)'
+      : 'rgba(255, 255, 255, 0.14)',
+    primary: '#FFFFFF',
+    secondary: textSecondary,
+    text: '#FFFFFF',
+    textSecondary,
+    heroText: '#FFFFFF',
+    heroSecondary: textSecondary,
+    onPrimary: '#10283D',
+    accent: '#FFB4B4',
+    danger: '#FFB4B4',
+    warning: '#FFD166',
+    success: '#8CE3B1',
   };
 };
 

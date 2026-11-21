@@ -1,15 +1,30 @@
-import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import React, {
+  useContext,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   View,
+  type LayoutRectangle,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type RefreshControlProps,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import {
+  useAnimatedRef,
+  useScrollOffset,
+  useSharedValue,
+  type SharedValue,
+} from 'react-native-reanimated';
+import { heroLetterShadow } from '../../utils/weatherTheme';
 import { Clock, MapPin } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { useWeatherPane } from '../../contexts/WeatherPaneContext';
@@ -18,29 +33,49 @@ import { useNow } from '../../hooks/useNow';
 import { ScrollingScreen } from '../../components/ScrollingScreen';
 import {
   GlassSurface,
+  GlassViewportContext,
   useReducedTransparency,
 } from '../../components/GlassSurface';
 import { ScrollEdgeFade } from '../../components/ScrollEdgeFade';
+import { SceneActive } from '../../components/WeatherScenery';
 import { CurrentConditions } from '../../components/CurrentConditions';
 import { ForecastContent } from './forecast';
 import { AirQualityContent } from './air-quality';
 
 const SCROLL_FADE_SIZE = 16;
+const PANE_GAP = 12;
 
 function WeatherScrollPane({
   columns,
+  columnWidth,
   visible,
   testID,
   refreshControl,
+  scrollOffset,
   children,
 }: React.PropsWithChildren<{
   columns: boolean;
+  columnWidth?: number;
   visible: boolean;
   testID: string;
   refreshControl?: React.ReactElement<RefreshControlProps>;
+  scrollOffset?: SharedValue<number>;
 }>) {
   const reducedTransparency = useReducedTransparency();
-  const scroll = useRef<ScrollView>(null);
+  const active = useContext(SceneActive);
+  const parentViewport = useContext(GlassViewportContext);
+  const scroll = useAnimatedRef<ScrollView>();
+  const paneOffset = useScrollOffset(
+    columns && visible ? scroll : null,
+    scrollOffset,
+  );
+  const viewport = useMemo(
+    () =>
+      columns && parentViewport
+        ? { ...parentViewport, scroll: paneOffset }
+        : parentViewport,
+    [columns, parentViewport, paneOffset],
+  );
   const offset = useRef(0);
   const bounds = useRef({ viewport: 0, content: 0 });
   const [fades, setFades] = useState({ top: 0, bottom: 0 });
@@ -84,7 +119,7 @@ function WeatherScrollPane({
       restoring.current = false;
     });
     return () => cancelAnimationFrame(frame);
-  }, [columns, visible]);
+  }, [columns, visible, scroll]);
 
   return (
     <ScrollEdgeFade
@@ -93,9 +128,10 @@ function WeatherScrollPane({
       start={fadeInset ? fades.top : 0}
       end={fadeInset ? fades.bottom : 0}
       style={{
-        flexGrow: columns ? 1 : 0,
-        flexShrink: columns ? 1 : 0,
-        flexBasis: columns ? 0 : 'auto',
+        flexGrow: columns && columnWidth === undefined ? 1 : 0,
+        flexShrink: columns && columnWidth === undefined ? 1 : 0,
+        flexBasis: columns && columnWidth === undefined ? 0 : 'auto',
+        width: columnWidth,
         minWidth: 0,
         minHeight: 0,
         display: visible ? 'flex' : 'none',
@@ -125,10 +161,12 @@ function WeatherScrollPane({
         }
         onLayout={(event) => {
           bounds.current.viewport = event.nativeEvent.layout.height;
+          viewport?.layout.set((n) => n + 1);
           updateFades();
         }}
         onContentSizeChange={(_, height) => {
           bounds.current.content = height;
+          viewport?.layout.set((n) => n + 1);
           updateFades();
         }}
         onScroll={trackScroll}
@@ -144,20 +182,67 @@ function WeatherScrollPane({
           display: visible ? 'flex' : 'none',
         }}
       >
-        {children}
+        <SceneActive.Provider value={active && visible}>
+          <GlassViewportContext.Provider value={viewport}>
+            {children}
+          </GlassViewportContext.Provider>
+        </SceneActive.Provider>
       </ScrollView>
     </ScrollEdgeFade>
   );
 }
 
 export default function WeatherWorkspace() {
-  const { theme, cityName, lastUpdated, refreshWeather, loading } =
-    useWeather();
+  const {
+    theme,
+    cityName,
+    lastUpdated,
+    refreshWeather,
+    loading,
+    currentWeather,
+  } = useWeather();
   const pane = useWeatherPane();
-  const { rail, columns } = useAdaptiveLayout();
+  const { rail, columns, contentWidth } = useAdaptiveLayout();
   const router = useRouter();
   const now = useNow();
   const currentVisible = columns || pane === 'current';
+  const [workspace, setWorkspace] = useState<LayoutRectangle>();
+  const columnWidth = columns
+    ? Math.max(0, ((workspace?.width || contentWidth - 32) - PANE_GAP) / 2)
+    : undefined;
+  const [hero, setHero] = useState<LayoutRectangle>();
+  const [text, setText] = useState<LayoutRectangle>();
+  const currentScroll = useSharedValue(0);
+  const heroOpening = useMemo(() => {
+    if (
+      !currentWeather ||
+      !currentVisible ||
+      !workspace ||
+      !hero?.width ||
+      !text?.width
+    )
+      return;
+    const x = workspace.x + hero.x;
+    const top = workspace.y + hero.y;
+    // Text is measured inside the hero's padded row, including font scaling and wrapping.
+    const textLeft = x + 8 + text.x;
+    return {
+      x,
+      width: hero.width,
+      bottom: top + hero.height,
+      textLeft,
+      textRight: textLeft + text.width,
+      scroll: columns ? currentScroll : undefined,
+    };
+  }, [
+    currentWeather,
+    currentVisible,
+    workspace,
+    hero,
+    text,
+    columns,
+    currentScroll,
+  ]);
   const forecastVisible =
     pane === 'forecast' || (columns && pane === 'current');
   const airVisible = pane === 'air-quality';
@@ -189,6 +274,7 @@ export default function WeatherWorkspace() {
   const paneSwitcher = rail ? (
     <GlassSurface
       theme={theme}
+      navigation
       style={[
         s.switcher,
         !columns && { marginBottom: 12, alignSelf: 'flex-end' },
@@ -211,12 +297,12 @@ export default function WeatherWorkspace() {
               }
               style={[
                 s.choice,
-                selected && { backgroundColor: theme.primary + '18' },
+                selected && { backgroundColor: theme.selection },
               ]}
             >
               <Text
                 style={{
-                  color: theme.primary,
+                  color: selected ? theme.text : theme.textSecondary,
                   fontSize: 14,
                   fontWeight: selected ? '700' : '500',
                 }}
@@ -236,6 +322,7 @@ export default function WeatherWorkspace() {
     <ScrollingScreen
       theme={theme}
       title={title}
+      heroOpening={heroOpening}
       fillViewport={columns}
       titleAlign={columns ? 'left' : 'center'}
       headerTrailing={columns ? paneSwitcher : undefined}
@@ -258,7 +345,13 @@ export default function WeatherWorkspace() {
         currentVisible ? (
           <View style={[s.updated, rail && { justifyContent: 'flex-start' }]}>
             <Clock size={14} color={theme.heroSecondary} />
-            <Text style={{ color: theme.heroSecondary, fontSize: 14 }}>
+            <Text
+              style={{
+                ...heroLetterShadow,
+                color: theme.heroSecondary,
+                fontSize: 14,
+              }}
+            >
               Updated {updated}
             </Text>
           </View>
@@ -271,25 +364,32 @@ export default function WeatherWorkspace() {
 
           <View
             testID="weather-workspace"
+            onLayout={({ nativeEvent }) => setWorkspace(nativeEvent.layout)}
             style={{
               flexDirection: columns ? 'row' : 'column',
               flex: columns ? 1 : undefined,
               minHeight: 0,
-              gap: 12,
+              gap: PANE_GAP,
               alignItems: 'stretch',
             }}
           >
             <WeatherScrollPane
               columns={columns}
               visible={currentVisible}
+              columnWidth={columnWidth}
               testID="current-pane"
               refreshControl={refreshControl}
+              scrollOffset={currentScroll}
             >
-              <CurrentConditions />
+              <CurrentConditions
+                onHeroLayout={({ nativeEvent }) => setHero(nativeEvent.layout)}
+                onTextLayout={({ nativeEvent }) => setText(nativeEvent.layout)}
+              />
             </WeatherScrollPane>
             <View
+              testID="weather-detail-column"
               style={{
-                flex: columns ? 1 : undefined,
+                width: columnWidth,
                 minWidth: 0,
                 minHeight: 0,
                 display: forecastVisible || airVisible ? 'flex' : 'none',

@@ -1,5 +1,11 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewProps,
+} from 'react-native';
 import {
   AirVent,
   ChevronRight,
@@ -13,7 +19,11 @@ import {
 import { useRouter } from 'expo-router';
 import { useWeather } from '../contexts/WeatherContext';
 import { useAdaptiveLayout } from '../hooks/useAdaptiveLayout';
-import { capitalizeWords, formatTemperature } from '../utils/weatherTheme';
+import {
+  capitalizeWords,
+  formatTemperature,
+  heroLetterShadow,
+} from '../utils/weatherTheme';
 import { WeatherIcon } from './WeatherIcon';
 import { WeatherSummary } from './WeatherSummary';
 import { WeatherAlerts } from './WeatherAlerts';
@@ -44,7 +54,13 @@ const value = (n: number | undefined, unit: string, factor = 1) =>
     ? `${(n * factor).toFixed(1)}${unit}`
     : 'Unavailable';
 
-export function CurrentConditions() {
+export function CurrentConditions({
+  onHeroLayout,
+  onTextLayout,
+}: {
+  onHeroLayout?: ViewProps['onLayout'];
+  onTextLayout?: ViewProps['onLayout'];
+} = {}) {
   const {
     currentWeather: weather,
     weatherAirQuality,
@@ -123,21 +139,29 @@ export function CurrentConditions() {
     <View style={{ flex: 1, gap: 12 }}>
       <View
         testID="current-weather-hero"
+        onLayout={onHeroLayout}
         style={[s.hero, columns && { minHeight: 220 * Math.max(1, fontScale) }]}
       >
         <View style={[s.heroRow, fontScale > 1.4 && { flexWrap: 'wrap' }]}>
-          <View style={{ flexShrink: 1 }}>
+          <View style={{ flexShrink: 1 }} onLayout={onTextLayout}>
             <View
               testID="current-weather-primary"
               onLayout={(event) =>
                 setPrimaryHeight(event.nativeEvent.layout.height)
               }
             >
-              <Text style={[s.temperature, { color: theme.heroText }]}>
+              <Text
+                style={[
+                  s.temperature,
+                  heroLetterShadow,
+                  { color: theme.heroText },
+                ]}
+              >
                 {formatTemperature(weather.main.temp)}
               </Text>
               <Text
                 style={{
+                  ...heroLetterShadow,
                   color: theme.heroText,
                   fontSize: 20,
                   fontWeight: '600',
@@ -147,12 +171,18 @@ export function CurrentConditions() {
               </Text>
             </View>
             <Text
-              style={{ color: theme.heroSecondary, fontSize: 16, marginTop: 8 }}
+              style={{
+                ...heroLetterShadow,
+                color: theme.heroSecondary,
+                fontSize: 16,
+                marginTop: 8,
+              }}
             >
               Feels like {formatTemperature(weather.main.feels_like)}
             </Text>
             <Text
               style={{
+                ...heroLetterShadow,
                 color: theme.heroSecondary,
                 fontSize: 16,
                 textAlign: 'left',
@@ -181,7 +211,7 @@ export function CurrentConditions() {
       {weatherAlerts.length > 0 && <WeatherAlerts alerts={weatherAlerts} />}
       {error && (
         <GlassSurface theme={theme} style={{ padding: 12 }}>
-          <Text accessibilityRole="alert" style={{ color: theme.danger }}>
+          <Text accessibilityRole="alert" style={{ color: theme.text }}>
             {error}
           </Text>
         </GlassSurface>
@@ -258,6 +288,8 @@ export function CurrentConditions() {
     </View>
   );
 }
+
+const DETAIL_DIVIDER_INSET = 8;
 const s = StyleSheet.create({
   hero: {
     paddingVertical: 18,
@@ -272,8 +304,8 @@ const s = StyleSheet.create({
   },
   temperature: { fontSize: 66, fontWeight: '300', letterSpacing: -3 },
   heading: { fontSize: 20, fontWeight: '600', padding: 14, paddingBottom: 2 },
-  details: { overflow: 'hidden' },
-  detailRow: { flexDirection: 'row', marginHorizontal: 8 },
+  details: { overflow: 'hidden', paddingBottom: DETAIL_DIVIDER_INSET },
+  detailRow: { flexDirection: 'row', marginHorizontal: DETAIL_DIVIDER_INSET },
   detail: {
     flex: 1,
     minWidth: 0,

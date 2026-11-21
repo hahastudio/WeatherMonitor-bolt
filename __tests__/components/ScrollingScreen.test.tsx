@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshControl, ScrollView, Text } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import {
   act,
   fireEvent,
@@ -71,9 +71,10 @@ describe('ScrollingScreen', () => {
     const scroll = screen.getByTestId('screen-scroll');
     expect(within(scroll).getByText('Weather Forecast')).toBeTruthy();
     expect(within(scroll).getByText('Last forecast')).toBeTruthy();
+    expect(scroll).toHaveStyle({ marginTop: 47 });
     expect(scroll.props.contentContainerStyle).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ paddingTop: 59, paddingBottom: 58 }),
+        expect.objectContaining({ paddingTop: 12, paddingBottom: 58 }),
       ]),
     );
     expect(screen.getAllByRole('header')).toHaveLength(1);
@@ -121,7 +122,11 @@ describe('ScrollingScreen', () => {
     renderScreen({ onRefresh, refreshBusy: true });
     const control = screen.UNSAFE_getByType(RefreshControl);
     expect(control.props.refreshing).toBe(false);
-    expect(control.props.progressViewOffset).toBeGreaterThanOrEqual(95);
+    expect(control.props.progressViewOffset).toBe(
+      StyleSheet.flatten(
+        screen.getByTestId('screen-expanded-header').props.style,
+      ).minHeight,
+    );
     fireEvent(control, 'refresh');
     expect(onRefresh).not.toHaveBeenCalled();
     expect(control.props.enabled).toBe(false);

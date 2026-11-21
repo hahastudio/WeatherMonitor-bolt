@@ -2,6 +2,12 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 import WelcomeScreen from '../../app/welcome';
 
+jest.mock('../../contexts/WeatherContext', () => ({
+  useWeather: () => ({
+    theme: require('../../utils/weatherTheme').defaultTheme,
+  }),
+}));
+
 // Mock expo-router
 const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({

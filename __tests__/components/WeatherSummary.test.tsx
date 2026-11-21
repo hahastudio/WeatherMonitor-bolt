@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, fireEvent, waitFor, act } from '@testing-library/react-native';
 import { WeatherSummary } from '../../components/WeatherSummary';
 import { useWeather } from '../../contexts/WeatherContext';
@@ -195,6 +196,26 @@ describe('WeatherSummary', () => {
     fireEvent.press(card);
     expect(queryByTestId('expanded-content')).toBeNull();
   });
+
+  it.each(['positive', 'neutral', 'warning', 'severe'])(
+    'shows the %s mood as plain text beside its icon',
+    (mood) => {
+      const theme = getTheme('clouds');
+      mockedUseWeather.mockReturnValue({
+        ...mockWeatherContext,
+        currentWeather: mockCurrentWeather,
+        forecast: mockForecast,
+        weatherSummary: { ...mockSummary, mood },
+        theme,
+      });
+      const { getByText, getByTestId } = render(<WeatherSummary />);
+      expect(getByText(mood)).toHaveStyle({ color: theme.text });
+      expect(
+        StyleSheet.flatten(getByTestId('summary-mood').props.style)
+          .backgroundColor,
+      ).toBeUndefined();
+    },
+  );
 
   it('formats generated time correctly', () => {
     const now = Date.now();

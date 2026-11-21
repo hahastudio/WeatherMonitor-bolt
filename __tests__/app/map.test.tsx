@@ -1,6 +1,7 @@
 import React from 'react';
 import { Linking } from 'react-native';
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -65,4 +66,40 @@ it('keeps the same Windy instance, selected layer and URL across folds, and open
   fireEvent.press(screen.getByLabelText('Open map in browser'));
   await waitFor(() => expect(open).toHaveBeenCalledWith(source.uri));
   expect(mockWeatherContext.refreshWeather).not.toHaveBeenCalled();
+});
+
+it('lets a slow map load in the same WebView', () => {
+  render(<MapScreen />);
+  const map = screen.getByTestId('windy-webview');
+  expect(screen.getByLabelText('Loading weather map')).toBeTruthy();
+
+  act(() => jest.advanceTimersByTime(65_000));
+  expect(screen.getByLabelText('Loading weather map')).toBeTruthy();
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.getByTestId('windy-webview')).toBe(map);
+
+  fireEvent(map, 'load');
+  expect(screen.queryByLabelText('Loading weather map')).toBeNull();
+  expect(screen.getByTestId('windy-webview')).toBe(map);
+});
+
+it('shows a brief message for an HTTP failure and clears it on refresh', () => {
+  render(<MapScreen />);
+  const map = screen.getByTestId('windy-webview');
+  const source = map.props.source;
+
+  fireEvent(map, 'httpError', { nativeEvent: { statusCode: 503 } });
+  fireEvent(map, 'load');
+  expect(screen.getByRole('alert')).toHaveTextContent(/^Map couldn’t load/);
+  expect(screen.queryByLabelText('Loading weather map')).toBeNull();
+  expect(screen.getByTestId('windy-webview')).toBe(map);
+
+  fireEvent.press(screen.getByLabelText('Refresh map'));
+  const retry = screen.getByTestId('windy-webview');
+  expect(retry).not.toBe(map);
+  expect(retry.props.source).toEqual(source);
+  expect(screen.queryByRole('alert')).toBeNull();
+  expect(screen.getByLabelText('Loading weather map')).toBeTruthy();
+  fireEvent(retry, 'load');
+  expect(screen.queryByLabelText('Loading weather map')).toBeNull();
 });

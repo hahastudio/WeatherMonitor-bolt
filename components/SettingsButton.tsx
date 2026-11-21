@@ -11,7 +11,10 @@ export function SettingsButton({ theme }: { theme: WeatherTheme }) {
       accessibilityRole="button"
       accessibilityLabel="Open settings"
       onPress={() => router.navigate('/settings')}
-      style={[styles.button, { backgroundColor: theme.surface }]}
+      style={({ pressed }) => [
+        styles.button,
+        pressed && { backgroundColor: theme.selection },
+      ]}
     >
       <Settings size={22} color={theme.text} />
     </Pressable>

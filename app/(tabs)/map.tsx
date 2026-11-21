@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   View,
   Text,
   StyleSheet,
@@ -8,11 +9,11 @@ import {
   Platform,
   Linking,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSceneOpening } from '../../components/WeatherScenery';
+import { heroLetterShadow, type WeatherTheme } from '../../utils/weatherTheme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { WebView } from 'react-native-webview';
 import {
-  Map as MapIcon,
   CloudSunRain,
   Wind,
   CloudRain,
@@ -20,11 +21,9 @@ import {
   Eye,
   RefreshCw,
   Maximize2,
-  ExternalLink,
 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { useAdaptiveLayout } from '../../hooks/useAdaptiveLayout';
-import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { GlassSurface } from '../../components/GlassSurface';
 import { FadingHorizontalScroll } from '../../components/FadingHorizontalScroll';
 
@@ -40,15 +39,14 @@ export default function MapScreen() {
   const insets = useSafeAreaInsets();
   const adaptive = useAdaptiveLayout();
 
-  const webViewRef = useRef<WebView>(null);
   const [mapSettings, setMapSettings] = useState<MapSettings>({
     layer: 'weather', // Weather is already the default
     zoom: 8,
   });
-  const [webViewLoading, setWebViewLoading] = useState(true);
-  const [webViewError, setWebViewError] = useState<string | null>(null);
-  const [mapKey, setMapKey] = useState(0); // For forcing WebView reload
-  const loadingTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const [mapKey, setMapKey] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const top = insets.top + (adaptive.rail ? 12 : 4);
+  useSceneOpening({ headerBottom: headerHeight, insetTop: top });
 
   const layerOptions = [
     {
@@ -120,36 +118,22 @@ export default function MapScreen() {
 
   const handleLayerChange = (newLayer: WeatherLayer) => {
     setMapSettings((prev) => ({ ...prev, layer: newLayer }));
-    setWebViewError(null);
-
-    // Force WebView reload with new layer
     setMapKey((prev) => prev + 1);
   };
 
   const handleRefresh = () => {
-    setWebViewError(null);
-    setWebViewLoading(true);
     setMapKey((prev) => prev + 1);
-
-    // Clear any existing timeout
-    clearTimeout(loadingTimeoutRef.current);
-
-    // Also try to reload the WebView directly
-    if (webViewRef.current) {
-      webViewRef.current.reload();
-    }
   };
 
+  const windyUrl = generateWindyUrl();
   const handleFullscreen = async () => {
-    const url = generateWindyUrl();
-
     if (Platform.OS === 'web') {
-      window.open(url, '_blank', 'noopener,noreferrer');
+      window.open(windyUrl, '_blank', 'noopener,noreferrer');
     } else {
       try {
-        const supported = await Linking.canOpenURL(url);
+        const supported = await Linking.canOpenURL(windyUrl);
         if (supported) {
-          await Linking.openURL(url);
+          await Linking.openURL(windyUrl);
         } else {
           Alert.alert('Error', 'Cannot open the map in browser');
         }
@@ -160,110 +144,13 @@ export default function MapScreen() {
     }
   };
 
-  // Simplified JavaScript injection for better compatibility
-  const injectedJavaScript = `
-    (function() {
-      try {
-        // Set a timeout to detect if the page loads
-        setTimeout(function() {
-          if (document.readyState !== 'complete') {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'timeout',
-              message: 'Loading timeout'
-            }));
-          }
-        }, 60000);
-
-        document.addEventListener("readystatechange", (event) => {
-          if (event.target.readyState === "complete") {
-            window.ReactNativeWebView.postMessage(JSON.stringify({
-              type: 'loaded',
-              message: 'Map loaded'
-            }));
-          }
-        });
-        
-        // Disable context menu for better mobile experience
-        document.addEventListener('contextmenu', function(e) {
-          e.preventDefault();
-        });
-        
-        // Signal that injection is complete
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'ready',
-          message: 'JavaScript injected'
-        }));
-        
-      } catch (error) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'error',
-          message: error.message || 'JavaScript error'
-        }));
-      }
-      
-      true;
-    })();
-  `;
-
-  const handleWebViewMessage = (event: WebViewMessageEvent) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-
-      switch (data.type) {
-        case 'ready':
-          console.log('WebView JavaScript ready');
-          break;
-        case 'loaded':
-          console.log('Windy map loaded successfully');
-          setWebViewLoading(false);
-          setWebViewError(null);
-          clearTimeout(loadingTimeoutRef.current);
-          break;
-        case 'error':
-          console.error('Windy map error:', data.message);
-          setWebViewError(data.message);
-          setWebViewLoading(false);
-          break;
-        case 'timeout':
-          console.warn('Windy map loading timeout');
-          setWebViewError(
-            'Map is taking longer than expected to load. This may be due to network conditions.',
-          );
-          setWebViewLoading(false);
-          break;
-      }
-    } catch (error) {
-      console.error('Error parsing WebView message:', error);
-    }
-  };
-
-  // Set up loading timeout
-  useEffect(() => {
-    if (webViewLoading) {
-      const timeout = setTimeout(() => {
-        if (webViewLoading) {
-          setWebViewError(
-            'Map loading timeout. Please check your internet connection and try again.',
-          );
-          setWebViewLoading(false);
-        }
-      }, 15000); // 15 second timeout
-
-      loadingTimeoutRef.current = timeout;
-
-      return () => {
-        clearTimeout(timeout);
-      };
-    }
-  }, [webViewLoading, mapKey]);
-
   const styles = StyleSheet.create({
     container: {
       flex: 1,
     },
-    gradient: {
+    content: {
       flex: 1,
-      paddingTop: insets.top + (adaptive.rail ? 12 : 4),
+      paddingTop: top,
       paddingBottom: adaptive.rail
         ? insets.bottom
         : Math.max(insets.bottom, 8) + adaptive.navigationHeight + 12,
@@ -283,6 +170,7 @@ export default function MapScreen() {
       gap: 12,
     },
     title: {
+      ...heroLetterShadow,
       color: theme.heroText,
       fontSize: 18,
       fontWeight: '600',
@@ -315,7 +203,7 @@ export default function MapScreen() {
       minHeight: 44,
     },
     layerButtonActive: {
-      backgroundColor: theme.primary,
+      backgroundColor: theme.selection,
     },
     layerIcon: {
       marginRight: 6,
@@ -326,146 +214,44 @@ export default function MapScreen() {
       fontWeight: '500',
     },
     layerTextActive: {
-      color: theme.onPrimary,
+      color: theme.text,
       fontWeight: '600',
     },
     mapContainer: {
       flex: 1,
       marginHorizontal: adaptive.rail ? 16 : 20,
       marginBottom: 20,
-      borderRadius: 16,
+      borderRadius: 20,
       overflow: 'hidden',
       backgroundColor: theme.surface,
-      ...Platform.select({
-        ios: {
-          shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: 2,
-          },
-          shadowOpacity: 0.1,
-          shadowRadius: 8,
-        },
-        android: {
-          elevation: 4,
-        },
-        web: {
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        },
-      }),
-    },
-    webView: {
-      flex: 1,
-      backgroundColor: theme.background,
-    },
-    loadingContainer: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: theme.background + 'E6',
-      zIndex: 1000,
-    },
-    loadingText: {
-      color: theme.text,
-      fontSize: 16,
-      marginTop: 12,
-      textAlign: 'center',
-    },
-    errorContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-      backgroundColor: theme.background,
-    },
-    errorIcon: {
-      marginBottom: 16,
-    },
-    errorText: {
-      color: theme.accent,
-      fontSize: 16,
-      textAlign: 'center',
-      marginBottom: 20,
-      lineHeight: 22,
-    },
-    errorActions: {
-      flexDirection: 'row',
-      gap: 12,
-    },
-    retryButton: {
-      backgroundColor: theme.primary,
-      borderRadius: 8,
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    retryButtonText: {
-      color: theme.onPrimary,
-      fontSize: 16,
-      fontWeight: '600',
-      marginLeft: 8,
-    },
-    openBrowserButton: {
-      backgroundColor: theme.surface,
-      borderRadius: 8,
-      paddingHorizontal: 20,
-      paddingVertical: 12,
-      flexDirection: 'row',
-      alignItems: 'center',
       borderWidth: 1,
-      borderColor: theme.primary,
-    },
-    openBrowserButtonText: {
-      color: theme.primary,
-      fontSize: 16,
-      fontWeight: '600',
-      marginLeft: 8,
-    },
-    statusIndicator: {
-      position: 'absolute',
-      top: 16,
-      right: 16,
-      backgroundColor: theme.surface,
-      borderRadius: 20,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      flexDirection: 'row',
-      alignItems: 'center',
-      zIndex: 100,
-    },
-    statusText: {
-      color: theme.text,
-      fontSize: 12,
-      fontWeight: '600',
-      marginLeft: 6,
+      borderColor: theme.glassBorder,
     },
   });
 
-  const windyUrl = generateWindyUrl();
-  const source = useMemo(() => ({ uri: windyUrl }), [windyUrl]);
-
   if (!location) {
-    return <LoadingSpinner message="Loading map location..." />;
+    return (
+      <ActivityIndicator
+        style={styles.container}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel="Finding map location"
+        size="small"
+        color={theme.primary}
+      />
+    );
   }
-
-  const selectedLayerOption = layerOptions.find(
-    (l) => l.key === mapSettings.layer,
-  );
 
   return (
     <View style={styles.container}>
-      <LinearGradient
-        colors={theme.gradient}
-        locations={theme.gradientLocations}
-        style={styles.gradient}
-      >
+      <View style={styles.content}>
         <View style={styles.header}>
-          <View style={styles.headerTop}>
+          <View
+            style={styles.headerTop}
+            onLayout={({ nativeEvent }) =>
+              setHeaderHeight(nativeEvent.layout.height)
+            }
+          >
             <Text
               style={styles.title}
               numberOfLines={1}
@@ -493,7 +279,7 @@ export default function MapScreen() {
             </View>
           </View>
 
-          <GlassSurface theme={theme} style={styles.layerSelector}>
+          <GlassSurface theme={theme} navigation style={styles.layerSelector}>
             <FadingHorizontalScroll
               testID="map-layers"
               contentContainerStyle={{ gap: 4 }}
@@ -518,8 +304,8 @@ export default function MapScreen() {
                       size={16}
                       color={
                         mapSettings.layer === option.key
-                          ? theme.onPrimary
-                          : theme.primary
+                          ? theme.text
+                          : theme.textSecondary
                       }
                     />
                   </View>
@@ -539,128 +325,103 @@ export default function MapScreen() {
         </View>
 
         <View style={styles.mapContainer}>
-          {webViewError ? (
-            <View style={styles.errorContainer}>
-              <View style={styles.errorIcon}>
-                <MapIcon size={48} color={theme.textSecondary} />
-              </View>
-              <Text style={styles.errorText}>
-                {webViewError}
-                {'\n\n'}
-                The interactive map may not be available due to network
-                conditions or browser restrictions.
-              </Text>
-              <View style={styles.errorActions}>
-                <TouchableOpacity
-                  style={styles.retryButton}
-                  onPress={handleRefresh}
-                >
-                  <RefreshCw size={16} color={theme.onPrimary} />
-                  <Text style={styles.retryButtonText}>Retry</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.openBrowserButton}
-                  onPress={handleFullscreen}
-                >
-                  <ExternalLink size={16} color={theme.primary} />
-                  <Text style={styles.openBrowserButtonText}>
-                    Open in Browser
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ) : (
-            <>
-              {Platform.OS === 'web' ? (
-                <iframe
-                  key={mapKey}
-                  title="Interactive weather map"
-                  src={windyUrl}
-                  style={{ width: '100%', height: '100%', border: 0, flex: 1 }}
-                  onLoad={() => {
-                    setWebViewLoading(false);
-                    clearTimeout(loadingTimeoutRef.current);
-                  }}
-                  onError={() => {
-                    setWebViewError('Failed to load weather map');
-                    setWebViewLoading(false);
-                  }}
-                />
-              ) : (
-                <WebView
-                  key={mapKey}
-                  ref={webViewRef}
-                  source={source}
-                  style={styles.webView}
-                  onLoadStart={() => {
-                    console.log('Starting to load Windy map...');
-                    setWebViewLoading(true);
-                    setWebViewError(null);
-                  }}
-                  onLoadEnd={() => {
-                    console.log('WebView load end');
-                    // Set a fallback timeout in case injected JS doesn't work
-                    setTimeout(() => {
-                      if (webViewLoading) {
-                        setWebViewLoading(false);
-                      }
-                    }, 3000);
-                  }}
-                  onError={(syntheticEvent) => {
-                    const { nativeEvent } = syntheticEvent;
-                    console.error('WebView error:', nativeEvent);
-                    setWebViewError(
-                      nativeEvent.description || 'Failed to load weather map',
-                    );
-                    setWebViewLoading(false);
-                  }}
-                  onHttpError={(syntheticEvent) => {
-                    const { nativeEvent } = syntheticEvent;
-                    console.error('HTTP error:', nativeEvent.statusCode);
-                    setWebViewError(
-                      `HTTP Error: ${nativeEvent.statusCode}. Please check your internet connection.`,
-                    );
-                    setWebViewLoading(false);
-                  }}
-                  onMessage={handleWebViewMessage}
-                  injectedJavaScript={injectedJavaScript}
-                  javaScriptEnabled={true}
-                  domStorageEnabled={true}
-                  startInLoadingState={false}
-                  scalesPageToFit={Platform.OS !== 'ios'}
-                  mediaPlaybackRequiresUserAction={false}
-                  mixedContentMode="compatibility"
-                  thirdPartyCookiesEnabled={true}
-                  sharedCookiesEnabled={true}
-                  allowsBackForwardNavigationGestures={false}
-                  bounces={false}
-                  scrollEnabled={true}
-                  userAgent="Mozilla/5.0 (compatible; WeatherApp/1.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                  originWhitelist={['https://*', 'http://*']}
-                  allowsLinkPreview={false}
-                  dataDetectorTypes={['none']}
-                  overScrollMode="never"
-                  showsHorizontalScrollIndicator={false}
-                  showsVerticalScrollIndicator={false}
-                  automaticallyAdjustContentInsets={false}
-                  contentInsetAdjustmentBehavior="never"
-                  cacheEnabled={true}
-                  incognito={false}
-                />
-              )}
-
-              {webViewLoading && (
-                <View style={styles.loadingContainer}>
-                  <LoadingSpinner message="Loading interactive weather map..." />
-                  <Text style={styles.loadingText}>
-                    Powered by Windy • {selectedLayerOption?.label} Layer
-                  </Text>
-                </View>
-              )}
-            </>
-          )}
+          <WindyMap
+            key={`${mapKey}:${windyUrl}`}
+            url={windyUrl}
+            theme={theme}
+          />
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
+
+function WindyMap({ url, theme }: { url: string; theme: WeatherTheme }) {
+  const source = useMemo(() => ({ uri: url }), [url]);
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'failed'>(
+    'loading',
+  );
+  const handleError = () => setStatus('failed');
+
+  return (
+    <>
+      {status === 'failed' && (
+        <Text
+          accessibilityRole="alert"
+          style={[
+            embedStyles.errorText,
+            { color: theme.text, backgroundColor: theme.background },
+          ]}
+        >
+          Map couldn’t load. Refresh or open it in your browser.
+        </Text>
+      )}
+      {Platform.OS === 'web' ? (
+        <iframe
+          title="Interactive weather map"
+          src={url}
+          style={{ width: '100%', height: '100%', border: 0, flex: 1 }}
+          onLoad={() => setStatus('loaded')}
+          onError={handleError}
+        />
+      ) : (
+        <WebView
+          source={source}
+          style={{ flex: 1, backgroundColor: theme.background }}
+          onLoad={() => {
+            // Native can finish loading an HTTP error response.
+            setStatus((current) => (current === 'failed' ? current : 'loaded'));
+          }}
+          onError={handleError}
+          onHttpError={handleError}
+          renderError={() => <View />}
+          injectedJavaScriptBeforeContentLoaded={`
+            document.addEventListener('contextmenu', (event) => event.preventDefault());
+            true;
+          `}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={false}
+          scalesPageToFit={Platform.OS !== 'ios'}
+          mediaPlaybackRequiresUserAction={false}
+          mixedContentMode="compatibility"
+          thirdPartyCookiesEnabled={true}
+          sharedCookiesEnabled={true}
+          allowsBackForwardNavigationGestures={false}
+          bounces={false}
+          scrollEnabled={true}
+          userAgent="Mozilla/5.0 (compatible; WeatherApp/1.0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+          originWhitelist={['https://*', 'http://*']}
+          allowsLinkPreview={false}
+          dataDetectorTypes={['none']}
+          overScrollMode="never"
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustContentInsets={false}
+          contentInsetAdjustmentBehavior="never"
+          cacheEnabled={true}
+          incognito={false}
+        />
+      )}
+      {status === 'loading' && (
+        <ActivityIndicator
+          style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel="Loading weather map"
+          size="small"
+          color={theme.primary}
+        />
+      )}
+    </>
+  );
+}
+
+const embedStyles = StyleSheet.create({
+  errorText: {
+    fontSize: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    textAlign: 'center',
+  },
+});

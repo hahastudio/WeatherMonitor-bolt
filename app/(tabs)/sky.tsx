@@ -53,7 +53,7 @@ export default function SkyScreen() {
         }}
       >
         {!observer ? (
-          <View style={[s.section, { backgroundColor: theme.surface }]}>
+          <GlassSurface theme={theme} style={s.section}>
             <Text style={[s.heading, { color: theme.text }]}>
               Location unavailable
             </Text>
@@ -79,7 +79,7 @@ export default function SkyScreen() {
                 {recoveryError}
               </Text>
             )}
-          </View>
+          </GlassSurface>
         ) : (
           <>
             <View
@@ -105,7 +105,7 @@ export default function SkyScreen() {
                   />
                 )}
                 {sky.error && (
-                  <View style={{ marginBottom: 12 }}>
+                  <GlassSurface theme={theme} style={s.section}>
                     <Text
                       accessibilityRole="alert"
                       style={[s.body, { color: theme.text }]}
@@ -123,7 +123,7 @@ export default function SkyScreen() {
                     >
                       <Text style={{ color: theme.text }}>Now</Text>
                     </Pressable>
-                  </View>
+                  </GlassSurface>
                 )}
               </View>
               {day && instant && (

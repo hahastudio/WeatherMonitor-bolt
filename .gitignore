@@ -51,3 +51,4 @@ google-services.json
 # AI
 .agents/
 .opencode/
+.codex-attachments/

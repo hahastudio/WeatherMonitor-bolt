@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -11,7 +11,7 @@ import {
   type RefreshControlProps,
 } from 'react-native';
 import { RefreshControl } from 'react-native';
-import { WeatherBackdrop } from './GlassSurface';
+import { useSceneOpening, type HeroOpening } from './WeatherScenery';
 import { useAdaptiveLayout } from '../hooks/useAdaptiveLayout';
 import { ArrowLeft } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,13 +21,15 @@ import Animated, {
   useSharedValue,
 } from 'react-native-reanimated';
 import { SettingsButton } from './SettingsButton';
-import type { WeatherTheme } from '../utils/weatherTheme';
+import { GlassViewportContext } from './GlassSurface';
+import { heroLetterShadow, type WeatherTheme } from '../utils/weatherTheme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface ScrollingScreenProps {
   theme: WeatherTheme;
   title: string;
+  heroOpening?: HeroOpening;
   titleIcon?: React.ReactNode;
   titleStyle?: StyleProp<TextStyle>;
   titleAlign?: 'left' | 'center';
@@ -50,6 +52,7 @@ interface ScrollingScreenProps {
 export function ScrollingScreen({
   theme,
   title,
+  heroOpening,
   titleIcon,
   titleStyle,
   titleAlign = 'center',
@@ -75,8 +78,23 @@ export function ScrollingScreen({
   const refreshInFlight = useRef(false);
   const mounted = useRef(true);
   const scrollY = useSharedValue(0);
+  const glassLayout = useSharedValue(0);
+  const glassViewport = useMemo(
+    () => ({ scroll: scrollY, layout: glassLayout }),
+    [scrollY, glassLayout],
+  );
+  const refreshGlassLayout = () => glassLayout.set((n) => n + 1);
   const scrollRef = useRef<Animated.ScrollView>(null);
   const expandedHeaderCenter = useSharedValue(12 + toolbarHeight / 2);
+
+  const [headerBottom, setHeaderBottom] = useState(0);
+  useSceneOpening({
+    headerBottom,
+    settings: showSettings,
+    hero: heroOpening,
+    scroll: scrollY,
+    insetTop: insets.top,
+  });
 
   useEffect(() => {
     mounted.current = true;
@@ -111,7 +129,9 @@ export function ScrollingScreen({
   }));
 
   const measureTitle = ({ nativeEvent: { layout } }: LayoutChangeEvent) => {
-    expandedHeaderCenter.value = layout.y + layout.height / 2 - insets.top;
+    setHeaderBottom(layout.y + layout.height);
+    refreshGlassLayout();
+    expandedHeaderCenter.value = layout.y + layout.height / 2;
   };
 
   const handleRefresh = async () => {
@@ -138,100 +158,95 @@ export function ScrollingScreen({
         enabled={active && scrollEnabled && !refreshBusy && !refreshing}
         progressViewOffset={progressViewOffset}
         tintColor={theme.heroText}
-        colors={[theme.primary]}
+        colors={[theme.background]}
       />
     ) : undefined;
 
   return (
     <View style={styles.screen}>
-      <WeatherBackdrop theme={theme}>
-        <Animated.ScrollView
-          ref={scrollRef}
-          testID="screen-scroll"
-          style={styles.screen}
-          scrollEnabled={scrollEnabled && !fillViewport}
-          contentContainerStyle={[
-            styles.content,
-            fillViewport && { flex: 1, minHeight: 0 },
+      <Animated.ScrollView
+        ref={scrollRef}
+        testID="screen-scroll"
+        style={[styles.screen, { marginTop: insets.top }]}
+        scrollEnabled={scrollEnabled && !fillViewport}
+        contentContainerStyle={[
+          styles.content,
+          fillViewport && { flex: 1, minHeight: 0 },
+          {
+            paddingTop: 12,
+            paddingBottom:
+              (bottomInset || adaptive.rail
+                ? insets.bottom
+                : Math.max(insets.bottom, 8) + adaptive.navigationHeight + 12) +
+              24,
+            paddingLeft: (adaptive.rail ? 0 : insets.left) + 16,
+            paddingRight: insets.right + 16,
+          },
+        ]}
+        onScroll={scrollHandler}
+        onLayout={refreshGlassLayout}
+        onContentSizeChange={refreshGlassLayout}
+        scrollEventThrottle={16}
+        contentInsetAdjustmentBehavior="never"
+        automaticallyAdjustContentInsets={false}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          // Keep the refresh wrapper mounted so resizing preserves children.
+          createRefreshControl(toolbarHeight, !fillViewport)
+        }
+      >
+        <View
+          testID="screen-expanded-header"
+          onLayout={measureTitle}
+          style={[
+            styles.heading,
             {
-              paddingTop: insets.top + 12,
-              paddingBottom:
-                (bottomInset || adaptive.rail
-                  ? insets.bottom
-                  : Math.max(insets.bottom, 8) +
-                    adaptive.navigationHeight +
-                    12) + 24,
-              paddingLeft: (adaptive.rail ? 0 : insets.left) + 16,
-              paddingRight: insets.right + 16,
+              minHeight: toolbarHeight,
+              paddingHorizontal: hasBack ? 48 : 0,
             },
           ]}
-          onScroll={scrollHandler}
-          scrollEventThrottle={16}
-          contentInsetAdjustmentBehavior="never"
-          automaticallyAdjustContentInsets={false}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            // Keep the refresh wrapper mounted so resizing preserves children.
-            createRefreshControl(insets.top + toolbarHeight, !fillViewport)
-          }
         >
-          <View
-            testID="screen-expanded-header"
-            onLayout={measureTitle}
-            style={[
-              styles.heading,
-              {
-                minHeight: toolbarHeight,
-                paddingHorizontal: hasBack ? 48 : 0,
-              },
-            ]}
-          >
-            {showSettings && <View style={styles.settingsSlot} />}
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <View
+          {showSettings && <View style={styles.settingsSlot} />}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <View
+              style={[
+                styles.titleRow,
+                {
+                  justifyContent:
+                    headingAlign === 'left' ? 'flex-start' : 'center',
+                },
+              ]}
+            >
+              {titleIcon}
+              <Text
+                accessibilityRole="header"
                 style={[
-                  styles.titleRow,
-                  {
-                    justifyContent:
-                      headingAlign === 'left' ? 'flex-start' : 'center',
-                  },
+                  styles.title,
+                  heroLetterShadow,
+                  { color: theme.heroText, textAlign: headingAlign },
+                  titleStyle,
+                  adaptive.rail && { fontSize: 18, fontWeight: '600' },
                 ]}
               >
-                {titleIcon}
-                <Text
-                  accessibilityRole="header"
-                  style={[
-                    styles.title,
-                    { color: theme.heroText, textAlign: headingAlign },
-                    titleStyle,
-                    adaptive.rail && { fontSize: 18, fontWeight: '600' },
-                  ]}
-                >
-                  {title}
-                </Text>
-              </View>
-              {subtitle}
+                {title}
+              </Text>
             </View>
-            {showSettings && (
-              <View style={styles.settingsSlot}>
-                <SettingsButton theme={theme} />
-              </View>
-            )}
-            {headerTrailing}
+            {subtitle}
           </View>
+          {showSettings && (
+            <View style={styles.settingsSlot}>
+              <SettingsButton theme={theme} />
+            </View>
+          )}
+          {headerTrailing}
+        </View>
+        <GlassViewportContext.Provider value={glassViewport}>
           {typeof children === 'function'
             ? children(createRefreshControl(0))
             : children}
-        </Animated.ScrollView>
-      </WeatherBackdrop>
+        </GlassViewportContext.Provider>
+      </Animated.ScrollView>
 
-      <View
-        pointerEvents="none"
-        style={[
-          styles.backdrop,
-          { height: insets.top, backgroundColor: theme.gradientStart },
-        ]}
-      />
       {onBack && (
         <AnimatedPressable
           accessibilityRole="button"
@@ -277,7 +292,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     flexShrink: 1,
   },
-  backdrop: { position: 'absolute', top: 0, left: 0, right: 0 },
   settingsSlot: { width: 44, minHeight: 44 },
   action: {
     position: 'absolute',

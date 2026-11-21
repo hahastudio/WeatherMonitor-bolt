@@ -1,14 +1,25 @@
+import { useWeather } from '../contexts/WeatherContext';
 import { Link, Stack } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 export default function NotFoundScreen() {
+  const { theme } = useWeather();
   return (
     <>
       <Stack.Screen options={{ title: 'Oops!' }} />
-      <View style={styles.container}>
-        <Text style={styles.text}>This screen doesn&apos;t exist.</Text>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <Text style={[styles.text, { color: theme.text }]}>
+          This screen doesn&apos;t exist.
+        </Text>
         <Link href="/" style={styles.link}>
-          <Text>Go to home screen!</Text>
+          <Text
+            style={{
+              color: theme.textSecondary,
+              textDecorationLine: 'underline',
+            }}
+          >
+            Go to home screen!
+          </Text>
         </Link>
       </View>
     </>

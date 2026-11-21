@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { type NavigatorContentProps } from 'expo-router';
@@ -19,7 +19,8 @@ import {
   useAdaptiveLayout,
   FloatingNavigationHeightContext,
 } from '../hooks/useAdaptiveLayout';
-import { WeatherBackdrop } from './GlassSurface';
+import { GlassSurface, WeatherBackdrop } from './GlassSurface';
+import { SceneActive } from './WeatherScenery';
 
 const bottomBarRadius = 24;
 const bottomBarPadding = 4;
@@ -43,20 +44,10 @@ export function AdaptiveNavigation({
   descriptors,
   actions,
 }: NavigatorContentProps<{ title?: string }>) {
-  const { theme } = useWeather();
+  const { theme, currentWeather } = useWeather();
+  const reportedWeather = currentWeather?.weather?.[0]?.main;
   const layout = useAdaptiveLayout();
   const insets = useSafeAreaInsets();
-  // Settings sits over the gradient's brighter end once the rail is transparent.
-  const endChannels = [1, 3, 5].map((start) => {
-    const channel =
-      parseInt(theme.gradientEnd.slice(start, start + 2), 16) / 255;
-    return channel <= 0.04045
-      ? channel / 12.92
-      : ((channel + 0.055) / 1.055) ** 2.4;
-  });
-  const endLuminance =
-    endChannels[0] * 0.2126 + endChannels[1] * 0.7152 + endChannels[2] * 0.0722;
-  const footerColor = endLuminance > 0.179 ? '#000000' : '#FFFFFF';
   const active = state.routes[state.index].name;
   const weatherActive = ['index', 'forecast', 'air-quality'].includes(active);
   const scene = weatherActive ? 'index' : active;
@@ -67,16 +58,28 @@ export function AdaptiveNavigation({
     active === 'forecast' || active === 'air-quality' ? active : 'current';
   const showBottom =
     !layout.rail && !['settings', 'air-quality'].includes(active);
+  const largeLabels = !layout.rail && layout.fontScale > 1.2;
+  const tabScroll = useRef<ScrollView>(null);
+  const tabCenters = useRef<Record<string, number>>({});
+  const barMargin = largeLabels ? 8 : 12;
+  const barViewport = layout.contentWidth - 2 * (barMargin + bottomBarPadding);
+  const revealTab = useCallback(
+    (center: number) => {
+      tabScroll.current?.scrollTo({
+        x: Math.max(0, center - barViewport / 2),
+        animated: false,
+      });
+    },
+    [barViewport],
+  );
+  useEffect(() => {
+    const center = tabCenters.current[active];
+    if (largeLabels && center !== undefined) revealTab(center);
+  }, [active, largeLabels, revealTab]);
   const button = ({ name, label, Icon }: (typeof destinations)[number]) => {
     const selected =
       layout.rail && name === 'index' ? weatherActive : active === name;
-    const foreground = layout.rail
-      ? name === 'settings'
-        ? footerColor
-        : theme.heroText
-      : selected
-        ? theme.primary
-        : theme.textSecondary;
+    const foreground = selected ? theme.text : theme.textSecondary;
     return (
       <Pressable
         key={name}
@@ -85,18 +88,25 @@ export function AdaptiveNavigation({
         accessibilityState={{ selected }}
         aria-selected={selected}
         onPress={() => actions.navigate(name)}
+        onLayout={
+          largeLabels
+            ? ({
+                nativeEvent: {
+                  layout: { x, width },
+                },
+              }) => {
+                const center = x + width / 2;
+                tabCenters.current[name] = center;
+                if (selected) revealTab(center);
+              }
+            : undefined
+        }
         style={[
           styles.item,
-          !layout.rail && styles.bottomItem,
+          !layout.rail && (largeLabels ? styles.largeItem : styles.bottomItem),
           !layout.rail && name === 'index' && styles.bottomFirstItem,
           !layout.rail && name === 'map' && styles.bottomLastItem,
-          selected && {
-            backgroundColor: layout.rail
-              ? name === 'settings' && footerColor === '#000000'
-                ? 'rgba(0, 0, 0, 0.08)'
-                : 'rgba(255, 255, 255, 0.18)'
-              : theme.primary + '18',
-          },
+          selected && { backgroundColor: theme.selection },
         ]}
       >
         <Icon size={22} color={foreground} />
@@ -113,8 +123,19 @@ export function AdaptiveNavigation({
       </Pressable>
     );
   };
+  const bottomButtons = showBottom
+    ? destinations.filter((d) => d.name !== 'settings').map(button)
+    : null;
   return (
-    <WeatherBackdrop theme={theme}>
+    <WeatherBackdrop
+      theme={theme}
+      showScenery={
+        !!reportedWeather &&
+        (theme.condition !== 'clear' || /clear|sunny/i.test(reportedWeather))
+      }
+      cloudCover={currentWeather?.clouds?.all}
+      railInset={layout.rail ? layout.railWidth + insets.left : 0}
+    >
       <View
         style={{
           flex: 1,
@@ -123,7 +144,9 @@ export function AdaptiveNavigation({
         }}
       >
         {layout.rail && (
-          <View
+          <GlassSurface
+            theme={theme}
+            navigation
             style={[
               styles.rail,
               {
@@ -143,7 +166,7 @@ export function AdaptiveNavigation({
               <View style={{ flex: 1, minHeight: 20 }} />
               {button(destinations[5])}
             </ScrollView>
-          </View>
+          </GlassSurface>
         )}
         <View style={{ flex: 1, minWidth: 0 }}>
           <FloatingNavigationHeightContext.Provider value={barHeight}>
@@ -165,7 +188,9 @@ export function AdaptiveNavigation({
                           visible ? 'auto' : 'no-hide-descendants'
                         }
                       >
-                        {descriptors[route.key].render()}
+                        <SceneActive.Provider value={visible}>
+                          {descriptors[route.key].render()}
+                        </SceneActive.Provider>
                       </View>
                     )
                   );
@@ -175,22 +200,34 @@ export function AdaptiveNavigation({
         </View>
       </View>
       {showBottom && (
-        <View
+        <GlassSurface
+          theme={theme}
+          navigation
           onLayout={(event) => setBarHeight(event.nativeEvent.layout.height)}
           style={[
             styles.bottom,
             {
-              backgroundColor: theme.isDark ? '#06182F' : '#FFFFFF',
-              borderColor: theme.isDark ? theme.glassBorder : theme.divider,
               bottom: Math.max(insets.bottom, 8),
               minHeight: layout.navigationHeight,
-              left: insets.left + 12,
-              right: insets.right + 12,
+              left: insets.left + barMargin,
+              right: insets.right + barMargin,
             },
           ]}
         >
-          {destinations.filter((d) => d.name !== 'settings').map(button)}
-        </View>
+          {largeLabels ? (
+            <ScrollView
+              ref={tabScroll}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ flexGrow: 1 }}
+              style={{ flex: 1 }}
+            >
+              {bottomButtons}
+            </ScrollView>
+          ) : (
+            bottomButtons
+          )}
+        </GlassSurface>
       )}
     </WeatherBackdrop>
   );
@@ -208,7 +245,9 @@ const styles = StyleSheet.create({
   },
   rail: {
     paddingHorizontal: 5,
+    borderRadius: 0,
   },
+  largeItem: { flexGrow: 1, flexShrink: 0, paddingHorizontal: 5 },
   bottomItem: {
     flex: 1,
   },
@@ -226,11 +265,5 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     padding: bottomBarPadding,
     borderRadius: bottomBarRadius,
-    borderWidth: bottomBarBorderWidth,
-    shadowColor: '#001632',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.22,
-    shadowRadius: 12,
-    elevation: 8,
   },
 });

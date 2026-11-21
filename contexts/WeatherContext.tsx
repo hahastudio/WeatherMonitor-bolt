@@ -122,9 +122,9 @@ export const WeatherProvider: React.FC<WeatherProviderProps> = ({
   const appState = React.useRef(AppState.currentState);
   let isInitializing = false;
 
-  const weatherCondition: WeatherCondition = currentWeather
-    ? getWeatherCondition(currentWeather.weather[0].main)
-    : 'clear';
+  const weatherCondition = getWeatherCondition(
+    currentWeather?.weather?.[0]?.main ?? '',
+  );
 
   const now = useNow();
   const isNight = useMemo(

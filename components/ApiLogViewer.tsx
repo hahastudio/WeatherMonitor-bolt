@@ -87,7 +87,7 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
       paddingTop: 16,
       paddingBottom: 16,
       borderBottomWidth: 1,
-      borderBottomColor: theme.textSecondary + '20',
+      borderBottomColor: theme.divider,
     },
     title: {
       color: theme.text,
@@ -102,7 +102,7 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
       paddingVertical: 12,
       marginBottom: 16,
       borderBottomWidth: 1,
-      borderBottomColor: theme.textSecondary + '20',
+      borderBottomColor: theme.divider,
     },
     actionButtonContainer: {
       flexDirection: 'row',
@@ -124,7 +124,9 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
     },
     summaryCard: {
       backgroundColor: theme.surface,
-      borderRadius: 12,
+      borderRadius: 20,
+      borderWidth: 1,
+      borderColor: theme.glassBorder,
       padding: 16,
       marginVertical: 16,
     },
@@ -157,7 +159,7 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
       marginTop: 16,
       paddingTop: 16,
       borderTopWidth: 1,
-      borderTopColor: theme.textSecondary + '20',
+      borderTopColor: theme.divider,
     },
     triggerItem: {
       flexDirection: 'row',
@@ -180,7 +182,7 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
       marginTop: 16,
       paddingTop: 16,
       borderTopWidth: 1,
-      borderTopColor: theme.textSecondary + '20',
+      borderTopColor: theme.divider,
     },
     sectionTitle: {
       color: theme.text,
@@ -251,10 +253,10 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
       fontWeight: '500',
     },
     logStatusSuccess: {
-      color: '#4CAF50',
+      color: theme.text,
     },
     logStatusError: {
-      color: '#F44336',
+      color: theme.text,
     },
     emptyState: {
       flex: 1,
@@ -516,9 +518,9 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
 
                   <View style={styles.logStatus}>
                     {log.status === 'success' ? (
-                      <CheckCircle size={12} color="#4CAF50" />
+                      <CheckCircle size={12} color={theme.success} />
                     ) : (
-                      <XCircle size={12} color="#F44336" />
+                      <XCircle size={12} color={theme.danger} />
                     )}
                     <Text
                       style={[
@@ -539,7 +541,7 @@ export const ApiLogViewer: React.FC<ApiLogViewerProps> = ({
                   <Text
                     style={[
                       styles.logTriggerText,
-                      { marginTop: 4, color: theme.accent },
+                      { marginTop: 4, color: theme.text },
                     ]}
                   >
                     {log.error}

@@ -5,23 +5,20 @@ import { MousePointer2 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
 import { GlassSurface } from '../../components/GlassSurface';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
-import { ErrorDisplay } from '../../components/ErrorDisplay';
 import { WeatherIcon } from '../../components/WeatherIcon';
 import { formatTime } from '../../utils/weatherTheme';
 
 export function ForecastContent() {
-  const { forecast, loading, error, theme, refreshWeather } = useWeather();
-
-  if (loading && !forecast) {
-    return <LoadingSpinner message="Loading forecast data..." />;
-  }
-
-  if (error && !forecast) {
-    return <ErrorDisplay error={error} onRetry={refreshWeather} />;
-  }
+  const { forecast, loading, theme } = useWeather();
 
   if (!forecast) {
-    return <LoadingSpinner message="Loading forecast..." />;
+    return loading ? (
+      <LoadingSpinner message="Loading forecast data..." />
+    ) : (
+      <Text style={{ color: theme.heroSecondary, textAlign: 'center' }}>
+        No forecast available
+      </Text>
+    );
   }
 
   const styles = StyleSheet.create({
@@ -158,13 +155,6 @@ export function ForecastContent() {
       fontVariant: ['tabular-nums'],
     },
     precipRow: { flexDirection: 'row', gap: 4, width: '100%' },
-    errorText: {
-      color: theme.accent,
-      fontSize: 14,
-      textAlign: 'center',
-      marginTop: 20,
-      fontWeight: '500',
-    },
   });
 
   // Get next 48 hours forecast
@@ -362,11 +352,6 @@ export function ForecastContent() {
             </View>
           </View>
         ))}
-        {error && (
-          <Text accessibilityRole="alert" style={styles.errorText}>
-            {error}
-          </Text>
-        )}
       </GlassSurface>
     </View>
   );

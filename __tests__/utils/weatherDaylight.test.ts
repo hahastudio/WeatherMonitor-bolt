@@ -1,5 +1,5 @@
 import { isWeatherNight } from '../../utils/weatherDaylight';
-import { getTheme, weatherPalettes } from '../../utils/weatherTheme';
+import { getTheme } from '../../utils/weatherTheme';
 import { mockCurrentWeather } from '../mocks';
 
 it('uses remote location with stale provider sunrise data rather than device time', () => {
@@ -45,26 +45,18 @@ it('falls back to provider icon when location is unavailable', () => {
     ),
   ).toBe(true);
 });
-it('keeps all sixteen three-stop palettes independent of appearance', () => {
-  expect(Object.keys(weatherPalettes)).toHaveLength(8);
-  for (const [condition, palette] of Object.entries(weatherPalettes)) {
-    for (const dark of [false, true]) {
-      const theme = getTheme(
-        condition === 'night'
-          ? 'clear'
-          : (condition as Parameters<typeof getTheme>[0]),
-        dark,
-        condition === 'night',
-      );
-      expect(theme.gradient).toEqual(dark ? palette.dark : palette.light);
-      expect(theme.gradientLocations).toEqual([0, 0.58, 1]);
-      expect(theme.isDark).toBe(dark);
-      expect(theme.heroText).toBe('#FFFFFF');
-    }
-  }
-  expect(getTheme('rain', false, true).gradient).toEqual(
-    weatherPalettes.rain.light,
+it('retains rain at a remote location after sunset in either appearance', () => {
+  const night = isWeatherNight(
+    mockCurrentWeather,
+    null,
+    { latitude: 40.71, longitude: -74.01 },
+    Date.parse('2026-06-21T04:00:00Z'),
   );
-  expect(getTheme('fog', true).gradient).toEqual(weatherPalettes.mist.dark);
-  expect(getTheme('clear', false, true).text).toBe('#0A2B52');
+  expect(night).toBe(true);
+  for (const dark of [false, true]) {
+    const theme = getTheme('rain', dark, night);
+    expect(theme.condition).toBe('rain');
+    expect(theme.gradient).toEqual(['#11283D', '#23455D', '#486B80']);
+    expect(theme.isDark).toBe(dark);
+  }
 });

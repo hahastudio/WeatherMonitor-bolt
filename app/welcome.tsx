@@ -1,108 +1,110 @@
-import React, { useEffect } from 'react';
-import { Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { useReducedMotion } from 'react-native-reanimated';
+import {
+  Animated,
+  ScrollView,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { defaultTheme } from '../utils/weatherTheme';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useWeather } from '../contexts/WeatherContext';
+import { WeatherBackdrop, GlassSurface } from '../components/GlassSurface';
 
-const WelcomeScreen = () => {
+export default function WelcomeScreen() {
   const router = useRouter();
-  const fadeAnim = React.useMemo(() => new Animated.Value(0), []);
-  const scaleAnim = React.useMemo(() => new Animated.Value(0.9), []);
-
+  const { theme } = useWeather();
+  const reducedMotion = useReducedMotion();
+  const opacity = useMemo(
+    () => new Animated.Value(reducedMotion ? 1 : 0),
+    [reducedMotion],
+  );
+  const scale = useMemo(
+    () => new Animated.Value(reducedMotion ? 1 : 0.9),
+    [reducedMotion],
+  );
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
+    if (reducedMotion) {
+      opacity.setValue(1);
+      scale.setValue(1);
+      return;
+    }
+    const entrance = Animated.parallel([
+      Animated.timing(opacity, {
         toValue: 1,
         duration: 1000,
         useNativeDriver: true,
       }),
-      Animated.spring(scaleAnim, {
+      Animated.spring(scale, {
         toValue: 1,
         tension: 20,
         friction: 7,
         useNativeDriver: true,
       }),
-    ]).start();
-  }, [fadeAnim, scaleAnim]);
-
-  const goToSettings = () => {
-    router.replace('/settings');
-  };
-
+    ]);
+    entrance.start();
+    return () => entrance.stop();
+  }, [reducedMotion, opacity, scale]);
   return (
-    <LinearGradient
-      colors={[
-        defaultTheme.colors.background,
-        defaultTheme.colors.primary + '20',
-      ]}
-      style={styles.gradient}
-    >
-      <Animated.View
-        style={[
-          styles.container,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }],
-          },
-        ]}
-      >
-        <Text style={styles.title}>Welcome to WeatherMonitor</Text>
-        <Text style={styles.subtitle}>
-          To get started, you need to configure your API keys for the weather
-          and AI services. These keys will enable real-time weather data,
-          forecasts, and AI-powered summaries.
-        </Text>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={goToSettings}
-          activeOpacity={0.8}
+    <WeatherBackdrop theme={theme}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Animated.View
+          style={{
+            width: '100%',
+            maxWidth: 540,
+            opacity,
+            transform: [{ scale }],
+          }}
         >
-          <Text style={styles.buttonText}>Configure API Keys</Text>
-        </TouchableOpacity>
-      </Animated.View>
-    </LinearGradient>
+          <GlassSurface theme={theme} style={styles.panel}>
+            <Text
+              accessibilityRole="header"
+              style={[styles.title, { color: theme.text }]}
+            >
+              Welcome to WeatherMonitor
+            </Text>
+            <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+              To get started, you need to configure your API keys for the
+              weather and AI services. These keys will enable real-time weather
+              data, forecasts, and AI-powered summaries.
+            </Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              style={[styles.button, { backgroundColor: theme.background }]}
+              onPress={() => router.replace('/settings')}
+            >
+              <Text style={[styles.buttonText, { color: theme.text }]}>
+                Configure API Keys
+              </Text>
+            </TouchableOpacity>
+          </GlassSurface>
+        </Animated.View>
+      </ScrollView>
+    </WeatherBackdrop>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  gradient: {
-    flex: 1,
-  },
   container: {
-    flex: 1,
-    justifyContent: 'center',
+    flexGrow: 1,
     alignItems: 'center',
-    padding: 20,
-    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 48,
   },
+  panel: { padding: 24, alignItems: 'center' },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: defaultTheme.colors.text,
     marginBottom: 20,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 18,
-    color: defaultTheme.colors.text + 'CC',
     textAlign: 'center',
-    marginBottom: 40,
-    lineHeight: 24,
-    maxWidth: '80%',
+    marginBottom: 32,
+    lineHeight: 26,
   },
-  button: {
-    backgroundColor: defaultTheme.colors.primary + '20',
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: defaultTheme.colors.primary + '40',
-  },
-  buttonText: {
-    color: defaultTheme.colors.primary,
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  button: { paddingVertical: 16, paddingHorizontal: 24, borderRadius: 12 },
+  buttonText: { fontSize: 18, fontWeight: '600', textAlign: 'center' },
 });
-
-export default WelcomeScreen;
