@@ -1,11 +1,9 @@
-# Weather Monitor bolt
+# Weather Monitor NT
 
 A weather monitoring app built with React Native, Expo, and TypeScript. It shows real-time weather data, forecasts, interactive charts, weather alerts, AI-generated weather summaries, and interactive weather maps, with a theme that adapts to current conditions.
 
-It's mainly built with [Bolt](https://bolt.new/).
-
-![Screenshot 1](/doc/app_screenshot_1.png)
-![Screenshot 2](/doc/app_screenshot_2.png)
+![Screenshot 1](/docs/images/app_screenshot_1.png)
+![Screenshot 2](/docs/images/app_screenshot_2.png)
 
 ## Features
 
