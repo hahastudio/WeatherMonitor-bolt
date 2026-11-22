@@ -14,6 +14,7 @@ It's mainly built with [Bolt](https://bolt.new/).
 - **Interactive Weather Maps**: Powered by Windy with multiple weather layers
 - **7-Day Forecast**: Detailed weather predictions with hourly breakdowns
 - **Interactive Charts**: Visual representations of temperature, precipitation, wind, pressure, and humidity trends
+- **Sky Tab** shows local sunrise and sunset times, moon phases, and an interactive day/night globe
 - **Weather Alerts**: Real-time weather warnings and advisories with severity levels
 - **Adaptive Themes**: Dynamic color schemes that change based on weather conditions and time of day
 - **Location Services**: Automatic location detection with manual refresh options
@@ -23,10 +24,7 @@ It's mainly built with [Bolt](https://bolt.new/).
 
 ## Design references
 
-- [Approved adaptive layout](docs/adaptive-ui-layout-handoff.md)
-- [Approved weather colors, gradients, and glass surfaces](docs/weather-color-theme-handoff.md)
-
-These handoffs record the approved design. See [implementation and verification notes](docs/adaptive-ui-implementation.md) for the adaptive app layout and weather theme.
+- [Glass block design](docs/glass-block-design.md)
 
 ## Architecture
 
@@ -35,7 +33,7 @@ These handoffs record the approved design. See [implementation and verification 
 #### 1. **Tab-Based Navigation**
 
 - Primary navigation uses Expo Router's tab system
-- Each major feature (Weather, Forecast, Charts, Map, Settings) has its own tab
+- Each major feature (Weather, Forecast, Charts, Sky, Map, Settings) has its own tab
 - Clean separation of concerns with dedicated screens
 
 #### 2. **Context-Based State Management**
