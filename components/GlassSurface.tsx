@@ -18,9 +18,9 @@ import { BlurTargetView, BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   measure,
-  useAnimatedReaction,
   useAnimatedRef,
   useAnimatedStyle,
+  useDerivedValue,
   useSharedValue,
   type AnimatedRef,
   type SharedValue,
@@ -168,8 +168,9 @@ export function WeatherBackdrop({
   );
 }
 
-// Keep the daylight tint aligned with the sky as cards move over it. Layout
-// changes remeasure the two views. Scrolling only translates the tint layer.
+// Measure the card and sky in the same frame. Collapsing a tall card can clamp
+// native scroll before its new offset arrives. The two end colors extend the
+// gradient across the whole card, including portions outside the viewport.
 function DaylightGlass({
   colors,
   locations,
@@ -183,51 +184,53 @@ function DaylightGlass({
 }) {
   const card = useAnimatedRef<View>();
   const cardLayout = useSharedValue(0);
-  const placement = useSharedValue<{ top: number; height: number } | null>(
-    null,
-  );
-  useAnimatedReaction(
-    () => [cardLayout.get(), layout.get()] as const,
-    ([ready]) => {
-      if (!ready) return;
-      const panel = measure(card);
-      const sky = measure(backdrop);
-      placement.set(
-        panel?.height && sky?.height
-          ? {
-              top: panel.pageY - sky.pageY + scroll.get(),
-              height: sky.height,
-            }
-          : null,
-      );
-    },
-  );
-  const backing = useAnimatedStyle(() => ({
-    backgroundColor: placement.get() ? 'transparent' : colors[2],
-  }));
-  const position = useAnimatedStyle(() => {
-    const frame = placement.get();
+  const placement = useDerivedValue(() => {
+    layout.get();
+    scroll.get();
+    if (!cardLayout.get()) return null;
+    const panel = measure(card);
+    const sky = measure(backdrop);
+    if (!panel?.height || !sky?.height) return null;
     return {
-      height: frame?.height ?? 0,
-      transform: [{ translateY: frame ? scroll.get() - frame.top : 0 }],
+      top: Math.max(
+        -sky.height,
+        Math.min(panel.height, sky.pageY - panel.pageY),
+      ),
+      height: sky.height,
     };
   });
+  const position = useAnimatedStyle(() => ({
+    transform: [{ translateY: placement.get()?.top ?? 0 }],
+  }));
+  const gradientSize = useAnimatedStyle(() => ({
+    height: placement.get()?.height ?? 0,
+  }));
   return (
     <Animated.View
       ref={card}
       collapsable={false}
       onLayout={() => cardLayout.set((n) => n + 1)}
-      style={[StyleSheet.absoluteFill, backing]}
+      style={StyleSheet.absoluteFill}
     >
-      <Animated.View
-        style={[{ position: 'absolute', top: 0, left: 0, right: 0 }, position]}
-      >
-        <LinearGradient
-          testID="daylight-glass"
-          colors={colors}
-          locations={locations}
-          style={StyleSheet.absoluteFill}
+      <Animated.View style={[StyleSheet.absoluteFill, position]}>
+        <View
+          style={{
+            position: 'absolute',
+            bottom: '100%',
+            width: '100%',
+            height: '100%',
+            backgroundColor: colors[0],
+          }}
         />
+        <Animated.View style={gradientSize}>
+          <LinearGradient
+            testID="daylight-glass"
+            colors={colors}
+            locations={locations}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+        <View style={{ height: '100%', backgroundColor: colors[2] }} />
       </Animated.View>
     </Animated.View>
   );

@@ -1,5 +1,10 @@
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from '@testing-library/react-native';
 import WeatherWorkspace from '../../app/(tabs)/index';
 import {
   WeatherPaneContext,
@@ -18,25 +23,9 @@ jest.mock('../../hooks/useAdaptiveLayout', () => ({
       .requireActual('../../hooks/useAdaptiveLayout')
       .adaptiveLayout(mockWidth, 800),
 }));
-jest.mock('../../components/ScrollingScreen', () => {
-  const { View } = require('react-native');
-  return {
-    ScrollingScreen: ({
-      children,
-      headerTrailing,
-    }: {
-      children:
-        | React.ReactNode
-        | ((refreshControl?: React.ReactNode) => React.ReactNode);
-      headerTrailing?: React.ReactNode;
-    }) => (
-      <View>
-        {headerTrailing}
-        {typeof children === 'function' ? children() : children}
-      </View>
-    ),
-  };
-});
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock('expo-linear-gradient', () => ({
   LinearGradient: require('react-native').View,
 }));
@@ -120,6 +109,8 @@ it('uses only the pane selector to open air quality with a rail, restoring the d
 
 it('allocates equal measured widths to both unfolded panes after a phone resize', () => {
   const view = render(<Workspace pane="current" />);
+  const current = screen.getByTestId('current-pane');
+  expect(within(current).getByTestId('screen-expanded-header')).toBeTruthy();
   mockWidth = 840;
   view.rerender(<Workspace pane="current" />);
   fireEvent(screen.getByTestId('weather-workspace'), 'layout', {
@@ -130,5 +121,27 @@ it('allocates equal measured widths to both unfolded panes after a phone resize'
     width: 360,
   });
   expect(screen.getAllByTestId('forecast-day')).toHaveLength(7);
+  expect(screen.getByTestId('current-pane')).toBe(current);
+  expect(within(current).queryByTestId('screen-expanded-header')).toBeNull();
+  expect(screen.getByTestId('screen-expanded-header')).toBeTruthy();
+  expect(screen.queryByTestId('screen-scroll')).toBeNull();
   expect(mockContext.refreshWeather).not.toHaveBeenCalled();
+});
+
+it('aligns the summary and daily forecast using the taller first row only in split Forecast', () => {
+  mockWidth = 840;
+  const view = render(<Workspace pane="current" />);
+  const layout = (height: number) => ({
+    nativeEvent: { layout: { x: 0, y: 0, width: 360, height } },
+  });
+  fireEvent(screen.getByText('Next 48 Hours'), 'layout', layout(252));
+  const hero = screen.getByTestId('current-weather-hero');
+  expect(hero).toHaveStyle({ minHeight: 252 });
+  fireEvent(hero, 'layout', layout(280));
+  expect(screen.getByTestId('hourly-forecast')).toHaveStyle({ minHeight: 280 });
+  view.rerender(<Workspace pane="air-quality" />);
+  expect(hero).toHaveStyle({ minHeight: 220 });
+  mockWidth = 390;
+  view.rerender(<Workspace pane="current" />);
+  expect(hero).not.toHaveStyle({ minHeight: 252 });
 });

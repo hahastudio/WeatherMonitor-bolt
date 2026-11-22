@@ -1,6 +1,18 @@
 import React from 'react';
-import { AccessibilityInfo, Platform, Text } from 'react-native';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import {
+  AccessibilityInfo,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
+import * as Reanimated from 'react-native-reanimated';
 import { useSharedValue } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -44,6 +56,70 @@ it('uses the daylight sky stops only for translucent reading cards', () => {
   expect(daylight()).toBeNull();
   view.rerender(<Pane night />);
   expect(daylight()).toBeNull();
+});
+
+it('keeps the daylight tint on a collapsed card while the reported scroll offset is still at its old end', () => {
+  const makeSharedValue = Reanimated.useSharedValue;
+  const shared = jest
+    .spyOn(Reanimated, 'useSharedValue')
+    .mockImplementation(
+      (value) => React.useRef(makeSharedValue(value)).current,
+    );
+  const measure = jest.spyOn(Reanimated, 'measure');
+  const bounds = (pageY: number, height: number) => ({
+    pageY,
+    height,
+    pageX: 0,
+    x: 0,
+    y: 0,
+    width: 360,
+  });
+  function Card() {
+    const scroll = useSharedValue(2800);
+    const layout = useSharedValue(0);
+    return (
+      <WeatherBackdrop theme={defaultTheme}>
+        <GlassViewportContext.Provider value={{ scroll, layout }}>
+          <GlassSurface theme={defaultTheme} />
+        </GlassViewportContext.Provider>
+      </WeatherBackdrop>
+    );
+  }
+  try {
+    const view = render(<Card />);
+    fireEvent(
+      screen.getByTestId('daylight-glass', { includeHiddenElements: true }),
+      'layout',
+    );
+    for (const [pageY, height] of [
+      [-2500, 3100],
+      [160, 148],
+    ]) {
+      measure
+        .mockReturnValueOnce(bounds(pageY, height))
+        .mockReturnValueOnce(bounds(0, 780));
+      view.rerender(<Card />);
+      const styles = view
+        .UNSAFE_getAllByType(View)
+        .map((node) => StyleSheet.flatten(node.props.style));
+      expect(styles).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ transform: [{ translateY: -pageY }] }),
+          expect.objectContaining({
+            height: '100%',
+            backgroundColor: defaultTheme.daylightGlass![0],
+          }),
+          expect.objectContaining({
+            height: '100%',
+            backgroundColor: defaultTheme.daylightGlass![2],
+          }),
+        ]),
+      );
+    }
+  } finally {
+    shared.mockRestore();
+    measure.mockRestore();
+  }
 });
 
 it('uses an opaque surface when reduced transparency is requested, keeping text opaque', async () => {

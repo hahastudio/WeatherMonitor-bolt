@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, FlexStyle } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  FlexStyle,
+  type ViewProps,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MousePointer2 } from 'lucide-react-native';
 import { useWeather } from '../../contexts/WeatherContext';
@@ -8,7 +15,13 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { WeatherIcon } from '../../components/WeatherIcon';
 import { formatTime } from '../../utils/weatherTheme';
 
-export function ForecastContent() {
+export function ForecastContent({
+  minHourlyHeight,
+  onHourlyLayout,
+}: {
+  minHourlyHeight?: number;
+  onHourlyLayout?: ViewProps['onLayout'];
+}) {
   const { forecast, loading, theme } = useWeather();
 
   if (!forecast) {
@@ -212,79 +225,94 @@ export function ForecastContent() {
   return (
     <View style={styles.content}>
       {/* 48-Hour Forecast */}
-      <GlassSurface theme={theme} style={styles.hourlyContainer}>
-        <Text accessibilityRole="header" style={styles.sectionTitle}>
-          Next 48 Hours
-        </Text>
-        {next48Hours.length === 0 && (
-          <Text style={{ color: theme.textSecondary }}>
-            No hourly forecast data available
+      <GlassSurface
+        theme={theme}
+        testID="hourly-forecast"
+        style={{ minHeight: minHourlyHeight, justifyContent: 'center' }}
+      >
+        <View onLayout={onHourlyLayout} style={styles.hourlyContainer}>
+          <Text accessibilityRole="header" style={styles.sectionTitle}>
+            Next 48 Hours
           </Text>
-        )}
+          {next48Hours.length === 0 && (
+            <Text style={{ color: theme.textSecondary }}>
+              No hourly forecast data available
+            </Text>
+          )}
 
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.hourlyScrollView}
-          contentContainerStyle={{ paddingRight: 20 }}
-        >
-          {next48Hours.map((item, index) => (
-            <View key={index} testID="forecast-hour" style={styles.hourlyItem}>
-              <Text style={styles.hourlyTime}>
-                {index === 0 ? 'Now' : formatTime(item.dt)}
-              </Text>
-
-              <View style={styles.hourlyIcon}>
-                <WeatherIcon
-                  weatherMain={item.weather[0].main}
-                  size={32}
-                  color={theme.primary}
-                  isNight={
-                    item.sys.sunrise !== undefined &&
-                    item.sys.sunset !== undefined
-                      ? item.dt < item.sys.sunrise || item.dt >= item.sys.sunset
-                      : item.weather[0].icon.endsWith('n')
-                  }
-                />
-              </View>
-
-              <Text style={styles.hourlyTemp}>
-                {Math.round(item.main.temp)}°
-              </Text>
-
-              <Text style={styles.hourlyPrecip}>
-                {Math.round(item.pop * 100)}%
-              </Text>
-
-              <Text style={styles.hourlyPrecip}>
-                {((item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0)).toFixed(
-                  1,
-                )}{' '}
-                mm
-              </Text>
-
-              <View style={styles.windContainer}>
-                <View
-                  style={[
-                    styles.windIcon,
-                    {
-                      transform: [{ rotate: `${item.wind.deg + 225}deg` }],
-                    },
-                  ]}
-                >
-                  <MousePointer2 size={16} color={theme.textSecondary} />
-                </View>
-                <Text style={styles.windSpeed}>
-                  {(item.wind.speed * 3.6).toFixed(1)} km/h
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.hourlyScrollView}
+            contentContainerStyle={{ paddingRight: 20 }}
+          >
+            {next48Hours.map((item, index) => (
+              <View
+                key={index}
+                testID="forecast-hour"
+                style={styles.hourlyItem}
+              >
+                <Text style={styles.hourlyTime}>
+                  {index === 0 ? 'Now' : formatTime(item.dt)}
                 </Text>
+
+                <View style={styles.hourlyIcon}>
+                  <WeatherIcon
+                    weatherMain={item.weather[0].main}
+                    size={32}
+                    color={theme.primary}
+                    isNight={
+                      item.sys.sunrise !== undefined &&
+                      item.sys.sunset !== undefined
+                        ? item.dt < item.sys.sunrise ||
+                          item.dt >= item.sys.sunset
+                        : item.weather[0].icon.endsWith('n')
+                    }
+                  />
+                </View>
+
+                <Text style={styles.hourlyTemp}>
+                  {Math.round(item.main.temp)}°
+                </Text>
+
+                <Text style={styles.hourlyPrecip}>
+                  {Math.round(item.pop * 100)}%
+                </Text>
+
+                <Text style={styles.hourlyPrecip}>
+                  {(
+                    (item.rain?.['1h'] || 0) + (item.snow?.['1h'] || 0)
+                  ).toFixed(1)}{' '}
+                  mm
+                </Text>
+
+                <View style={styles.windContainer}>
+                  <View
+                    style={[
+                      styles.windIcon,
+                      {
+                        transform: [{ rotate: `${item.wind.deg + 225}deg` }],
+                      },
+                    ]}
+                  >
+                    <MousePointer2 size={16} color={theme.textSecondary} />
+                  </View>
+                  <Text style={styles.windSpeed}>
+                    {(item.wind.speed * 3.6).toFixed(1)} km/h
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
-        </ScrollView>
+            ))}
+          </ScrollView>
+        </View>
       </GlassSurface>
 
       {/* 7-Day Forecast */}
-      <GlassSurface theme={theme} style={styles.dailyContainer}>
+      <GlassSurface
+        theme={theme}
+        testID="daily-forecast"
+        style={styles.dailyContainer}
+      >
         <Text accessibilityRole="header" style={styles.sectionTitle}>
           7-Day Forecast
         </Text>

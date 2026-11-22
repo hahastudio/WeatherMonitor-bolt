@@ -187,14 +187,17 @@ describe('ScrollingScreen', () => {
         fillViewport={columns}
         onRefresh={onRefresh}
       >
-        {(refreshControl) => (
+        {({ refreshControl, header }) => (
           <>
-            <ScrollView refreshControl={columns ? refreshControl : undefined}>
+            <ScrollView refreshControl={refreshControl}>
+              {header}
               <Text>Current</Text>
             </ScrollView>
-            <ScrollView refreshControl={columns ? refreshControl : undefined}>
-              <Text>Forecast</Text>
-            </ScrollView>
+            {columns && (
+              <ScrollView refreshControl={refreshControl}>
+                <Text>Forecast</Text>
+              </ScrollView>
+            )}
           </>
         )}
       </ScrollingScreen>

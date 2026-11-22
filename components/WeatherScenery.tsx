@@ -5,7 +5,7 @@ import React, {
   useId,
   useLayoutEffect,
 } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type LayoutRectangle } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useDerivedValue,
@@ -19,6 +19,7 @@ import Svg, {
   Image as SkyImage,
   LinearGradient,
   Mask,
+  Path,
   RadialGradient,
   Rect,
   Stop,
@@ -26,18 +27,17 @@ import Svg, {
 import type { WeatherTheme } from '../utils/weatherTheme';
 
 export interface HeroOpening {
-  x: number;
-  width: number;
-  bottom: number;
-  textLeft: number;
-  textRight: number;
+  frame: LayoutRectangle;
+  /** Temperature, condition, and supporting readings, relative to the hero. */
+  readings: LayoutRectangle[];
+  titleWidth?: number;
   scroll?: SharedValue<number>;
 }
 
 export interface SceneOpening {
   insetTop?: number;
   headerBottom: number;
-  settings?: boolean;
+  settings?: LayoutRectangle;
   hero?: HeroOpening;
   scroll?: SharedValue<number>;
 }
@@ -72,101 +72,98 @@ export function useSceneOpening({
   }, [publish, active, headerBottom, settings, hero, scroll, insetTop]);
 }
 
-interface QuietArea {
-  left: number;
-  right: number;
-  top: number;
-  bottom: number;
+function readingAreas(width: number, railInset: number, opening: SceneOpening) {
+  const { hero, settings, insetTop = 0, headerBottom } = opening;
+  const left = railInset + (hero?.frame.x ?? 0);
+  const contentWidth = width - railInset;
+  const areas: LayoutRectangle[] = [
+    { x: 0, y: 0, width, height: insetTop },
+    hero
+      ? {
+          x: left,
+          y: insetTop,
+          width: hero.titleWidth ?? hero.frame.width,
+          height: headerBottom,
+        }
+      : {
+          x: settings || railInset ? left : left + contentWidth * 0.15,
+          y: insetTop,
+          width: contentWidth * 0.7,
+          height: headerBottom,
+        },
+  ];
+  if (settings)
+    areas.push({
+      ...settings,
+      x: railInset + settings.x,
+      y: insetTop + settings.y,
+    });
+  if (hero) {
+    if (railInset && !hero.scroll && hero.frame.y > headerBottom)
+      areas.push({
+        x: railInset,
+        y: insetTop + headerBottom,
+        width: contentWidth,
+        height: hero.frame.y - headerBottom,
+      });
+    for (const box of hero.readings)
+      areas.push({
+        ...box,
+        x: left + box.x,
+        y: insetTop + hero.frame.y + box.y,
+      });
+  }
+  return areas;
+}
+
+function hasRoom(x: number, y: number, gap: number, areas: LayoutRectangle[]) {
+  return areas.every(
+    (box) =>
+      x <= box.x - gap ||
+      x >= box.x + box.width + gap ||
+      y <= box.y - gap ||
+      y >= box.y + box.height + gap,
+  );
+}
+
+function openSkyPoints(
+  width: number,
+  height: number,
+  count: number,
+  areas: LayoutRectangle[],
+  gap: number,
+) {
+  const points = [];
+  // A low-discrepancy sequence fills the sky evenly without lining up the
+  // particles in rows. Skip occupied positions instead of crowding the edges.
+  for (let i = 0; points.length < count && i < count * 8; i++) {
+    const x = 2 + ((0.38 + i * 0.75487767) % 1) * (width - 4);
+    const y = 2 + ((0.12 + i * 0.56984029) % 1) * (height - 4);
+    if (hasRoom(x, y, gap, areas)) points.push({ x, y, seed: i });
+  }
+  return points;
 }
 
 export function clearNightStars(
   width: number,
   height: number,
-  hero: QuietArea,
-  settingsBottom: number,
+  areas: LayoutRectangle[],
 ) {
-  return Array.from({ length: 84 }, (_, i) => {
-    const radius = (i % 9 === 0 ? 2 : i % 3 === 0 ? 1.5 : 1) / 2;
-    const y =
-      radius + (((i * 67.419 + 19) % 780) / 780) * (height - 2 * radius);
-    let x = (((i * 37.137 + 7) % 100) / 100) * width;
-    const inHeroBand = y + radius > hero.top && y - radius < hero.bottom;
-    const leftGutter = Math.max(radius, hero.left - radius);
-    const rightGutter = Math.min(width - radius, hero.right + radius);
-    if (inHeroBand && x + radius > hero.left && x - radius < hero.right) {
-      const fraction = (x - hero.left) / Math.max(1, hero.right - hero.left);
-      x =
-        fraction < 0.5
-          ? leftGutter * (0.4 + fraction * 0.8)
-          : rightGutter +
-            (width - rightGutter) * (0.2 + (fraction - 0.5) * 1.2);
-    }
-    // Relocate out of the Settings corner last, into the available left gutter.
-    if (y - radius < settingsBottom && x + radius > width * 0.7) {
-      x = Math.min(width - x, inHeroBand ? leftGutter : width);
-    }
-    return {
-      x: Math.max(radius, Math.min(width - radius, x)),
-      y,
-      radius,
-      opacity: 0.4 + (i % 5) * 0.12,
-    };
-  });
+  return openSkyPoints(width, height, 84, areas, 14).map(({ x, y, seed }) => ({
+    x,
+    y,
+    radius: seed % 9 === 0 ? 1.25 : seed % 3 === 0 ? 1 : 0.75,
+    opacity: 0.56 + (seed % 5) * 0.105,
+  }));
 }
 
-const Clouds = memo(function Clouds({
-  width,
-  height,
-  quiet,
-  cover,
-  fill,
-}: {
-  width: number;
-  height: number;
-  quiet: QuietArea;
-  cover?: number;
-  fill: string;
-}) {
-  // Real cloud cover changes how far banks reach in from the edges.
-  const scale =
-    cover !== undefined && Number.isFinite(cover)
-      ? 0.65 + Math.min(100, Math.max(0, cover)) * 0.0035
-      : 1;
-  return [
-    { edge: width, y: 0.14, room: width - quiet.right, opacity: 1 },
-    { edge: 0, y: 0.36, room: quiet.left, opacity: 0.7 },
-    { edge: width, y: 0.67, room: width * 0.43, opacity: 0.55 },
-  ].map(({ edge, y, room, opacity }, i) => {
-    const reach = Math.min(210, Math.max(8, room)) * scale;
-    const h = Math.min(84, height * 0.11) * scale;
-    const inward = edge === 0 ? 1 : -1;
-    return (
-      <G key={i} opacity={opacity}>
-        <Ellipse
-          cx={edge}
-          cy={height * y}
-          rx={reach * 0.91}
-          ry={h}
-          fill={fill}
-        />
-        <Ellipse
-          cx={edge + inward * reach * 0.5}
-          cy={height * y + h * 0.22}
-          rx={reach * 0.5}
-          ry={h * 0.68}
-          fill={fill}
-        />
-        <Ellipse
-          cx={edge + inward * reach * 0.18}
-          cy={height * y - h * 0.28}
-          rx={reach * 0.63}
-          ry={h * 0.85}
-          fill={fill}
-        />
-      </G>
-    );
-  });
-});
+// Soft shafts of different widths share a light source above the upper-left edge.
+const sunlightRays = [
+  { angle: 19, spread: 0.038, opacity: 0.5 },
+  { angle: 31, spread: 0.07, opacity: 0.94 },
+  { angle: 47, spread: 0.032, opacity: 0.7 },
+  { angle: 62, spread: 0.055, opacity: 0.82 },
+];
 
 export const WeatherScenery = memo(function WeatherScenery({
   theme,
@@ -184,11 +181,13 @@ export const WeatherScenery = memo(function WeatherScenery({
   railInset?: number;
 }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
-  const { hero, settings, scroll, insetTop = 0 } = opening;
+  const { hero, scroll, insetTop = 0 } = opening;
   const headerBottom = opening.headerBottom + insetTop;
   const { condition, brightDay } = theme;
   const panoramic = railInset > 0;
-  const travelsWithScreen = brightDay && !panoramic;
+  const starry = condition === 'clear' && theme.isNight;
+  const sunny = condition === 'clear' && !theme.isNight;
+  const travelsWithScreen = starry || (!panoramic && (brightDay || sunny));
   const travel = useAnimatedStyle(() => ({
     transform: [
       {
@@ -200,11 +199,15 @@ export const WeatherScenery = memo(function WeatherScenery({
   }));
   const openingBottom = Math.max(
     1,
-    Math.min(height, hero ? hero.bottom + insetTop : headerBottom),
+    Math.min(
+      height,
+      hero ? hero.frame.y + hero.frame.height + insetTop : headerBottom,
+    ),
   );
   const heroScroll = hero?.scroll;
+  const particleTop = starry && heroScroll ? headerBottom : 0;
   // Keep fine detail in the opening as the screen or the current pane scrolls.
-  // The daytime phone scene already moves with the outer scroll view.
+  // On phones the daylight scene already moves with the scrolling header.
   const particleHeight = useDerivedValue(() => {
     const screenOffset = travelsWithScreen ? 0 : (scroll?.get() ?? 0);
     return Math.max(
@@ -213,52 +216,56 @@ export const WeatherScenery = memo(function WeatherScenery({
     );
   });
   const particleClip = useAnimatedStyle(() => ({
-    height: particleHeight.get(),
+    height: Math.max(0, particleHeight.get() - particleTop),
   }));
-  if (!width || !height || (condition === 'clear' && !theme.isNight))
-    return null;
-  const quiet = hero
-    ? {
-        left: railInset + Math.min(hero.textLeft, hero.x + hero.width * 0.25),
-        right: railInset + Math.max(hero.textRight, hero.x + hero.width * 0.75),
-        top: 0,
-        bottom: hero.bottom + insetTop,
-      }
-    : {
-        left: panoramic ? railInset : width * 0.2,
-        right: panoramic ? railInset + (width - railInset) * 0.5 : width * 0.8,
-        top: 0,
-        bottom: headerBottom,
-      };
+  const starScroll = useAnimatedStyle(() => ({
+    transform: [{ translateY: -Math.max(0, heroScroll?.get() ?? 0) }],
+  }));
+  if (!width || !height) return null;
   const url = (name: string) => `url(#${id}-${name})`;
   const rain = ['rain', 'drizzle', 'thunderstorm'].includes(condition);
-  const hasParticles = rain || condition === 'snow' || condition === 'clear';
-  const particleRight = hero
-    ? Math.min(width, railInset + hero.x + hero.width)
-    : width;
+  const hasParticles = rain || condition === 'snow' || starry;
+  const particleRight =
+    panoramic && hero
+      ? Math.min(width, railInset + hero.frame.x + hero.frame.width)
+      : width;
   const clouds = condition !== 'clear' && condition !== 'mist';
-  const photo = panoramic && clouds;
   const cover =
     condition === 'clouds' &&
     cloudCover !== undefined &&
     Number.isFinite(cloudCover)
       ? Math.min(100, Math.max(0, cloudCover)) / 100
       : 0.7;
-  // The panorama is anchored to the window. Only the location of its lower
-  // feather depends on the reading area. Both panes see the same bank.
-  const bankHeight = Math.min(width / 3, height * 0.5);
+  // Keep the unfolded panorama. On phones, crop into its more sculpted
+  // right-hand side and size the bank to the space above the first card.
+  const bankHeight = panoramic
+    ? Math.min(width / 3, height * 0.5)
+    : Math.min(openingBottom, width * 0.6);
   const bankBottom = bankHeight * (rain ? 0.86 : 0.66 + 0.23 * cover);
-  const skyDepth = photo ? bankBottom : bankHeight;
-  const fadeEnd = panoramic
-    ? brightDay && hero
-      ? Math.min(skyDepth, openingBottom)
-      : skyDepth
-    : openingBottom;
-  const fadeStart =
-    brightDay && panoramic
-      ? Math.min(headerBottom, fadeEnd * 0.3)
-      : fadeEnd * (170 / 280);
-  const fieldHeight = brightDay ? fadeEnd : height;
+  const skyDepth = clouds ? bankBottom : bankHeight;
+  const fadeEnd =
+    panoramic && !sunny
+      ? brightDay && hero
+        ? Math.min(skyDepth, openingBottom)
+        : skyDepth
+      : openingBottom;
+  const fieldHeight = brightDay || sunny ? fadeEnd : height;
+  const bankFade = Math.min(fadeEnd, bankBottom);
+  const areas = readingAreas(width, railInset, opening);
+  const heroLeft = railInset + (hero?.frame.x ?? 0);
+  const heroWidth = hero?.frame.width ?? width - railInset;
+  const lightY = hero
+    ? insetTop + hero.frame.y + Math.min(22, hero.frame.height * 0.075)
+    : fadeEnd * 0.5;
+  const boltClearance = Math.min(33, heroWidth * 0.076);
+  const lightning = [
+    { x: heroLeft + heroWidth * 0.8, y: lightY },
+    { x: heroLeft + heroWidth * 0.93, y: lightY - boltClearance * 1.5 },
+  ].find(({ x, y }) => hasRoom(x, y, boltClearance, areas)) ?? {
+    x: heroLeft + heroWidth * 0.86,
+    y: -boltClearance * 1.1,
+  };
+  const rayLength = Math.min(width * 1.25, fadeEnd * 3);
   const density = panoramic ? Math.max(1, Math.min(2.5, width / 480)) : 1;
   const cloudOpacity =
     condition === 'clouds'
@@ -266,20 +273,22 @@ export const WeatherScenery = memo(function WeatherScenery({
       : condition === 'snow' || condition === 'drizzle'
         ? 0.65
         : 1;
-  const openingMask = (name: string) => (
+  const openingMask = (name: string, end: number, softenLeft: boolean) => (
     <>
       <LinearGradient
         id={`${id}-${name}-fade`}
         gradientUnits="userSpaceOnUse"
         x1="0"
         x2="0"
-        y1={fadeStart}
-        y2={fadeEnd}
+        y1={
+          panoramic && !sunny ? Math.min(headerBottom, end * 0.3) : end * 0.53
+        }
+        y2={end}
       >
         <Stop offset="0" stopColor="white" />
         <Stop offset="1" stopColor="white" stopOpacity={0} />
       </LinearGradient>
-      {panoramic && brightDay && (
+      {softenLeft && (
         <LinearGradient
           id={`${id}-${name}-open-sky`}
           gradientUnits="userSpaceOnUse"
@@ -288,9 +297,21 @@ export const WeatherScenery = memo(function WeatherScenery({
           y1={0}
           y2={0}
         >
-          <Stop offset="0" stopColor="black" stopOpacity={0.96} />
-          <Stop offset="0.22" stopColor="black" stopOpacity={0.94} />
-          <Stop offset="0.64" stopColor="black" stopOpacity={0.12} />
+          <Stop
+            offset="0"
+            stopColor="black"
+            stopOpacity={panoramic ? 0.96 : 0.9}
+          />
+          <Stop
+            offset="0.22"
+            stopColor="black"
+            stopOpacity={panoramic ? 0.94 : 0.8}
+          />
+          <Stop
+            offset="0.64"
+            stopColor="black"
+            stopOpacity={panoramic ? 0.12 : 0.18}
+          />
           <Stop offset="1" stopColor="black" stopOpacity={0} />
         </LinearGradient>
       )}
@@ -301,26 +322,37 @@ export const WeatherScenery = memo(function WeatherScenery({
         x={0}
         y={0}
         width={width}
-        height={fadeEnd}
+        height={end}
       >
-        <Rect width={width} height={fadeEnd} fill={url(`${name}-fade`)} />
-        {panoramic && brightDay && (
-          <Rect width={width} height={fadeEnd} fill={url(`${name}-open-sky`)} />
+        <Rect width={width} height={end} fill={url(`${name}-fade`)} />
+        {softenLeft && (
+          <Rect width={width} height={end} fill={url(`${name}-open-sky`)} />
         )}
       </Mask>
     </>
   );
-  const waterGradient = (
-    <LinearGradient id={id + '-water'} x1="0%" y1="0%" x2="0%" y2="100%">
-      <Stop offset="0" stopColor="white" stopOpacity={0} />
-      <Stop
-        offset="0.5"
-        stopColor="white"
-        stopOpacity={condition === 'mist' ? 0.55 : 0.45}
-      />
-      <Stop offset="1" stopColor="white" stopOpacity={rain ? 0.9 : 0} />
-    </LinearGradient>
-  );
+  const weatherOpacity = panoramic
+    ? brightDay
+      ? 0.4
+      : 0.3
+    : theme.isNight
+      ? 0.58
+      : 0.82;
+  const skyOpacity = sunny ? 0.98 : starry ? 0.8 : weatherOpacity;
+  const mistDepth = panoramic ? fieldHeight : openingBottom;
+  const starDepth = Math.min(height, Math.max(openingBottom, heroWidth) * 1.5);
+  const precipitationCount =
+    condition === 'drizzle' ? 16 : condition === 'snow' ? 24 : 32;
+  const precipitation =
+    rain || condition === 'snow'
+      ? openSkyPoints(
+          width,
+          panoramic ? height : openingBottom * 1.45,
+          Math.round(precipitationCount * density),
+          areas,
+          rain ? 15 : 8,
+        )
+      : [];
   return (
     <Animated.View
       pointerEvents="none"
@@ -332,31 +364,39 @@ export const WeatherScenery = memo(function WeatherScenery({
         style={{
           width,
           height: fieldHeight,
-          opacity: brightDay ? (panoramic ? 0.4 : 0.5) : 0.3,
+          opacity: skyOpacity,
           overflow: 'hidden',
         }}
       >
-        {condition !== 'clear' && (
+        {!starry && (
           <Svg width={width} height={fieldHeight} accessible={false}>
             <Defs>
-              {(brightDay || photo) && openingMask('opening')}
-              {clouds && !panoramic && (
-                <RadialGradient
-                  id={id + '-cloud'}
-                  cx="50%"
-                  cy="50%"
-                  rx="50%"
-                  ry="50%"
-                >
-                  <Stop offset="0" stopColor="white" stopOpacity={0.9} />
-                  <Stop offset="0.5" stopColor="white" stopOpacity={0.46} />
-                  <Stop offset="1" stopColor="white" stopOpacity={0} />
+              {clouds &&
+                openingMask('cloud-bank', bankFade, !panoramic || brightDay)}
+              {(sunny || (condition === 'mist' && (brightDay || !panoramic))) &&
+                openingMask(
+                  'opening',
+                  fadeEnd,
+                  !sunny && panoramic && brightDay,
+                )}
+              {sunny && (
+                <RadialGradient id={id + '-sunlight'} cx="50%" cy="50%" r="50%">
+                  <Stop offset="0" stopColor="#FFFBE9" stopOpacity={0.37} />
+                  <Stop offset="0.38" stopColor="#FFF9E7" stopOpacity={0.26} />
+                  <Stop offset="0.72" stopColor="#F7FBFF" stopOpacity={0.08} />
+                  <Stop offset="1" stopColor="#F7FBFF" stopOpacity={0} />
                 </RadialGradient>
               )}
-              {condition === 'mist' && waterGradient}
+              {condition === 'mist' && (
+                <RadialGradient id={id + '-mist'} cx="50%" cy="50%" r="50%">
+                  <Stop offset="0" stopColor="#EFF8FA" stopOpacity={0.65} />
+                  <Stop offset="0.4" stopColor="#E3F1F4" stopOpacity={0.46} />
+                  <Stop offset="1" stopColor="#D7E9EE" stopOpacity={0} />
+                </RadialGradient>
+              )}
             </Defs>
-            <G mask={brightDay ? url('opening') : undefined}>
-              {photo && (
+            {clouds && (
+              <G mask={url('cloud-bank')}>
                 <SkyImage
                   href={
                     rain
@@ -367,33 +407,79 @@ export const WeatherScenery = memo(function WeatherScenery({
                   y={bankBottom - bankHeight}
                   width={width}
                   height={bankHeight}
-                  preserveAspectRatio="xMidYMin slice"
+                  preserveAspectRatio={
+                    panoramic ? 'xMidYMin slice' : 'xMaxYMin slice'
+                  }
                   opacity={cloudOpacity}
-                  mask={brightDay ? undefined : url('opening')}
                 />
-              )}
-              {clouds && !panoramic && (
-                <Clouds
-                  width={width}
-                  height={height}
-                  quiet={quiet}
-                  cover={condition === 'clouds' ? cloudCover : undefined}
-                  fill={url('cloud')}
+                {condition === 'thunderstorm' && (
+                  <G
+                    transform={`translate(${lightning.x} ${lightning.y - 20})`}
+                    fill="none"
+                    stroke="#F4EDFF"
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
+                  >
+                    <Path
+                      d="M 5 0 L 0 10 L 2 14 L -9 23 L -8 28 L -20 40"
+                      strokeWidth={1.3}
+                    />
+                    <Path
+                      d="M 2 14 L 8 19 L 10 25 M -9 23 L -16 24 L -21 29"
+                      strokeWidth={0.75}
+                      opacity={0.7}
+                    />
+                  </G>
+                )}
+              </G>
+            )}
+            {sunny && (
+              <G mask={url('opening')}>
+                <G
+                  transform={`translate(${railInset - rayLength * 0.11} ${-rayLength * 0.08})`}
+                >
+                  {sunlightRays.map(({ angle, spread, opacity }) => (
+                    <Ellipse
+                      key={angle}
+                      cx={rayLength * 0.34}
+                      cy={0}
+                      rx={rayLength * 0.67}
+                      ry={rayLength * spread}
+                      transform={`rotate(${angle})`}
+                      fill={url('sunlight')}
+                      opacity={opacity}
+                    />
+                  ))}
+                </G>
+              </G>
+            )}
+            {condition === 'mist' && (
+              <G mask={brightDay || !panoramic ? url('opening') : undefined}>
+                <Ellipse
+                  cx={width * 0.96}
+                  cy={mistDepth * 0.18}
+                  rx={width * 0.82}
+                  ry={mistDepth * 0.43}
+                  fill={url('mist')}
                 />
-              )}
-              {condition === 'mist' &&
-                [55, 240, 450].map((top) => (
-                  <Rect
-                    key={top}
-                    x={-width * 0.1}
-                    y={(top / 780) * height}
-                    width={width * 1.2}
-                    height={Math.min(130, height / 6)}
-                    transform={`rotate(-5 ${width / 2} ${(top / 780) * height})`}
-                    fill={url('water')}
-                  />
-                ))}
-            </G>
+                <Ellipse
+                  cx={width * 0.12}
+                  cy={mistDepth * 0.53}
+                  rx={width * 0.86}
+                  ry={mistDepth * 0.28}
+                  fill={url('mist')}
+                  opacity={0.66}
+                />
+                <Ellipse
+                  cx={width * 0.84}
+                  cy={mistDepth * 0.72}
+                  rx={width * 0.65}
+                  ry={mistDepth * 0.25}
+                  fill={url('mist')}
+                  opacity={0.7}
+                />
+              </G>
+            )}
           </Svg>
         )}
         {hasParticles && (
@@ -402,7 +488,7 @@ export const WeatherScenery = memo(function WeatherScenery({
             style={[
               {
                 position: 'absolute',
-                top: 0,
+                top: particleTop,
                 left: railInset,
                 width: Math.max(0, particleRight - railInset),
                 overflow: 'hidden',
@@ -410,83 +496,73 @@ export const WeatherScenery = memo(function WeatherScenery({
               particleClip,
             ]}
           >
-            <Svg
-              width={width}
-              height={fieldHeight}
-              accessible={false}
-              style={{ position: 'absolute', top: 0, left: -railInset }}
+            <Animated.View
+              style={[
+                { position: 'absolute', top: -particleTop, left: -railInset },
+                starry && starScroll,
+              ]}
             >
-              <Defs>
-                {brightDay && openingMask('particle-opening')}
-                {rain && waterGradient}
-              </Defs>
-              <G mask={brightDay ? url('particle-opening') : undefined}>
-                {condition === 'clear' &&
-                  clearNightStars(
-                    width,
-                    height,
-                    quiet,
-                    settings ? headerBottom + 8 : 0,
-                  ).map((star, i) => (
-                    <Circle
-                      key={i}
-                      cx={star.x}
-                      cy={star.y}
-                      r={star.radius}
-                      fill="white"
-                      opacity={star.opacity}
-                    />
-                  ))}
-                {rain &&
-                  Array.from(
-                    {
-                      length: Math.round(
-                        (condition === 'drizzle' ? 16 : 32) * density,
-                      ),
-                    },
-                    (_, i) => {
-                      const x = (((i * 29 + 3) % 100) / 100) * width;
-                      const y = (((i * 53 + 8) % 780) / 780) * height;
+              <Svg width={width} height={fieldHeight} accessible={false}>
+                <Defs>
+                  {brightDay &&
+                    openingMask('particle-opening', fadeEnd, panoramic)}
+                  {rain && (
+                    <LinearGradient
+                      id={id + '-rain'}
+                      x1="0%"
+                      y1="0%"
+                      x2="0%"
+                      y2="100%"
+                    >
+                      <Stop offset="0" stopColor="white" stopOpacity={0} />
+                      <Stop offset="0.5" stopColor="white" stopOpacity={0.64} />
+                      <Stop offset="1" stopColor="white" stopOpacity={0.9} />
+                    </LinearGradient>
+                  )}
+                </Defs>
+                <G mask={brightDay ? url('particle-opening') : undefined}>
+                  {starry &&
+                    clearNightStars(width, starDepth, areas).map((star, i) => (
+                      <Circle
+                        key={i}
+                        cx={star.x}
+                        cy={star.y}
+                        r={star.radius}
+                        fill="white"
+                        opacity={star.opacity}
+                      />
+                    ))}
+                  {rain &&
+                    precipitation.map(({ x, y, seed }) => {
+                      const length =
+                        (condition === 'drizzle' ? 7 : 15) + (seed % 4) * 2;
                       return (
                         <Rect
-                          key={i}
+                          key={seed}
                           x={x}
-                          y={y}
+                          y={y - length / 2}
                           width={1}
-                          height={condition === 'drizzle' ? 12 : 19}
+                          height={length}
                           transform={`rotate(13 ${x} ${y})`}
-                          fill={url('water')}
-                          opacity={0.25 + (i % 4) * 0.13}
+                          fill={url('rain')}
+                          opacity={0.42 + (seed % 4) * 0.16}
                         />
                       );
-                    },
-                  )}
-                {rain &&
-                  [0.08, 0.93, 0.97].map((fraction, i) => (
-                    <Ellipse
-                      key={i}
-                      cx={fraction * width}
-                      cy={((100 + i * 82) / 780) * height}
-                      rx={3}
-                      ry={5.5}
-                      stroke="white"
-                      strokeOpacity={0.65}
-                      fill="none"
-                    />
-                  ))}
-                {condition === 'snow' &&
-                  Array.from({ length: Math.round(24 * density) }, (_, i) => (
-                    <Circle
-                      key={i}
-                      cx={(((i * 31 + 5) % 100) / 100) * width}
-                      cy={(((i * 61 + 12) % 790) / 790) * height}
-                      r={(2 + (i % 3)) / 2}
-                      opacity={0.4 + (i % 3) * 0.2}
-                      fill="white"
-                    />
-                  ))}
-              </G>
-            </Svg>
+                    })}
+                  {condition === 'snow' &&
+                    precipitation.map(({ x, y, seed }) => (
+                      <Circle
+                        key={seed}
+                        cx={x}
+                        cy={y}
+                        r={(2 + (seed % 3)) / 2}
+                        opacity={0.4 + (seed % 3) * 0.2}
+                        fill="white"
+                      />
+                    ))}
+                </G>
+              </Svg>
+            </Animated.View>
           </Animated.View>
         )}
       </View>

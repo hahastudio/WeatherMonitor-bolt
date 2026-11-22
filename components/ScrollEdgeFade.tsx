@@ -29,7 +29,7 @@ export function ScrollEdgeFade({
     styles.frame,
     horizontal
       ? { marginHorizontal: -inset }
-      : inset > 0 && {
+      : {
           position: 'absolute' as const,
           top: -inset,
           bottom: -inset,

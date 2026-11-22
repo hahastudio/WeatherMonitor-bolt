@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useReducer, useRef, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
   Text,
   View,
+  type LayoutRectangle,
   type ViewProps,
 } from 'react-native';
 import {
@@ -19,11 +20,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useWeather } from '../contexts/WeatherContext';
 import { useAdaptiveLayout } from '../hooks/useAdaptiveLayout';
-import {
-  capitalizeWords,
-  formatTemperature,
-  heroLetterShadow,
-} from '../utils/weatherTheme';
+import { formatTemperature, heroLetterShadow } from '../utils/weatherTheme';
 import { WeatherIcon } from './WeatherIcon';
 import { WeatherSummary } from './WeatherSummary';
 import { WeatherAlerts } from './WeatherAlerts';
@@ -55,12 +52,22 @@ const value = (n: number | undefined, unit: string, factor = 1) =>
     : 'Unavailable';
 
 export function CurrentConditions({
+  compact,
+  heroInset,
+  stackReadings,
+  minHeroHeight = 0,
+  onLayout,
   onHeroLayout,
-  onTextLayout,
+  onReadingsLayout,
 }: {
+  compact: boolean;
+  heroInset: number;
+  stackReadings: boolean;
+  minHeroHeight?: number;
+  onLayout?: ViewProps['onLayout'];
   onHeroLayout?: ViewProps['onLayout'];
-  onTextLayout?: ViewProps['onLayout'];
-} = {}) {
+  onReadingsLayout: (readings: LayoutRectangle[]) => void;
+}) {
   const {
     currentWeather: weather,
     weatherAirQuality,
@@ -71,7 +78,33 @@ export function CurrentConditions({
     refreshWeather,
   } = useWeather();
   const { rail, columns, fontScale } = useAdaptiveLayout();
-  const [primaryHeight, setPrimaryHeight] = useState(104);
+  const [conditionHeight, setConditionHeight] = useState(0);
+  const heroRef = useRef<View>(null);
+  const readingRef = useRef<View>(null);
+  const conditionRef = useRef<View>(null);
+  const supportRef = useRef<View>(null);
+  const [layoutVersion, layoutChanged] = useReducer(
+    (version: number) => version + 1,
+    0,
+  );
+  // Wrapping can move a sibling without resizing it. Measure all three against
+  // the same hero after layout, including the condition's baseline adjustment.
+  useLayoutEffect(() => {
+    const parent = heroRef.current;
+    if (!parent) return;
+    let active = true;
+    const readings: LayoutRectangle[] = [];
+    for (const ref of [readingRef, conditionRef, supportRef]) {
+      ref.current?.measureLayout(parent, (x, y, width, height) => {
+        if (!active) return;
+        readings.push({ x, y, width, height });
+        if (readings.length === 3) onReadingsLayout(readings);
+      });
+    }
+    return () => {
+      active = false;
+    };
+  }, [layoutVersion, conditionHeight, stackReadings, onReadingsLayout]);
   const router = useRouter();
   if (!weather)
     return error ? (
@@ -85,6 +118,20 @@ export function CurrentConditions({
         }
       />
     );
+  const temperature = formatTemperature(weather.main.temp);
+  const unitStart = temperature.indexOf('°');
+  const temperatureSize = compact ? 74 : 88;
+  const { main, description } = weather.weather[0];
+  const conditionSize = (compact ? 18 : 20) * fontScale;
+  const conditionLineHeight = Math.ceil(1.2 * conditionSize);
+  // Flex rows align the first text baseline. Reserve space for any additional
+  // lines above the shared baseline so the last line aligns with the numeral.
+  const conditionOffset = stackReadings
+    ? 0
+    : Math.max(0, Math.round(conditionHeight / conditionLineHeight) - 1) *
+      conditionLineHeight;
+  const heroText = { color: theme.heroText };
+  const secondaryText = { color: theme.heroSecondary };
   const rain = weather.rain?.['1h'];
   const snow = weather.snow?.['1h'];
   const hasRain = rain !== undefined && rain > 0;
@@ -136,75 +183,136 @@ export function CurrentConditions({
     },
   ];
   return (
-    <View style={{ flex: 1, gap: 12 }}>
+    <View style={{ flexGrow: 1, gap: 12 }} onLayout={onLayout}>
       <View
         testID="current-weather-hero"
+        ref={heroRef}
+        collapsable={false}
         onLayout={onHeroLayout}
-        style={[s.hero, columns && { minHeight: 220 * Math.max(1, fontScale) }]}
+        style={[
+          s.hero,
+          { paddingHorizontal: heroInset },
+          columns && {
+            minHeight: Math.max(220 * Math.max(1, fontScale), minHeroHeight),
+          },
+        ]}
       >
-        <View style={[s.heroRow, fontScale > 1.4 && { flexWrap: 'wrap' }]}>
-          <View style={{ flexShrink: 1 }} onLayout={onTextLayout}>
-            <View
-              testID="current-weather-primary"
-              onLayout={(event) =>
-                setPrimaryHeight(event.nativeEvent.layout.height)
-              }
-            >
-              <Text
-                style={[
-                  s.temperature,
-                  heroLetterShadow,
-                  { color: theme.heroText },
-                ]}
-              >
-                {formatTemperature(weather.main.temp)}
-              </Text>
-              <Text
-                style={{
-                  ...heroLetterShadow,
-                  color: theme.heroText,
-                  fontSize: 20,
-                  fontWeight: '600',
-                }}
-              >
-                {capitalizeWords(weather.weather[0].description)}
-              </Text>
-            </View>
+        <View
+          testID="current-weather-primary"
+          onLayout={layoutChanged}
+          style={[
+            s.heroRow,
+            compact && s.compactRow,
+            stackReadings && s.stackedRow,
+          ]}
+        >
+          <View
+            accessible
+            accessibilityLabel={temperature}
+            style={s.reading}
+            ref={readingRef}
+            collapsable={false}
+            onLayout={layoutChanged}
+          >
             <Text
-              style={{
-                ...heroLetterShadow,
-                color: theme.heroSecondary,
-                fontSize: 16,
-                marginTop: 8,
-              }}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              style={[
+                s.temperature,
+                heroLetterShadow,
+                heroText,
+                {
+                  fontSize: temperatureSize,
+                  lineHeight: temperatureSize,
+                  letterSpacing: -0.06 * temperatureSize,
+                },
+              ]}
             >
-              Feels like {formatTemperature(weather.main.feels_like)}
+              {temperature.slice(0, unitStart)}
             </Text>
             <Text
-              style={{
-                ...heroLetterShadow,
-                color: theme.heroSecondary,
-                fontSize: 16,
-                textAlign: 'left',
-                marginTop: 8,
-              }}
+              style={[
+                s.unit,
+                heroLetterShadow,
+                heroText,
+                {
+                  fontSize: Math.round(temperatureSize * 0.34),
+                  marginTop: Math.round(temperatureSize * fontScale * 0.08),
+                },
+              ]}
             >
+              {temperature.slice(unitStart)}
+            </Text>
+          </View>
+          <View
+            ref={conditionRef}
+            collapsable={false}
+            onLayout={layoutChanged}
+            style={[
+              s.condition,
+              {
+                columnGap: conditionSize * 0.32,
+                top: -conditionOffset,
+                marginTop: conditionOffset,
+                marginBottom: -conditionOffset,
+              },
+              stackReadings && s.stackedCondition,
+            ]}
+          >
+            <View style={[s.conditionIcon, { height: conditionLineHeight }]}>
+              <WeatherIcon
+                weatherMain={main}
+                size={(compact ? 20 : 22) * fontScale}
+                color={theme.heroText}
+                isNight={theme.isNight}
+              />
+            </View>
+            <Text
+              allowFontScaling={false}
+              onLayout={({ nativeEvent }) =>
+                setConditionHeight(nativeEvent.layout.height)
+              }
+              style={[
+                s.conditionText,
+                heroLetterShadow,
+                heroText,
+                {
+                  fontSize: conditionSize,
+                  lineHeight: conditionLineHeight,
+                  letterSpacing: -0.025 * conditionSize,
+                },
+              ]}
+            >
+              {description.charAt(0).toUpperCase() + description.slice(1)}
+            </Text>
+          </View>
+        </View>
+        <View
+          style={[s.support, { borderTopColor: theme.divider }]}
+          ref={supportRef}
+          collapsable={false}
+          onLayout={layoutChanged}
+        >
+          <Text style={[s.metric, heroLetterShadow, secondaryText]}>
+            Feels like{' '}
+            <Text style={[s.metricValue, heroText]}>
+              {formatTemperature(weather.main.feels_like)}
+            </Text>
+          </Text>
+          <View style={s.range}>
+            <Text style={[s.metric, heroLetterShadow, secondaryText]}>
               High{' '}
-              <Text style={{ fontWeight: '700' }}>
+              <Text style={[s.metricValue, heroText]}>
                 {formatTemperature(weather.main.temp_max)}
-              </Text>{' '}
-              / Low{' '}
-              <Text style={{ fontWeight: '700' }}>
+              </Text>
+            </Text>
+            <Text style={[s.metric, heroLetterShadow, secondaryText]}>
+              Low{' '}
+              <Text style={[s.metricValue, heroText]}>
                 {formatTemperature(weather.main.temp_min)}
               </Text>
             </Text>
           </View>
-          <WeatherIcon
-            weatherMain={weather.weather[0].main}
-            size={Math.min(primaryHeight, 120 * fontScale)}
-            color={theme.heroText}
-            isNight={theme.isNight}
-          />
         </View>
       </View>
       <WeatherSummary />
@@ -292,17 +400,71 @@ export function CurrentConditions({
 const DETAIL_DIVIDER_INSET = 8;
 const s = StyleSheet.create({
   hero: {
-    paddingVertical: 18,
-    paddingHorizontal: 8,
+    paddingVertical: 10,
     justifyContent: 'center',
   },
   heroRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
     gap: 12,
   },
-  temperature: { fontSize: 66, fontWeight: '300', letterSpacing: -3 },
+  compactRow: { columnGap: 8 },
+  stackedRow: { flexDirection: 'column', alignItems: 'flex-start' },
+  reading: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    maxWidth: '100%',
+    gap: 3,
+  },
+  temperature: {
+    flexShrink: 1,
+    includeFontPadding: false,
+    fontWeight: '300',
+    fontVariant: ['lining-nums', 'tabular-nums'],
+  },
+  unit: {
+    alignSelf: 'flex-start',
+    includeFontPadding: false,
+    letterSpacing: -1,
+    fontWeight: '500',
+  },
+  condition: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexShrink: 1,
+    minWidth: 0,
+    maxWidth: '58%',
+  },
+  stackedCondition: { maxWidth: '100%' },
+  conditionIcon: { alignSelf: 'flex-start', justifyContent: 'center' },
+  conditionText: {
+    flexShrink: 1,
+    minWidth: 0,
+    includeFontPadding: false,
+    fontWeight: '600',
+  },
+  support: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: 6,
+    columnGap: 10,
+    marginTop: 20,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  range: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    justifyContent: 'flex-end',
+    marginStart: 'auto',
+    gap: 4,
+    columnGap: 10,
+  },
+  metric: { fontSize: 15, lineHeight: 21, includeFontPadding: false },
+  metricValue: { fontWeight: '600', fontVariant: ['tabular-nums'] },
   heading: { fontSize: 20, fontWeight: '600', padding: 14, paddingBottom: 2 },
   details: { overflow: 'hidden', paddingBottom: DETAIL_DIVIDER_INSET },
   detailRow: { flexDirection: 'row', marginHorizontal: DETAIL_DIVIDER_INSET },
